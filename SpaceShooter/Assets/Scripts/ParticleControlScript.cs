@@ -19,7 +19,7 @@ public class ParticleController : MonoBehaviour
 
     void Update()
     {
-        particleSystem.transform.position = transform.position;
+        particleSystem.transform.position =new Vector3(transform.position.x,transform.position.y,+50);
 
         Vector3 movement = transform.position - lastPosition;
         float speed = movement.magnitude / Time.deltaTime;

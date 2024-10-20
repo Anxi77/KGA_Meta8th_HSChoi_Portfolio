@@ -10,10 +10,7 @@ public class PlayerMove : MonoBehaviour
 
     void Start()
     {
-        // 상위 객체의 Rigidbody 가져오기
         rb = GetComponent<Rigidbody>();
-
-        // 상위 객체는 Z축 고정 (XY 평면에서 이동)
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezePositionZ;
     }
 
@@ -27,7 +24,6 @@ public class PlayerMove : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 상위 객체 이동 처리
-        rb.velocity = movement.normalized * moveSpeed;
+        rb.AddForce(movement.normalized * moveSpeed);
     }
 }

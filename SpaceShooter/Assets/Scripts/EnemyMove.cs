@@ -8,24 +8,41 @@ public class EnemyMove : MonoBehaviour
     Vector3 direction;
     private void Awake()
     {
-        // 태그를 사용하여 플레이어 찾기
         player = GameObject.FindGameObjectWithTag("Player");
-
     }
 
     private void Start()
     {
         direction = (player.transform.position - transform.position).normalized;
-        transform.rotation = player.transform.rotation * Quaternion.Euler(-60f, 0f, 0f);
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        Quaternion targetRotation = Quaternion.Euler(30f, 0f, angle - 90f);
+        transform.rotation = targetRotation;
     }
 
     void Update()
     {
         if (player != null && direction != null)
-        {
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            
+        {            
             transform.position += direction * moveSpeed * Time.deltaTime;
         }
+
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject == player) 
+        {
+            Destroy(player);
+        }
+        else 
+        {
+            DestroyImmediate(this.gameObject);
+        }
+
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        Destroy(this.gameObject);
     }
 }

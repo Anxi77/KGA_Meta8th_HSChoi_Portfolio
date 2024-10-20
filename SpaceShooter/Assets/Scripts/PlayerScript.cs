@@ -8,7 +8,6 @@ namespace SpaceShooter
     public class PlayerScript : MonoBehaviour
     {
         public float moveSpeed = 5f;
-        //public float accelerationForce = 1f;
         #region Backup
         //public float boundaryXMinSize = -15.22f;
         //public float boundaryXMaxSize = 15.22f;
@@ -19,8 +18,7 @@ namespace SpaceShooter
         #endregion
         public GameObject gameOverMessage;
         private Rigidbody rb;
-        private float initialZ = 0; // 초기 z 위치
-        private float zOffset; // 현재 z 오프셋
+        private float zOffset;
         public float rotationSpeed = 5f;
         public float resetSpeed = 2f;
         private float initialZRotation;
@@ -85,7 +83,7 @@ namespace SpaceShooter
 
 
             //Vector3 movement = new Vector3(x, y, 0);
-            //// 2. 위치를 정수로 반올림하여 미세한 떨림 감소
+            //
             //Vector3 targetPosition = transform.position + movement * moveSpeed * Time.deltaTime;
             //transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
             //transform.position = new Vector3(
@@ -113,15 +111,15 @@ namespace SpaceShooter
         public void PlayerRotate()
         {
 
-            //float x = Input.GetAxis("Horizontal");
-            //float y = Input.GetAxis("Vertical");
+            float x = Input.GetAxis("Horizontal");
+            float y = Input.GetAxis("Vertical");
 
-            //if (x != 0 || y != 0)
-            //{
-            //    float angle = Mathf.Atan2(y, x) * Mathf.Rad2Deg;
-            //    Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle - 90f);
-            //    rb.MoveRotation(Quaternion.Slerp(transform.rotation, targetRotation * Quaternion.Euler(-90f, 0f, angle + 90f), 5f * Time.deltaTime));
-            //}
+            if (x != 0 || y != 0)
+            {
+                float angle = Mathf.Atan2(y, x) * Mathf.Rad2Deg;
+                Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle - 90f);
+                rb.MoveRotation(Quaternion.Slerp(transform.rotation, targetRotation * Quaternion.Euler(-90f, 0f, angle + 90f), 5f * Time.deltaTime));
+            }
 
             #region Old
             //if (Mathf.Abs(x) > 0.1f) // 좌우 움직임이 있을 때만

@@ -9,7 +9,7 @@ public class FollowDirection : MonoBehaviour
     private void Update()
     {
         Vector3 directionToPlayer = Player.transform.position - transform.position;
-        directionToPlayer.z = 0; // Ignore z-axis difference for 2D player
+        directionToPlayer.z = 0;
 
         Quaternion targetRotation = Quaternion.LookRotation(Vector3.forward, directionToPlayer);
         transform.rotation = targetRotation;
