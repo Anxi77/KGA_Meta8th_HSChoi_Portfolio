@@ -13,14 +13,15 @@ public class EnemyMove : MonoBehaviour
 
     private void Start()
     {
-        direction = (player.transform.position - transform.position).normalized;
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        Quaternion targetRotation = Quaternion.Euler(30f, 0f, angle - 90f);
-        transform.rotation = targetRotation;
+
     }
 
     void Update()
     {
+        direction = (player.transform.position - transform.position).normalized;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        Quaternion targetRotation = Quaternion.Euler(30f, 0f, angle - 90f);
+        transform.rotation = targetRotation;
         if (player != null && direction != null)
         {            
             transform.position += direction * moveSpeed * Time.deltaTime;
