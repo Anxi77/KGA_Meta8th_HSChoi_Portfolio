@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Purple
+  m_Shader: {fileID: 4800000, guid: 6f9f505dfe5b25a469750fd941299038, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTexture:
+        m_Texture: {fileID: 2800000, guid: e0a571be237f88f45b239fdff03de729, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineNoiseTexture:
+        m_Texture: {fileID: 2800000, guid: 807ea8009960099419402c9ad944dadb, type: 3}
+        m_Scale: {x: -0.39, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Amplitude: 0.159
+    - _Dissolve: 0
+    - _DissolveScale: 68.35
+    - _DissolveWidth: 0.2
+    - _EdgeSharpness: 0
+    - _EndDistance: 0.8
+    - _Fill: 1
+    - _FixingPointsDistance: 0
+    - _Frequency: 2.43
+    - _GapSize: 0.45
+    - _InverseLine: 0
+    - _InverseUV: 0
+    - _LaserFill: 0.592
+    - _LineOffset: 0.93
+    - _LineSize: 0.109
+    - _MiddleEdgeSharpness: 0.3
+    - _MiddleFeather: 0.066
+    - _NoiseIntensity: 1
+    - _OutlineEdgeSharpness: 0.1
+    - _OutlineFeather: 0.026
+    - _OutlineSize: 0.539
+    - _Radius: 0.78
+    - _SinSpeed: 8.22
+    - _Size: 0.398
+    - _Speed: 15
+    - _StartDistance: 0.9
+    - _Value: -0.25
+    m_Colors:
+    - _DissolveColor: {r: 0, g: 3.1657279, b: 20.155134, a: 1}
+    - _LineColor: {r: 0.109803915, g: 0.69870377, b: 0.7647059, a: 1}
+    - _MiddleColor: {r: 0.07142918, g: 0.36589956, b: 1.7207956, a: 1}
+    - _OutlineColor: {r: 3.4969234, g: 0.20174558, b: 12.844469, a: 0.76862746}
+    - _OutlineEndColor: {r: 55.065445, g: 0.55065435, b: 0, a: 1}
+    - _OutlineStartColor: {r: 6.8831816, g: 4.0077825, b: 0, a: 1}
+  m_BuildTextureStacks: []
