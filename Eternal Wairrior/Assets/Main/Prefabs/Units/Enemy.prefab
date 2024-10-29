@@ -263,10 +263,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hp: 10
   damage: 10
-  moveSpeed: 2
+  moveSpeed: 3
   mobEXP: 0
   damageInterval: 0.5
-  originalMoveSpeed: 0
   target: {fileID: 0}
   hpBar: {fileID: 3705600860709169156}
   impactParticle: {fileID: 1822138223796843213, guid: b48335ebad03cbf48ae4f587209a81b3, type: 3}
