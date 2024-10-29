@@ -6,6 +6,7 @@ TagManager:
   tags:
   - HealthPack
   - Enemy
+  - Obstacle
   layers:
   - Default
   - TransparentFX
@@ -13,8 +14,8 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
+  - Obstacle
+  - Enemy
   - 
   - 
   - 
@@ -40,6 +41,9 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Terrain
+    uniqueID: 1662075723
+    locked: 0
   - name: Map
     uniqueID: 3300866645
     locked: 0
