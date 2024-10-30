@@ -1,3 +1,4 @@
+using Lean.Pool;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -15,14 +16,11 @@ public class EnemyGenerator : MonoBehaviour
     [Tooltip("스폰될 때 플레이어로부터의 최대/최소 거리.\n X : 최소 , Y : 최대")]
     public Vector2 minMaxDist;
 
-    public float spawnInterval; 
+    public float spawnInterval;
 
     #endregion
 
-    #region References
-
-    //public GameObject enemyPrefab;
-    #endregion
+    public Enemy enemyPrefab;
 
     #endregion
 
@@ -52,14 +50,12 @@ public class EnemyGenerator : MonoBehaviour
 
             Vector2 ranPos = Random.insideUnitCircle;
 
-            Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
+            Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);            
 
+            Vector2 FinalPos = playerPos + spawnPos;
 
-            //플레이어 좌표에 구한 좌표를 더하여 생성.
-            Enemy enemy = EnemyPool.pool.Pop();
+            Enemy enemy = LeanPool.Spawn(enemyPrefab);
 
-            enemy.transform.position = playerPos + spawnPos;
-            
         }
     }
     #endregion

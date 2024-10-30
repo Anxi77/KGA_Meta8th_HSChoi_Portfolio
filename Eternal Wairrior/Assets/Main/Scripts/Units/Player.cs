@@ -164,44 +164,10 @@ public class Player : MonoBehaviour
         {
             characterControl.PlayAnimation(PlayerState.IDLE, 0);
         }
-
-        
-
-        #region Old Shit
-
-        //float x = Input.GetAxisRaw("Horizontal");
-        //float y = Input.GetAxisRaw("Vertical");
-        // 입력이 없을 때 속도를 0으로 설정
-        //if (input.magnitude == 0)
-        //{
-        //    velocity = Vector2.zero;
-        //}
-
-        //float x = Input.GetAxis("Horizontal");
-        //float y = Input.GetAxis("Vertical");
-
-        //if (x != 0 || y != 0)
-        //{
-        //    Vector3 targetPosition = transform.position + new Vector3(x, y, 0).normalized * moveSpeed * Time.deltaTime;
-        //    transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, smoothTime);
-
-        //    tailfireAnimCtrl.SetBool("IsMoving", velocity.magnitude > 0.1f);
-        //}
-        //this.moveDir.up = moveDir;
-
-        #endregion
-        #region Notes About Vector
-        /*transform.up/right/forward 에 방향 벡터를 대입할 때는 방향벡터의 magnitude 굳이 1로 제한하지 않아도 된다.
-        transform.Translate(moveDir * moveSpeed * Time.deltaTime);
-        print(this.moveDir.up);//normalized 되어 magnitude가 1로 고정된 방향벡터가 반환된다.
-        */
-        #endregion
-
     }
 
     private void GetMoveInput()
     {
-        //만약 rb를 통하여 움직이는 로직이라면 인풋을 받는 타이밍과의 차이가 있기때문에 업데이트에서 인풋을 받고 실제 움직이는 로직은 fixedupdate에서
         x = Input.GetAxisRaw("Horizontal");
         y = Input.GetAxisRaw("Vertical");
     }
@@ -211,8 +177,8 @@ public class Player : MonoBehaviour
         foreach (Skill skill in skills)
         {
             GameObject skillObj = Instantiate(skill.skillPrefabs[skill.skillLevel], transform, false);
-            skillObj.name = skill.skillName; //오브젝트 이름 변경
-            skillObj.transform.localPosition = Vector2.zero; //스킬 위치를 플레이어의 위치로 가져옴
+            skillObj.name = skill.skillName;
+            skillObj.transform.localPosition = Vector2.zero; 
 
             if (skillObj.TryGetComponent<ProjectileSkills>(out ProjectileSkills proj))
             {
@@ -346,10 +312,6 @@ public class Player : MonoBehaviour
         {
             contact.Contact();
         }
-        if (other.gameObject.CompareTag("Enemy"))
-        {         
-            rb.constraints = RigidbodyConstraints2D.None;
-        }
     }
 
 
@@ -362,15 +324,22 @@ public class Player : MonoBehaviour
         }
     }
 
-    public void Die()
+    public void TakeDamage(float damage)
     {
+        hp -= damage;
+
         if (hp <= 0)
         {
-            playerStatus = Status.Dead;
+            hp = 0;
+            Die();
         }
     }
 
-    //파라미터로 넘어온 스킬의 레벨을 상승시키고 다음 레벨의 프리팹으로 교체
+    public void Die()
+    {
+        playerStatus = Status.Dead;        
+    }
+
     public void OnSkillLevelUp(Skill skill)
     {
 

@@ -2,45 +2,36 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor.Experimental.GraphView;
 
-public class PathFindingManager : MonoBehaviour
+public class PathFindingManager : SingletonManager<PathFindingManager>
 {
     #region Singleton
+
     private static PathFindingManager instance;
-    public static PathFindingManager Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                instance = FindObjectOfType<PathFindingManager>();
-                if (instance == null)
-                {
-                    GameObject go = new GameObject("PathFindingManager");
-                    instance = go.AddComponent<PathFindingManager>();
-                }
-            }
-            return instance;
-        }
-    }
+
     #endregion
 
     #region Fields & Properties
-    private const int GRID_SIZE = 100;
-    public const float NODE_SIZE = 1f;
+    private const int GRID_SIZE = 50;
+    public const float NODE_SIZE = 0.5f;
+    private const float GRID_VIEW_DISTANCE = 20f;
+    private const int MAX_PATH_LENGTH = 100;
+    private const int MAX_SEARCH_ITERATIONS = 1000;
 
-    private Node[,] grid;
+    private Dictionary<Vector2Int, Node> activeNodes = new Dictionary<Vector2Int, Node>();
+    private Camera mainCamera;
+    private Vector2 previousCameraPosition;
+    private Vector2 bottomLeft;
+    private Vector2 gridWorldCenter;
     private List<Node> openSet;
     private HashSet<Node> closedSet;
-    private Vector2 gridWorldCenter;
-    private Vector2 bottomLeft;
     #endregion
 
     #region Object Pooling
     private class PathFindingInstance
     {
-        public List<Node> openSet = new List<Node>(GRID_SIZE);
+        public List<Node> openSet = new List<Node>(1000);
         public HashSet<Node> closedSet = new HashSet<Node>();
-        public List<Vector2> path = new List<Vector2>(50);
+        public List<Vector2> path = new List<Vector2>(MAX_PATH_LENGTH);
     }
 
     private Queue<PathFindingInstance> instancePool = new Queue<PathFindingInstance>();
@@ -74,45 +65,49 @@ public class PathFindingManager : MonoBehaviour
     #endregion
 
     #region Initialization & Setup
-    private void Awake()
+
+    protected override void Awake()
     {
-        InitializeSingleton();
+        base.Awake();
         InitializePools();
         CreateGrid();
     }
 
-    private void InitializeSingleton()
+    private void CreateGrid()
     {
-        if (instance != null && instance != this)
+        mainCamera = Camera.main;
+        if (mainCamera == null)
         {
-            Destroy(gameObject);
+            Debug.LogError("Main Camera not found!");
             return;
         }
 
-        instance = this;
-        DontDestroyOnLoad(gameObject);
-    }
-    #endregion
-
-    #region Grid Management
-    private void CreateGrid()
-    {
-        InitializeGridCenter();
+        UpdateGridCenter();
         InitializeNodes();
     }
 
-    private void InitializeGridCenter()
+    private void UpdateGridCenter()
     {
-        grid = new Node[GRID_SIZE, GRID_SIZE];
-        gridWorldCenter = GameObject.FindGameObjectWithTag("Player")?.transform.position ?? Vector2.zero;
+        if (mainCamera == null) return;
+
+        gridWorldCenter = mainCamera.transform.position;
         bottomLeft = gridWorldCenter - new Vector2(GRID_SIZE * NODE_SIZE / 2, GRID_SIZE * NODE_SIZE / 2);
     }
 
     private void InitializeNodes()
     {
-        for (int x = 0; x < GRID_SIZE; x++)
+        Vector2 cameraPosition = mainCamera.transform.position;
+        float height = 2f * mainCamera.orthographicSize;
+        float width = height * mainCamera.aspect;
+
+        int startX = Mathf.FloorToInt((cameraPosition.x - width / 2 - GRID_VIEW_DISTANCE - bottomLeft.x) / NODE_SIZE);
+        int endX = Mathf.CeilToInt((cameraPosition.x + width / 2 + GRID_VIEW_DISTANCE - bottomLeft.x) / NODE_SIZE);
+        int startY = Mathf.FloorToInt((cameraPosition.y - height / 2 - GRID_VIEW_DISTANCE - bottomLeft.y) / NODE_SIZE);
+        int endY = Mathf.CeilToInt((cameraPosition.y + height / 2 + GRID_VIEW_DISTANCE - bottomLeft.y) / NODE_SIZE);
+
+        for (int x = startX; x <= endX; x++)
         {
-            for (int y = 0; y < GRID_SIZE; y++)
+            for (int y = startY; y <= endY; y++)
             {
                 CreateNode(x, y);
             }
@@ -123,11 +118,136 @@ public class PathFindingManager : MonoBehaviour
     {
         Vector2 worldPosition = bottomLeft + new Vector2(x * NODE_SIZE, y * NODE_SIZE);
         bool isWalkable = !Physics2D.OverlapCircle(worldPosition, NODE_SIZE * 0.4f, LayerMask.GetMask("Obstacle"));
-        grid[x, y] = new Node(isWalkable, worldPosition, x, y);
+        activeNodes[new Vector2Int(x, y)] = new Node(isWalkable, worldPosition, x, y);
     }
+
+    private void Update()
+    {
+        if (mainCamera == null) return;
+
+        Vector2 currentCameraPosition = mainCamera.transform.position;
+        if (Vector2.Distance(currentCameraPosition, previousCameraPosition) > NODE_SIZE)
+        {
+            UpdateGrid(currentCameraPosition);
+            previousCameraPosition = currentCameraPosition;
+        }
+    }
+
+    private void UpdateGrid(Vector2 cameraPosition)
+    {
+        bottomLeft = cameraPosition - new Vector2(GRID_SIZE * NODE_SIZE / 2, GRID_SIZE * NODE_SIZE / 2);
+
+        // 현재 카메라 뷰포트 범위 계산
+        float height = 2f * mainCamera.orthographicSize;
+        float width = height * mainCamera.aspect;
+
+        int startX = Mathf.FloorToInt((cameraPosition.x - width / 2 - GRID_VIEW_DISTANCE - bottomLeft.x) / NODE_SIZE);
+        int endX = Mathf.CeilToInt((cameraPosition.x + width / 2 + GRID_VIEW_DISTANCE - bottomLeft.x) / NODE_SIZE);
+        int startY = Mathf.FloorToInt((cameraPosition.y - height / 2 - GRID_VIEW_DISTANCE - bottomLeft.y) / NODE_SIZE);
+        int endY = Mathf.CeilToInt((cameraPosition.y + height / 2 + GRID_VIEW_DISTANCE - bottomLeft.y) / NODE_SIZE);
+
+        HashSet<Vector2Int> currentVisibleNodes = new HashSet<Vector2Int>();
+
+        // 새로운 노드 생성 및 기존 노드 업데이트
+        for (int x = startX; x <= endX; x++)
+        {
+            for (int y = startY; y <= endY; y++)
+            {
+                Vector2Int gridPos = new Vector2Int(x, y);
+                currentVisibleNodes.Add(gridPos);
+
+                if (!activeNodes.ContainsKey(gridPos))
+                {
+                    CreateNode(x, y);
+                }
+                else
+                {
+                    UpdateNode(x, y);
+                }
+            }
+        }
+
+        // 시야 밖의 노드 제거
+        List<Vector2Int> nodesToRemove = new List<Vector2Int>();
+        foreach (var node in activeNodes)
+        {
+            if (!currentVisibleNodes.Contains(node.Key))
+            {
+                nodesToRemove.Add(node.Key);
+            }
+        }
+
+        foreach (var pos in nodesToRemove)
+        {
+            activeNodes.Remove(pos);
+        }
+
+        // 적 콜라이더 상태 업데이트
+        UpdateEnemyColliders(currentVisibleNodes);
+    }
+
+    private void UpdateNode(int x, int y)
+    {
+        Vector2Int gridPos = new Vector2Int(x, y);
+        if (activeNodes.TryGetValue(gridPos, out Node node))
+        {
+            Vector2 worldPosition = bottomLeft + new Vector2(x * NODE_SIZE, y * NODE_SIZE);
+            node.walkable = !Physics2D.OverlapCircle(worldPosition, NODE_SIZE * 0.4f, LayerMask.GetMask("Obstacle"));
+            node.worldPosition = worldPosition;
+        }
+    }
+
+    private void UpdateEnemyColliders(HashSet<Vector2Int> visibleNodes)
+    {
+        if (GameManager.Instance?.enemies == null) return;
+
+        foreach (var enemy in GameManager.Instance.enemies)
+        {
+            Vector2Int enemyGridPos = WorldToGridPosition(enemy.transform.position);
+            bool isInVisibleArea = visibleNodes.Contains(enemyGridPos);
+            enemy.SetCollisionState(!isInVisibleArea);
+        }
+    }
+
+    private Vector2Int WorldToGridPosition(Vector2 worldPosition)
+    {
+        int x = Mathf.FloorToInt((worldPosition.x - bottomLeft.x) / NODE_SIZE);
+        int y = Mathf.FloorToInt((worldPosition.y - bottomLeft.y) / NODE_SIZE);
+        return new Vector2Int(x, y);
+    }
+
+    private Node GetNodeFromWorldPosition(Vector2 worldPosition)
+    {
+        Vector2Int gridPos = WorldToGridPosition(worldPosition);
+        activeNodes.TryGetValue(gridPos, out Node node);
+        return node;
+    }
+
+    private List<Node> GetNeighbours(Node node)
+    {
+        var neighbours = new List<Node>(8);
+
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                if (x == 0 && y == 0) continue;
+
+                Vector2Int checkPos = new Vector2Int(node.gridX + x, node.gridY + y);
+                if (activeNodes.TryGetValue(checkPos, out Node neighbour))
+                {
+                    neighbours.Add(neighbour);
+                }
+            }
+        }
+
+        return neighbours;
+    }
+
     #endregion
 
     #region Pathfinding Core
+
     public List<Vector2> FindPath(Vector2 startPos, Vector2 targetPos)
     {
         var pathFindingInstance = GetPathFindingInstance();
@@ -195,33 +315,31 @@ public class PathFindingManager : MonoBehaviour
 
     private void InitializePathfindingNodes(Node startNode, Node targetNode)
     {
-        int startX = Mathf.Max(0, startNode.gridX - 20);
-        int endX = Mathf.Min(GRID_SIZE - 1, targetNode.gridX + 20);
-        int startY = Mathf.Max(0, startNode.gridY - 20);
-        int endY = Mathf.Min(GRID_SIZE - 1, targetNode.gridY + 20);
-
-        for (int x = startX; x <= endX; x++)
+        foreach (var node in activeNodes.Values)
         {
-            for (int y = startY; y <= endY; y++)
-            {
-                grid[x, y].gCost = float.MaxValue;
-                grid[x, y].CalculateFCost();
-                grid[x, y].previousNode = null;
-            }
+            node.gCost = float.MaxValue;
+            node.CalculateFCost();
+            node.previousNode = null;
         }
 
-        startNode.gCost = 0;
-        startNode.hCost = CalculateDistance(startNode, targetNode);
-        startNode.CalculateFCost();
+        if (startNode != null)
+        {
+            startNode.gCost = 0;
+            startNode.hCost = CalculateDistance(startNode, targetNode);
+            startNode.CalculateFCost();
+        }
     }
 
     private List<Vector2> ExecuteAStarAlgorithm(Node startNode, Node targetNode, Vector2 startPos, Vector2 targetPos)
     {
+        int iterations = 0;
         openSet.Add(startNode);
 
-        while (openSet.Count > 0)
+        while (openSet.Count > 0 && iterations < MAX_SEARCH_ITERATIONS)
         {
+            iterations++;
             Node currentNode = GetLowestFCostNode(openSet);
+
             if (currentNode == targetNode)
             {
                 var path = CalculatePath(targetNode);
@@ -262,8 +380,10 @@ public class PathFindingManager : MonoBehaviour
             }
         }
 
-        return null;
+        // 경로를 찾지 못했을 경우 직선 경로 반환
+        return new List<Vector2> { startPos, targetPos };
     }
+
     #endregion
 
     #region Path Optimization & Smoothing
@@ -315,55 +435,6 @@ public class PathFindingManager : MonoBehaviour
     #endregion
 
     #region Node Operations
-    private Node GetNodeFromWorldPosition(Vector2 worldPosition)
-    {
-        float percentX = (worldPosition.x - bottomLeft.x) / (GRID_SIZE * NODE_SIZE);
-        float percentY = (worldPosition.y - bottomLeft.y) / (GRID_SIZE * NODE_SIZE);
-
-        int x = Mathf.Clamp(Mathf.FloorToInt(GRID_SIZE * percentX), 0, GRID_SIZE - 1);
-        int y = Mathf.Clamp(Mathf.FloorToInt(GRID_SIZE * percentY), 0, GRID_SIZE - 1);
-
-        return grid[x, y];
-    }
-
-    private List<Node> GetNeighbours(Node node)
-    {
-        var neighbours = new List<Node>(8);
-
-        for (int x = -1; x <= 1; x++)
-        {
-            for (int y = -1; y <= 1; y++)
-            {
-                if (x == 0 && y == 0) continue;
-
-                int checkX = node.gridX + x;
-                int checkY = node.gridY + y;
-
-                if (checkX >= 0 && checkX < GRID_SIZE && checkY >= 0 && checkY < GRID_SIZE)
-                {
-                    if (Mathf.Abs(x) == 1 && Mathf.Abs(y) == 1)
-                    {
-                        bool canMoveDiagonally = grid[node.gridX + x, node.gridY].walkable &&
-                                               grid[node.gridX, node.gridY + y].walkable;
-                        if (!canMoveDiagonally) continue;
-                    }
-
-                    Node neighbour = grid[checkX, checkY];
-                    if (neighbour.walkable)
-                    {
-                        if (!Physics2D.Linecast(node.worldPosition, neighbour.worldPosition,
-                            LayerMask.GetMask("Obstacle")))
-                        {
-                            neighbours.Add(neighbour);
-                        }
-                    }
-                }
-            }
-        }
-
-        return neighbours;
-    }
-
     private float CalculateDistance(Node a, Node b)
     {
         float dx = Mathf.Abs(a.gridX - b.gridX);
@@ -387,14 +458,22 @@ public class PathFindingManager : MonoBehaviour
 
     private List<Vector2> CalculatePath(Node endNode)
     {
-        List<Vector2> path = new List<Vector2>();
+        List<Vector2> path = new List<Vector2>(MAX_PATH_LENGTH);
         Node currentNode = endNode;
+        int pathLength = 0;
 
-        while (currentNode != null)
+        while (currentNode != null && pathLength < MAX_PATH_LENGTH)
         {
             path.Add(currentNode.worldPosition);
             currentNode = currentNode.previousNode;
+            pathLength++;
         }
+
+        if (pathLength >= MAX_PATH_LENGTH)
+        {
+            path = path.GetRange(0, MAX_PATH_LENGTH);
+        }
+
         path.Reverse();
         return path;
     }
@@ -428,61 +507,6 @@ public class PathFindingManager : MonoBehaviour
         return null;
     }
 
-    private List<Vector2> SmoothPath(List<Vector2> path)
-    {
-        if (path == null || path.Count <= 2) return path;
-
-        List<Vector2> smoothedPath = new List<Vector2>();
-        smoothedPath.Add(path[0]);
-
-        for (int i = 1; i < path.Count - 1; i++)
-        {
-            Vector2 prev = path[i - 1];
-            Vector2 current = path[i];
-            Vector2 next = path[i + 1];
-
-            float t = 0.5f;
-            Vector2 p0 = prev;
-            Vector2 p1 = current;
-            Vector2 p2 = next;
-
-            Vector2 smoothedPoint = (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
-
-            if (!Physics2D.Raycast(current, (smoothedPoint - current).normalized,
-                Vector2.Distance(current, smoothedPoint), LayerMask.GetMask("Obstacle")))
-            {
-                smoothedPath.Add(smoothedPoint);
-            }
-            else
-            {
-                smoothedPath.Add(current);
-            }
-        }
-
-        smoothedPath.Add(path[path.Count - 1]);
-        return smoothedPath;
-    }
-
-    private List<Vector2> SimplifyPath(List<Vector2> path)
-    {
-        List<Vector2> simplifiedPath = new List<Vector2>();
-        simplifiedPath.Add(path[0]);
-
-        for (int i = 2; i < path.Count; i++)
-        {
-            Vector2 directionOld = (path[i - 1] - path[i - 2]).normalized;
-            Vector2 directionNew = (path[i] - path[i - 1]).normalized;
-
-            if (Vector2.Dot(directionOld, directionNew) < 0.98f)
-            {
-                simplifiedPath.Add(path[i - 1]);
-            }
-        }
-
-        simplifiedPath.Add(path[path.Count - 1]);
-        return simplifiedPath;
-    }
-
     private bool CheckPathClearance(Vector2 start, Vector2 end)
     {
         Vector2 direction = (end - start).normalized;
@@ -500,53 +524,79 @@ public class PathFindingManager : MonoBehaviour
     #region Visualization
     private void OnDrawGizmos()
     {
-        if (grid == null) return;
+        if (mainCamera == null) return;
 
+        // 그리드 시각화
         Gizmos.color = new Color(1, 1, 0, 0.2f);
         Gizmos.DrawWireCube(gridWorldCenter, new Vector3(GRID_SIZE * NODE_SIZE, GRID_SIZE * NODE_SIZE, 1));
 
-        Camera cam = Camera.main;
-        if (cam == null) return;
-
-        float viewDistance = 20f;
-        Vector2 camPos = cam.transform.position;
-
-        int startX = Mathf.Max(0, Mathf.FloorToInt((camPos.x - viewDistance - bottomLeft.x) / NODE_SIZE));
-        int endX = Mathf.Min(GRID_SIZE - 1, Mathf.CeilToInt((camPos.x + viewDistance - bottomLeft.x) / NODE_SIZE));
-        int startY = Mathf.Max(0, Mathf.FloorToInt((camPos.y - viewDistance - bottomLeft.y) / NODE_SIZE));
-        int endY = Mathf.Min(GRID_SIZE - 1, Mathf.CeilToInt((camPos.y + viewDistance - bottomLeft.y) / NODE_SIZE));
-
-        for (int x = startX; x <= endX; x++)
+        // 노드 시각화
+        foreach (var node in activeNodes.Values)
         {
-            for (int y = startY; y <= endY; y++)
-            {
-                if (grid[x, y] != null)
-                {
-                    Gizmos.color = grid[x, y].walkable ?
-                        new Color(1, 1, 1, 0.1f) :
-                        new Color(1, 0, 0, 0.2f);
+            Gizmos.color = node.walkable ?
+                new Color(1, 1, 1, 0.1f) :
+                new Color(1, 0, 0, 0.2f);
 
-                    Gizmos.DrawCube(grid[x, y].worldPosition, Vector3.one * NODE_SIZE * 0.8f);
+            Gizmos.DrawCube(node.worldPosition, Vector3.one * NODE_SIZE * 0.8f);
+        }
+
+        // 모든 적의 경로 시각화
+        var enemies = FindObjectsOfType<Enemy>();
+        foreach (var enemy in enemies)
+        {
+            if (enemy?.currentPath != null && enemy.currentPath.Count > 0)
+            {
+                var path = enemy.currentPath;
+
+                // 현재 위치에서 첫 번째 웨이포인트까지의 라인
+                Gizmos.color = new Color(1, 0, 1, 1f); // 보라색
+                Gizmos.DrawLine(enemy.transform.position, path[0]);
+
+                // 경로 시각화
+                for (int i = 0; i < path.Count - 1; i++)
+                {
+                    // 경로 라인
+                    Gizmos.color = new Color(0, 0, 1, 1f); // 진한 파란색
+                    Gizmos.DrawLine(path[i], path[i + 1]);
+
+                    // 웨이포인트 표시
+                    Gizmos.color = new Color(1, 1, 0, 1f); // 노란색
+                    Gizmos.DrawWireSphere(path[i], NODE_SIZE * 0.3f);
+                }
+
+                // 마지막 웨이포인트 표시
+                if (path.Count > 0)
+                {
+                    Gizmos.color = new Color(0, 1, 0, 1f); // 초록색
+                    Gizmos.DrawWireSphere(path[path.Count - 1], NODE_SIZE * 0.4f);
                 }
             }
         }
+    }
+    #endregion
 
-        if (FindObjectOfType<Enemy>()?.currentPath != null)
-        {
-            var path = FindObjectOfType<Enemy>().currentPath;
-            for (int i = 0; i < path.Count - 1; i++)
-            {
-                Gizmos.color = new Color(0, 0, 1, 0.8f);
-                Gizmos.DrawLine(path[i], path[i + 1]);
+    #region Grid Boundary
+    public bool IsPositionInGrid(Vector2 position)
+    {
+        Vector2Int gridPos = WorldToGridPosition(position);
+        return gridPos.x >= 0 && gridPos.x < GRID_SIZE &&
+               gridPos.y >= 0 && gridPos.y < GRID_SIZE;
+    }
 
-                Gizmos.DrawSphere(path[i], NODE_SIZE * 0.3f);
-            }
-            if (path.Count > 0)
-            {
-                Gizmos.color = new Color(0, 1, 0, 1f);
-                Gizmos.DrawSphere(path[path.Count - 1], NODE_SIZE * 0.3f);
-            }
-        }
+    public Vector2 ClampToGrid(Vector2 position)
+    {
+        Vector2 gridCenter = mainCamera.transform.position;
+        float halfGridSize = (GRID_SIZE * NODE_SIZE) / 2;
+
+        float minX = gridCenter.x - halfGridSize;
+        float maxX = gridCenter.x + halfGridSize;
+        float minY = gridCenter.y - halfGridSize;
+        float maxY = gridCenter.y + halfGridSize;
+
+        return new Vector2(
+            Mathf.Clamp(position.x, minX, maxX),
+            Mathf.Clamp(position.y, minY, maxY)
+        );
     }
     #endregion
 }

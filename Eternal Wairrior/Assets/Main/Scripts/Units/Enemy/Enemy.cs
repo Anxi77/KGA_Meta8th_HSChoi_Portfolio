@@ -7,10 +7,12 @@ using UnityEngine.AI;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 using static GameManager;
+using Lean.Pool;
+using Unity.Mathematics;
 
 public class Enemy : MonoBehaviour, ILaserStay
 {
-    #region Member Variables
+    #region Variables
     #region Stats
     private float maxHp;
     public float hp = 10f;
@@ -21,17 +23,21 @@ public class Enemy : MonoBehaviour, ILaserStay
     internal float originalMoveSpeed;
     public float hpAmount { get { return hp / maxHp; } }
     private float preDamageTime = 0;
+    public float attackRange = 5f;
+    private float preferredDistance = 4f;
     #endregion
 
     #region References
-    public Transform target;
+    private Transform target;
     public Image hpBar;
     private Rigidbody2D rb;
-    public ParticleSystem impactParticle;
+    public ParticleSystem attackParticle;
     private bool isInit = false;
+    private Collider2D enemyCollider;
+    private SpriteRenderer spriteRenderer;
     #endregion
 
-    #region Pathfinding Variables
+    #region Pathfinding
     public List<Vector2> currentPath { get; private set; }
     private float pathUpdateTime = 0.2f;
     private float lastPathUpdateTime;
@@ -49,42 +55,33 @@ public class Enemy : MonoBehaviour, ILaserStay
     private const float MIN_CIRCLE_DISTANCE = 1f;
     #endregion
 
-    #region Movement Variables
+    #region Movement
     private Vector2 previousMoveDir;
     private bool isCirclingPlayer = false;
     private float circlingRadius = 2f;
     private float circlingAngle = 0f;
-    private SpriteRenderer spriteRenderer;
     private float previousXPosition;
     #endregion
     #endregion
 
-    #region Unity Lifecycle Methods
-    public void Awake()
-    {
-        InitializeComponents();
-    }
+    #region Unity Lifecycle
+    private void Start() => enemyCollider = GetComponent<Collider2D>();
 
     private void OnEnable()
     {
+        InitializeComponents();
         maxHp = hp;
         originalMoveSpeed = moveSpeed;
     }
 
     private void Update()
     {
-        if (!isInit)
-        {
-            Initialize();
-        }
+        if (!isInit) Initialize();
         Move();
         UpdateVisuals();
     }
 
-    private void OnDisable()
-    {
-        GameManager.Instance?.enemies.Remove(this);
-    }
+    private void OnDisable() => GameManager.Instance?.enemies.Remove(this);
     #endregion
 
     #region Initialization
@@ -105,15 +102,68 @@ public class Enemy : MonoBehaviour, ILaserStay
     }
     #endregion
 
-    #region Movement and Pathfinding
+    #region Movement
+    private Vector2 GetTargetPosition()
+    {
+        if (target == null) return transform.position;
+
+        Vector2 directionToTarget = ((Vector2)target.position - (Vector2)transform.position).normalized;
+        float distanceToTarget = Vector2.Distance(transform.position, target.position);
+
+        if (distanceToTarget > attackRange)
+        {
+            return (Vector2)target.position - directionToTarget * preferredDistance;
+        }
+        else if (distanceToTarget < preferredDistance)
+        {
+            return (Vector2)target.position + directionToTarget * preferredDistance;
+        }
+        else
+        {
+            return (Vector2)transform.position + new Vector2(
+                Mathf.Sin(Time.time * 2f),
+                Mathf.Cos(Time.time * 2f)
+            ) * 0.5f;
+        }
+    }
+
     public void Move()
     {
         if (target == null) return;
 
-        float distanceToPlayer = Vector2.Distance(transform.position, target.position);
-        if (HandleCirclingBehavior(distanceToPlayer)) return;
+        if (!PathFindingManager.Instance.IsPositionInGrid(transform.position))
+        {
+            Vector2 clampedPosition = PathFindingManager.Instance.ClampToGrid(transform.position);
+            transform.position = clampedPosition;
+        }
 
-        UpdatePath();
+        float distanceToPlayer = Vector2.Distance(transform.position, target.position);
+
+        if (distanceToPlayer < MIN_CIRCLE_DISTANCE)
+        {
+            isCirclingPlayer = true;
+            CircleAroundPlayer();
+            return;
+        }
+
+        isCirclingPlayer = false;
+        Vector2 targetPosition = GetTargetPosition();
+
+        if (ShouldUpdatePath())
+        {
+            List<Vector2> newPath = PathFindingManager.Instance.FindPath(transform.position, targetPosition);
+            if (newPath != null && newPath.Count > 0)
+            {
+                currentPath = newPath;
+                lastPathUpdateTime = Time.time;
+                stuckTimer = 0f;
+            }
+            else
+            {
+                MoveDirectlyTowardsTarget();
+            }
+        }
+
         FollowPath();
     }
 
@@ -129,6 +179,50 @@ public class Enemy : MonoBehaviour, ILaserStay
         return false;
     }
 
+    private void CircleAroundPlayer()
+    {
+        if (target == null) return;
+
+        UpdateCirclingParameters();
+        Vector2 targetPosition = CalculateCirclingPosition();
+        ApplyCirclingMovement(targetPosition);
+        UpdateSpriteDirection();
+    }
+
+    private void UpdateCirclingParameters()
+    {
+        int enemyCount = GameManager.Instance.enemies.Count;
+        circlingRadius = 1.2f;
+        float angleStep = 360f / enemyCount;
+        int myIndex = GameManager.Instance.enemies.IndexOf(this);
+        float targetAngle = myIndex * angleStep;
+        circlingAngle = Mathf.LerpAngle(circlingAngle, targetAngle, Time.deltaTime * 8f);
+    }
+
+    private Vector2 CalculateCirclingPosition()
+    {
+        Vector2 offset = new Vector2(
+            Mathf.Cos(circlingAngle * Mathf.Deg2Rad),
+            Mathf.Sin(circlingAngle * Mathf.Deg2Rad)
+        ) * circlingRadius;
+
+        return (Vector2)target.position + offset;
+    }
+
+    private void ApplyCirclingMovement(Vector2 targetPosition)
+    {
+        Vector2 moveDirection = (targetPosition - (Vector2)transform.position).normalized;
+        moveDirection = CalculateAvoidanceDirection(transform.position, targetPosition);
+
+        Vector2 separationForce = CalculateSeparationForce(transform.position);
+        moveDirection = (moveDirection + separationForce * 0.1f).normalized;
+
+        Vector2 targetVelocity = moveDirection * moveSpeed * 1.2f;
+        rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 8f);
+    }
+    #endregion
+
+    #region Pathfinding
     private void UpdatePath()
     {
         if (ShouldUpdatePath())
@@ -160,36 +254,49 @@ public class Enemy : MonoBehaviour, ILaserStay
         return false;
     }
 
+    private void FollowPath()
+    {
+        if (currentPath == null || currentPath.Count == 0) return;
+
+        Vector2 currentPos = transform.position;
+        Vector2 nextWaypoint = currentPath[0];
+
+        HandleStuckCheck(currentPos);
+        ProcessWaypoint(currentPos, nextWaypoint);
+        ApplyMovement(currentPos, nextWaypoint);
+        UpdateSpriteDirection();
+    }
+
+    private void ProcessWaypoint(Vector2 currentPos, Vector2 nextWaypoint)
+    {
+        if (HasReachedWaypoint(currentPos, nextWaypoint))
+        {
+            if (currentPath != null && currentPath.Count > 0)
+            {
+                UpdateWaypoint();
+                if (currentPath == null || currentPath.Count == 0)
+                {
+                    MoveDirectlyTowardsTarget();
+                }
+            }
+        }
+    }
+    #endregion
+
+    #region Movement Helpers
     private void MoveDirectlyTowardsTarget()
     {
         if (target == null) return;
 
         Vector2 currentPos = transform.position;
-        Vector2 targetPos = target.position;
+        Vector2 targetPos = GetTargetPosition();
         Vector2 moveDir = (targetPos - currentPos).normalized;
 
         moveDir = CalculateAvoidanceDirection(currentPos, targetPos);
-
         Vector2 separationForce = CalculateSeparationForce(currentPos);
         moveDir = (moveDir + separationForce * 0.2f).normalized;
 
-        Vector2 targetVelocity = moveDir * moveSpeed;
-        rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 5f);
-    }
-
-    private Vector2 CalculateAvoidanceDirection(Vector2 currentPosition, Vector2 targetPosition)
-    {
-        Vector2 moveDir = (targetPosition - currentPosition).normalized;
-        Vector2 finalMoveDir = moveDir;
-
-        var obstacles = CheckObstacles(currentPosition, moveDir);
-        if (HasObstacles(obstacles))
-        {
-            HandleObstacleAvoidance(obstacles);
-            finalMoveDir = CalculateAvoidanceVector(obstacles);
-        }
-
-        return SmoothDirection(finalMoveDir);
+        ApplyVelocity(moveDir);
     }
 
     private Vector2 CalculateSeparationForce(Vector2 currentPos)
@@ -198,7 +305,6 @@ public class Enemy : MonoBehaviour, ILaserStay
         float separationRadius = isCirclingPlayer ? 0.8f : 1.5f;
 
         Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(currentPos, separationRadius, LayerMask.GetMask("Enemy"));
-
         foreach (Collider2D enemyCollider in nearbyEnemies)
         {
             if (enemyCollider.gameObject != gameObject)
@@ -216,68 +322,36 @@ public class Enemy : MonoBehaviour, ILaserStay
         return separationForce.normalized * (isCirclingPlayer ? 0.3f : 0.5f);
     }
 
-    private void CircleAroundPlayer()
+    private void ApplyMovement(Vector2 currentPos, Vector2 nextWaypoint)
     {
-        if (target == null) return;
+        Vector2 moveDirection = (nextWaypoint - currentPos).normalized;
+        moveDirection = CalculateAvoidanceDirection(currentPos, nextWaypoint);
 
-        int enemyCount = GameManager.Instance.enemies.Count;
-        circlingRadius = 1.2f;
-        float angleStep = 360f / enemyCount;
+        Vector2 separationForce = CalculateSeparationForce(currentPos);
+        moveDirection = (moveDirection + separationForce * 0.2f).normalized;
 
-        int myIndex = GameManager.Instance.enemies.IndexOf(this);
-        float targetAngle = myIndex * angleStep;
-
-        circlingAngle = Mathf.LerpAngle(circlingAngle, targetAngle, Time.deltaTime * 8f);
-
-        Vector2 offset = new Vector2(
-            Mathf.Cos(circlingAngle * Mathf.Deg2Rad),
-            Mathf.Sin(circlingAngle * Mathf.Deg2Rad)
-        ) * circlingRadius;
-
-        Vector2 targetPosition = (Vector2)target.position + offset;
-
-        Vector2 moveDirection = (targetPosition - (Vector2)transform.position).normalized;
-        moveDirection = CalculateAvoidanceDirection(transform.position, targetPosition);
-
-        Vector2 separationForce = CalculateSeparationForce(transform.position);
-        moveDirection = (moveDirection + separationForce * 0.1f).normalized;
-
-        Vector2 targetVelocity = moveDirection * moveSpeed * 1.2f;
-        rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 8f);
-
-        float currentXPosition = transform.position.x;
-        if (currentXPosition != previousXPosition)
-        {
-            spriteRenderer.flipX = (currentXPosition - previousXPosition) > 0;
-            previousXPosition = currentXPosition;
-        }
+        ApplyVelocity(moveDirection);
     }
 
-    private void FollowPath()
+    private void ApplyVelocity(Vector2 moveDirection)
     {
-        if (currentPath == null || currentPath.Count == 0) return;
+        Vector2 targetVelocity = moveDirection * moveSpeed;
+        rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 5f);
+    }
 
-        Vector2 currentPos = transform.position;
-        Vector2 nextWaypoint = currentPath[0];
+    private Vector2 CalculateAvoidanceDirection(Vector2 currentPosition, Vector2 targetPosition)
+    {
+        Vector2 moveDir = (targetPosition - currentPosition).normalized;
+        Vector2 finalMoveDir = moveDir;
 
-        HandleStuckCheck(currentPos);
-
-        if (HasReachedWaypoint(currentPos, nextWaypoint))
+        var obstacles = CheckObstacles(currentPosition, moveDir);
+        if (HasObstacles(obstacles))
         {
-            if (currentPath != null && currentPath.Count > 0)
-            {
-                UpdateWaypoint();
-                if (currentPath == null || currentPath.Count == 0)
-                {
-                    MoveDirectlyTowardsTarget();
-                    return;
-                }
-                nextWaypoint = currentPath[0];
-            }
+            HandleObstacleAvoidance(obstacles);
+            finalMoveDir = CalculateAvoidanceVector(obstacles);
         }
 
-        ApplyMovement(currentPos, nextWaypoint);
-        UpdateSpriteDirection();
+        return SmoothDirection(finalMoveDir);
     }
 
     private void HandleStuckCheck(Vector2 currentPos)
@@ -297,12 +371,6 @@ public class Enemy : MonoBehaviour, ILaserStay
         lastPosition = currentPos;
     }
 
-    private void ResetPath()
-    {
-        currentPath = null;
-        stuckTimer = 0f;
-    }
-
     private bool HasReachedWaypoint(Vector2 currentPos, Vector2 waypoint)
     {
         return Vector2.Distance(currentPos, waypoint) < PathFindingManager.NODE_SIZE * 0.5f;
@@ -316,44 +384,10 @@ public class Enemy : MonoBehaviour, ILaserStay
         }
     }
 
-    private void ApplyMovement(Vector2 currentPos, Vector2 nextWaypoint)
+    private void ResetPath()
     {
-        Vector2 moveDirection = (nextWaypoint - currentPos).normalized;
-        moveDirection = CalculateAvoidanceDirection(currentPos, nextWaypoint);
-
-        Vector2 separationForce = CalculateSeparationForce(currentPos);
-        moveDirection = CalculateFinalDirection(moveDirection, separationForce);
-
-        ApplyVelocity(moveDirection);
-        VisualizeDebugLines(currentPos, nextWaypoint, moveDirection);
-    }
-
-    private Vector2 CalculateFinalDirection(Vector2 moveDirection, Vector2 separationForce)
-    {
-        float separationMultiplier = isCirclingPlayer ? 0.1f : 0.2f;
-        return (moveDirection + separationForce * separationMultiplier).normalized;
-    }
-
-    private void ApplyVelocity(Vector2 moveDirection)
-    {
-        Vector2 targetVelocity = moveDirection * moveSpeed;
-        rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 5f);
-    }
-
-    private void VisualizeDebugLines(Vector2 currentPos, Vector2 nextWaypoint, Vector2 moveDirection)
-    {
-        Debug.DrawLine(currentPos, nextWaypoint, Color.green);
-        Debug.DrawRay(currentPos, moveDirection * 2f, Color.red);
-    }
-
-    private void UpdateSpriteDirection()
-    {
-        float currentXPosition = transform.position.x;
-        if (currentXPosition != previousXPosition)
-        {
-            spriteRenderer.flipX = (currentXPosition - previousXPosition) < 0;
-            previousXPosition = currentXPosition;
-        }
+        currentPath = null;
+        stuckTimer = 0f;
     }
 
     private (RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) CheckObstacles(Vector2 position, Vector2 direction)
@@ -425,11 +459,7 @@ public class Enemy : MonoBehaviour, ILaserStay
     public void TakeDamage(float damage)
     {
         hp -= damage;
-
-        if (hp <= 0)
-        {
-            Die();
-        }
+        if (hp <= 0) Die();
     }
 
     public void Die()
@@ -440,21 +470,21 @@ public class Enemy : MonoBehaviour, ILaserStay
             GameManager.Instance.player.killCount++;
         }
         GameManager.Instance.enemies.Remove(this);
-        EnemyPool.pool.Push(this);
+        LeanPool.Despawn(gameObject);
     }
 
     private void Attack()
     {
         if (Time.time >= preDamageTime + damageInterval)
         {
-            GameManager.Instance.player.hp -= damage;
+            GameManager.Instance.player.TakeDamage(damage);
             preDamageTime = Time.time;
             GameManager.Instance.player.characterControl.PlayAnimation(PlayerState.DAMAGED, 0);
         }
     }
     #endregion
 
-    #region Collision Handling
+    #region Collision
     private void OnCollisionStay2D(Collision2D collision)
     {
         if (collision.gameObject.TryGetComponent<Player>(out Player player))
@@ -474,69 +504,14 @@ public class Enemy : MonoBehaviour, ILaserStay
 
     private void Contact()
     {
-        var particle = Instantiate(impactParticle, transform.position, Quaternion.identity);
+        var particle = LeanPool.Spawn(attackParticle, transform.position, Quaternion.identity, null);
         particle.Play();
-        Destroy(particle.gameObject, 0.3f);
+        LeanPool.Despawn(particle, 0.3f);
         Attack();
     }
     #endregion
 
-    #region Utility Methods
-    private bool IsNewPathBetter(List<Vector2> newPath, List<Vector2> currentPath)
-    {
-        if (currentPath == null) return true;
-
-        float minDistToCurrent = float.MaxValue;
-        int currentPathIndex = 0;
-
-        for (int i = 0; i < currentPath.Count; i++)
-        {
-            float dist = Vector2.Distance(transform.position, currentPath[i]);
-            if (dist < minDistToCurrent)
-            {
-                minDistToCurrent = dist;
-                currentPathIndex = i;
-            }
-        }
-
-        float remainingCurrentPathLength = 0;
-        for (int i = currentPathIndex; i < currentPath.Count - 1; i++)
-        {
-            remainingCurrentPathLength += Vector2.Distance(currentPath[i], currentPath[i + 1]);
-        }
-
-        float newPathLength = 0;
-        for (int i = 0; i < newPath.Count - 1; i++)
-        {
-            newPathLength += Vector2.Distance(newPath[i], newPath[i + 1]);
-        }
-
-        return newPathLength < remainingCurrentPathLength * 0.8f;
-    }
-    #endregion
-
-    #region Properties
-    public float PathUpdateInterval
-    {
-        get => pathUpdateTime;
-        set => pathUpdateTime = Mathf.Max(0.1f, value);
-    }
-
-    public float ObstacleAvoidanceDelay
-    {
-        get => obstaclePathUpdateDelay;
-        set => obstaclePathUpdateDelay = Mathf.Max(0.05f, value);
-    }
-    #endregion
-
-    #region Laser Stay
-    public void OnLaserStay(LaserBase laserBase, List<RaycastHit2D> hits)
-    {
-        TakeDamage(GameManager.Instance.gun.damage);
-    }
-    #endregion
-
-    #region UI Methods
+    #region UI
     private void UpdateHPBar()
     {
         if (hpBar != null)
@@ -549,6 +524,33 @@ public class Enemy : MonoBehaviour, ILaserStay
     {
         UpdateHPBar();
         UpdateSpriteDirection();
+    }
+    #endregion
+
+    #region Laser Interface
+    public void OnLaserStay(LaserBase laserBase, List<RaycastHit2D> hits)
+    {
+        TakeDamage(GameManager.Instance.gun.damage);
+    }
+    #endregion
+
+    #region Utility
+    public void SetCollisionState(bool isOutOfView)
+    {
+        if (enemyCollider != null)
+        {
+            enemyCollider.enabled = !isOutOfView;
+        }
+    }
+
+    private void UpdateSpriteDirection()
+    {
+        float currentXPosition = transform.position.x;
+        if (currentXPosition != previousXPosition)
+        {
+            spriteRenderer.flipX = (currentXPosition - previousXPosition) > 0;
+            previousXPosition = currentXPosition;
+        }
     }
     #endregion
 }

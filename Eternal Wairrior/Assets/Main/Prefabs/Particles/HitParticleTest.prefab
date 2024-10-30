@@ -4912,7 +4912,7 @@ GameObject:
   - component: {fileID: 7242367112545350938}
   - component: {fileID: 8629971950962410982}
   m_Layer: 0
-  m_Name: SwordBlock
+  m_Name: HitParticleTest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

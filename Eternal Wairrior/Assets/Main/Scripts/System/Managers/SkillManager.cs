@@ -7,7 +7,7 @@ public class SkillManager : SingletonManager<SkillManager>
 {
     public List<Skill> skillsPrefab;
 
-    public List<Skill> SkillLevelUP() 
+    public List<Skill> PerkSelect() 
     {
         List<Skill> selectedSkills = new List<Skill>();
 
