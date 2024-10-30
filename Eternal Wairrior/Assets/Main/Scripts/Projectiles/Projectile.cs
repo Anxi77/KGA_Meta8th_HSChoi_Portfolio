@@ -20,6 +20,8 @@ public abstract class Projectile : MonoBehaviour
     protected bool hasReachedMaxDistance = false;
     protected List<Collider2D> contactedColls = new();
     protected ParticleSystem projectileRender;
+    public ElementType elementType;
+    public float elementalPower;
 
 
     protected virtual void Awake() 
@@ -169,5 +171,19 @@ public abstract class Projectile : MonoBehaviour
                 }
             }
         }
-    }    
+    }
+
+    private void OnHitTarget(GameObject target)
+    {
+        if (target.TryGetComponent<Enemy>(out Enemy enemy))
+        {
+            enemy.TakeDamage(damage);
+
+            // 속성 효과 적용
+            if (elementType != ElementType.None)
+            {
+                ElementalEffects.ApplyElementalEffect(elementType, elementalPower, target);
+            }
+        }
+    }
 }

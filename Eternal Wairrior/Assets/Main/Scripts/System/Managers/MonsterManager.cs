@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class EnemyGenerator : MonoBehaviour
+public class MonsterManager : SingletonManager<MonsterManager>
 {
     #region Members
+
+    private static MonsterManager instance;
 
     #region Stats
 

@@ -1,78 +1,35 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 [System.Serializable]
-public class Skill:MonoBehaviour
+public abstract class Skill : MonoBehaviour
 {
-    public enum SkillType 
+    [SerializeField] protected SkillData skillData;
+    protected ISkillStat currentStats;
+    protected Vector2 fireDir;
+
+    protected virtual void Awake()
     {
-        Projectile,
-        Area,
-        Passive
+        currentStats = skillData.GetCurrentTypeStat();
     }
 
-    public enum SkillID 
+    // 기본 스탯 접근자
+    public float Damage => currentStats.baseStat.damage;
+    public string SkillName => currentStats.baseStat.skillName;
+    public int SkillLevel => currentStats.baseStat.skillLevel;
+    public int MaxSkillLevel => currentStats.baseStat.maxSkillLevel;
+    public SkillID SkillID => skillData._SkillID;
+
+    // 추상 메서드로 변경
+    public abstract bool SkillLevelUpdate(int newLevel);
+
+    // 타입별 스탯 가져오기
+    protected T GetTypeStats<T>() where T : ISkillStat
     {
-        DefaultGun = 100000,
-        LaserGun,
-        MissileLauncher,
-        MultiShot,
-        Bind,
-        GuardianOrb
-    }
-
-    [Header("Common Skill Attributes")]
-    public SkillID _SkillID;
-    public SkillType _SkillType;
-    public Image skillImage;
-    public GameObject currentSkillObject;
-    public float damage;
-    public string skillName;
-    public int skillLevel;
-    public int maxSkillLevel;
-    public GameObject[] skillPrefabs;
-    [Header("Projectile Skill Atrributes")]
-    public float projectileSpeed;
-    public float projectileScale;
-    public float shotInterval;
-    public int pierceCount;
-    public float attackRange;
-    public float homingRange;
-    public bool isHoming;
-    public float explosionRad;
-    public Vector2 fireDir;
-    public GameObject projectile;
-    [Tooltip("number of bullets fires in innerinterval")]
-    public int projectileCount;
-    public float innerInterval;
-
-    public Dictionary<string, List<float>> statsByLevel;
-    public List<float> damageByLevel;
-    public List<float> projectileSpeedByLevel;
-    public List<float> projectileScaleByLevel;
-    public List<int> projectileCountByLevel;
-    public List<int> pierceCountByLevel;
-    public List<float> attackRangeByLevel;
-    public List<float> innerIntervalByLevel;
-    public List<float> homingRangeByLevel;
-    public List<float> explosionRadByLevel;
-
-    public virtual bool SkillLevelUpdate(int skillLevel,Skill skill)
-    {
-        switch (skill._SkillType) 
+        if (currentStats is T typedStats)
         {
-            case SkillType.Projectile:
-                if (skill.TryGetComponent<ProjectileSkills>(out ProjectileSkills projSkill))
-                {
-                    projSkill.ProjectileSkillLevelUpdate(skillLevel);
-                    return true;
-                }
-                break;
+            return typedStats;
         }
-        return false;
+        throw new System.InvalidOperationException($"Current skill is not of type {typeof(T)}");
     }
-
-
 }

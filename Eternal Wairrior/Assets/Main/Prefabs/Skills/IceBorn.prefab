@@ -73,7 +73,7 @@ GameObject:
   - component: {fileID: 86054773460267591}
   - component: {fileID: 1594491980417018830}
   m_Layer: 0
-  m_Name: MultiShot
+  m_Name: IceBorn
   m_TagString: Untagged
   m_Icon: {fileID: 5132851093641282708, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0

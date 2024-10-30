@@ -221,7 +221,7 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: -0.03, y: 0.09}
   serializedVersion: 2
-  m_Radius: 0.1
+  m_Radius: 0.31
 --- !u!50 &170673686516074686
 Rigidbody2D:
   serializedVersion: 4
@@ -266,7 +266,8 @@ MonoBehaviour:
   moveSpeed: 5
   mobEXP: 0
   damageInterval: 0.5
-  target: {fileID: 0}
+  attackRange: 0.9
+  preferredDistance: 1
   hpBar: {fileID: 3705600860709169156}
   attackParticle: {fileID: 7242367112545350938, guid: b59d613d3271c084b9b225b91e4756df, type: 3}
 --- !u!1 &5897277061234933057

@@ -172,27 +172,6 @@ public class Player : MonoBehaviour
         y = Input.GetAxisRaw("Vertical");
     }
 
-    private void SkillInitialize()
-    {
-        foreach (Skill skill in skills)
-        {
-            GameObject skillObj = Instantiate(skill.skillPrefabs[skill.skillLevel], transform, false);
-            skillObj.name = skill.skillName;
-            skillObj.transform.localPosition = Vector2.zero; 
-
-            if (skillObj.TryGetComponent<ProjectileSkills>(out ProjectileSkills proj))
-            {
-                proj.isHoming = true;
-            }
-            else
-            {
-                proj.isHoming = false;
-            }
-            skill.currentSkillObject = skillObj;
-            skillObj.SetActive(true);
-        }
-    }
-
     #region FireOnPlayer
     //private IEnumerator FireCoroutine()
     //{
@@ -285,7 +264,6 @@ public class Player : MonoBehaviour
         hp = maxHp;
         damage += damageIncreasePerLevel;
         moveSpeed += speedIncreasePerLevel;
-        UIManager.Instance.levelupPanel.LevelUpPanelOpen(skills, OnSkillLevelUp);
     }
     #endregion
 
@@ -338,23 +316,6 @@ public class Player : MonoBehaviour
     public void Die()
     {
         playerStatus = Status.Dead;        
-    }
-
-    public void OnSkillLevelUp(Skill skill)
-    {
-
-        if (skill.skillLevel >= skill.skillPrefabs.Length - 1)
-        {
-            print($"최대 레벨에 도달한 스킬 레벨업을 시도함 : {skill.skillName} ");
-            return;
-        }
-        skill.skillLevel++;//스킬레벨 상승
-
-        Destroy(skill.currentSkillObject);// 기존에 있던 스킬 오브젝트를 제거
-
-        skill.currentSkillObject = Instantiate(skill.skillPrefabs[skill.skillLevel], transform, false);
-        skill.currentSkillObject.name = skill.skillPrefabs[skill.skillLevel].name;
-        skill.currentSkillObject.transform.localPosition = Vector2.zero;
     }
 
     #endregion

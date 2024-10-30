@@ -12,7 +12,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
 
     #region Fields & Properties
     private const int GRID_SIZE = 50;
-    public const float NODE_SIZE = 0.5f;
+    public const float NODE_SIZE = 1f;
     private const float GRID_VIEW_DISTANCE = 20f;
     private const int MAX_PATH_LENGTH = 100;
     private const int MAX_SEARCH_ITERATIONS = 1000;
@@ -216,7 +216,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
         return new Vector2Int(x, y);
     }
 
-    private Node GetNodeFromWorldPosition(Vector2 worldPosition)
+    public Node GetNodeFromWorldPosition(Vector2 worldPosition)
     {
         Vector2Int gridPos = WorldToGridPosition(worldPosition);
         activeNodes.TryGetValue(gridPos, out Node node);

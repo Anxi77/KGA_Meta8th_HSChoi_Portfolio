@@ -1,64 +1,132 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
+using System.Linq;
 
 public class SkillLevelUpPanel : MonoBehaviour
 {
     public RectTransform list;
     public SkillLevelUpButton buttonPrefab;
+    private const int SKILL_CHOICES = 3;
 
-    //플레이어가 레벨업을 하면 패널 활성화 요청
-    public void LevelUpPanelOpen(List<Skill> skillList, Action<Skill> callback)
+    public void LevelUpPanelOpen(List<Skill> playerSkills, Action<Skill> callback)
     {
         gameObject.SetActive(true);
-
         Time.timeScale = 0f;
-        //스킬 2개 UI에 표시할 예정
-        if (GameManager.Instance.player.skills.Count > 2)
+
+        // 사용 가능한 모든 스킬 데이터 가져오기
+        var allSkillData = SkillDataManager.Instance.GetAllSkillData();
+
+        // 랜덤 속성 선택 (None 제외)
+        var availableElements = Enum.GetValues(typeof(ElementType))
+            .Cast<ElementType>()
+            .Where(e => e != ElementType.None)
+            .ToList();
+
+        if (availableElements.Count == 0)
         {
-            List<Skill> selectedSkillList = new();
-            while (selectedSkillList.Count < 2) //2개의 스킬이 선택될때까지 반복
+            ShowNoSkillsAvailable();
+            return;
+        }
+
+        ElementType selectedElement = availableElements[UnityEngine.Random.Range(0, availableElements.Count)];
+
+        // 선택된 속성의 스킬들 필터링
+        var elementalSkills = allSkillData
+            .Where(skill =>
             {
-                int ranNum = Random.Range(0, skillList.Count); //랜덤한 숫자 하나 뽑기
+                var stats = skill.GetCurrentTypeStat();
+                return stats.baseStat.element == selectedElement;
+            })
+            .ToList();
 
-                Skill selectedSkill = skillList[ranNum]; //랜덤하게 선택된 스킬 하나 가져오기.
+        // 이미 보유한 스킬 제외
+        elementalSkills = elementalSkills
+            .Where(skillData => !playerSkills.Any(playerSkill => playerSkill.SkillID == skillData._SkillID))
+            .ToList();
 
-                if (selectedSkillList.Contains(selectedSkill)) //이미 뽑힌 스킬이 또 뽑혔으면
-                {
-                    continue; // 밑 라인 을 무시하고 다시 반복문을 돈다.
-                }
+        if (elementalSkills.Count == 0)
+        {
+            ShowNoSkillsAvailable();
+            return;
+        }
 
-                selectedSkillList.Add(selectedSkill); //선택한 스킬을 넣어주고
+        // 랜덤하게 3개 선택 (또는 가능한 만큼)
+        int choiceCount = Mathf.Min(SKILL_CHOICES, elementalSkills.Count);
+        List<SkillData> selectedSkills = new List<SkillData>();
 
-                SkillLevelUpButton skillbutton = Instantiate(buttonPrefab, list); //버티컬 레이아웃 그룹을 가지고 있는 리스트의 자식으로 버튼 생성
+        while (selectedSkills.Count < choiceCount)
+        {
+            int randomIndex = UnityEngine.Random.Range(0, elementalSkills.Count);
+            var selectedSkill = elementalSkills[randomIndex];
 
-                skillbutton.SetSkillSelectButton(selectedSkill.skillName,
-                    () =>
-                    {
-                        callback(selectedSkill);
-                        LevelUpPanelClose();
-                    });
-
+            if (!selectedSkills.Contains(selectedSkill))
+            {
+                selectedSkills.Add(selectedSkill);
+                CreateSkillButton(selectedSkill, callback);
             }
         }
-        else 
-        {
-           SkillLevelUpButton skillbutton = Instantiate (buttonPrefab, list);
-           skillbutton.SetSkillSelectButton("No SKills Left",() => LevelUpPanelClose());
-        }
+
+        // 선택된 속성 표시
+        ShowElementalHeader(selectedElement);
     }
 
-    //레벨업 패널을 닫을 시 플레이어의 LevelUpPanelOpen의 callback을 호출.
+    private void CreateSkillButton(SkillData skillData, Action<Skill> callback)
+    {
+        SkillLevelUpButton skillButton = Instantiate(buttonPrefab, list);
+
+        skillButton.SetSkillSelectButton(skillData, () =>
+        {
+            // 스킬 프리팹 생성 및 초기화
+            GameObject skillObj = Instantiate(skillData.prefabsByLevel[0], GameManager.Instance.player.transform);
+            if (skillObj.TryGetComponent<Skill>(out Skill newSkill))
+            {
+                callback(newSkill);
+            }
+            LevelUpPanelClose();
+        });
+    }
+
+    private string GetElementalDescription(ElementType element)
+    {
+        return element switch
+        {
+            ElementType.Dark => "어둠 속성: 방어력 감소",
+            ElementType.Water => "물 속성: 이동속도 감소",
+            ElementType.Fire => "불 속성: 지속 데미지",
+            ElementType.Earth => "대지 속성: 스턴",
+            _ => ""
+        };
+    }
+
+    private void ShowElementalHeader(ElementType element)
+    {
+        string elementName = element switch
+        {
+            ElementType.Dark => "어둠",
+            ElementType.Water => "물",
+            ElementType.Fire => "불",
+            ElementType.Earth => "대지",
+            _ => "알 수 없음"
+        };
+
+        // 헤더 UI 생성 및 설정 (UI 컴포넌트에 맞게 구현 필요)
+        Debug.Log($"선택된 속성: {elementName}");
+    }
+
+    private void ShowNoSkillsAvailable()
+    {
+        SkillLevelUpButton skillButton = Instantiate(buttonPrefab, list);
+        skillButton.SetDisabledButton("사용 가능한 스킬 없음");
+    }
+
     public void LevelUpPanelClose()
     {
-        foreach(Transform buttons in list)
+        foreach (Transform button in list)
         {
-            Destroy(buttons.gameObject);
+            Destroy(button.gameObject);
         }
         Time.timeScale = 1f;
         gameObject.SetActive(false);
-
     }
 }

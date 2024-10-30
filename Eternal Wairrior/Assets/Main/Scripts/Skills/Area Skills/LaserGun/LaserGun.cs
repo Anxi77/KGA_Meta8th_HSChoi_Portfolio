@@ -24,19 +24,4 @@ public class LaserGun : ProjectileSkills
             _laser.Disable();
         }
     }
-
-    public void InitializeSkillLevels()
-    {
-        damageByLevel = new List<float> { 10f, 20f, 30f, 40f, 50f };
-    }
-
-    public bool SkillLevelUpdate(int skillLevel)
-    {
-        if(skillLevel < maxSkillLevel) 
-        {
-            damage = damageByLevel[skillLevel];
-            return true;
-        }   
-        return false;
-    }
 }
