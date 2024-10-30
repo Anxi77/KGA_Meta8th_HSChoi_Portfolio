@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 9019318496531543866}
   - component: {fileID: 2883425028915834540}
   - component: {fileID: -6112852474891403317}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: IceArrow
-  m_TagString: Untagged
+  m_TagString: Projectile
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -46,12 +46,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9aa15716fceed1f4b95b27efb0a89f91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 0
+  damage: 15
   moveSpeed: 12
-  duration: 3
   isHoming: 1
   pierceCount: 0
+  targetEnemy: {fileID: 0}
+  direction: {x: 0, y: 0}
+  initialPosition: {x: 0, y: 0}
+  maxTravelDistance: 0
   impactParticle: {fileID: 1822138223796843213, guid: c22c7075fbad8174886b3d03b48fed5c, type: 3}
+  elementType: 2
+  elementalPower: 0
 --- !u!58 &-6112852474891403317
 CircleCollider2D:
   m_ObjectHideFlags: 0

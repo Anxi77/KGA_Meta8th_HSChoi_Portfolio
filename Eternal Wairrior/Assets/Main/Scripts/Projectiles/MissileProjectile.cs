@@ -29,14 +29,6 @@ public class MissileProjectile : Projectile
         base.Update();       
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.CompareTag("Enemy")) 
-        {
-            StartCoroutine(ExplodeCoroutine());
-        }
-
-    }
 
     private IEnumerator ExplodeCoroutine()
     {

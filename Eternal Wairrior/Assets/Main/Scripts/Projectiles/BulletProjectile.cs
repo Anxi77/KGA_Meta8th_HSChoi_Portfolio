@@ -7,8 +7,6 @@ using UnityEngine;
 
 public class BulletProjectile : Projectile
 {
-
-
     #region Unity Message Methods
 
 
@@ -25,8 +23,6 @@ public class BulletProjectile : Projectile
     protected override void Update()
     {
         base.Update();
-
-        base.Attack();
     }
 
     protected override void OnDisable()

@@ -1,4 +1,3 @@
-using Lean.Pool;
 using UnityEngine;
 
 public class MultiShot : ProjectileSkills
@@ -15,8 +14,11 @@ public class MultiShot : ProjectileSkills
     {
         foreach (var shotPoint in shotPoints)
         {
-            Projectile proj = LeanPool.Spawn(skillData.projectile, shotPoint.position, transform.rotation)
-                .GetComponent<Projectile>();
+            Projectile proj = ProjectilePool.Instance.SpawnProjectile(
+                skillData.projectile,
+                shotPoint.position,
+                transform.rotation
+            );
 
             proj.damage = Damage;
             proj.moveSpeed = ProjectileSpeed;
@@ -54,7 +56,9 @@ public class MultiShot : ProjectileSkills
                 projectileCount = 3,
                 innerInterval = 0.5f
             };
+
             currentStats = stats;
         }
     }
 }
+

@@ -1,4 +1,4 @@
-using Lean.Pool;
+癤퓎sing Lean.Pool;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,8 +9,6 @@ using Unity.VisualScripting;
 public abstract class ProjectileSkills : Skill
 {
     protected ProjectileSkillStat TypedStats => GetTypeStats<ProjectileSkillStat>();
-
-    // 프로젝타일 전용 스탯 접근자
     public float ProjectileSpeed => TypedStats.projectileSpeed;
     public float ProjectileScale => TypedStats.projectileScale;
     public float ShotInterval => TypedStats.shotInterval;
@@ -65,8 +63,11 @@ public abstract class ProjectileSkills : Skill
 
     protected virtual void Fire()
     {
-        Projectile proj = LeanPool.Spawn(skillData.projectile, transform.position, transform.rotation)
-            .GetComponent<Projectile>();
+        Projectile proj = ProjectilePool.Instance.SpawnProjectile(
+            skillData.projectile,
+            transform.position,
+            transform.rotation
+        );
 
         Vector3 spawnPosition = transform.position + transform.up * 0.5f;
         proj.transform.SetPositionAndRotation(spawnPosition, transform.rotation);
@@ -77,7 +78,6 @@ public abstract class ProjectileSkills : Skill
         proj.transform.localScale *= ProjectileScale;
         proj.pierceCount = PierceCount;
         proj.maxTravelDistance = AttackRange;
-
         proj.elementType = currentStats.baseStat.element;
         proj.elementalPower = currentStats.baseStat.elementalPower;
 
@@ -88,12 +88,10 @@ public abstract class ProjectileSkills : Skill
     #region Enemy Searching Methods
     protected virtual void CalcDirection()
     {
-
         Vector2 mousePos = Input.mousePosition;
         Vector2 mouseWorldPos = Camera.main.ScreenToWorldPoint(mousePos);
         fireDir = (mouseWorldPos - (Vector2)transform.position).normalized;
         transform.up = fireDir;
-
     }
 
     protected virtual bool AreEnemiesInRange()
@@ -132,25 +130,25 @@ public abstract class ProjectileSkills : Skill
     {
         if (newLevel <= MaxSkillLevel)
         {
-            // 스킬 데이터 업데이트
+            // 킬 트
             var updatedSkillData = SkillDataManager.Instance.GetSkillData(SkillID);
             var projectileStats = (ProjectileSkillStat)updatedSkillData.GetCurrentTypeStat();
 
-            // 새로운 스탯 객체 생성
+            // 恝 체
             var newBaseStat = projectileStats.baseStat;
             newBaseStat.skillLevel = newLevel;
 
-            // 새로운 ProjectileSkillStat 생성 및 할당
+            // 恝 ProjectileSkillStat 
             var newStats = projectileStats;
             newStats.baseStat = newBaseStat;
 
-            // 현재 스탯 업데이트
+            // 
             currentStats = newStats;
 
-            // 프리팹 업데이트 (필요한 경우)
+            // 트 (却)
             if (newLevel < skillData.prefabsByLevel.Length)
             {
-                // 프리팹 교체 로직
+                // 체
             }
 
             return true;
@@ -158,5 +156,4 @@ public abstract class ProjectileSkills : Skill
         return false;
     }
     #endregion
-
 }

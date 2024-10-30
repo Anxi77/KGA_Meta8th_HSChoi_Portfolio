@@ -408,6 +408,31 @@ public class Enemy : MonoBehaviour, ILaserStay
             }
         }
     }
+
+    private Vector2 FindNearestSafePosition(Vector2 currentPosition)
+    {
+        float checkRadius = 1f;
+        int maxAttempts = 8;
+        float angleStep = 360f / maxAttempts;
+
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            float angle = i * angleStep;
+            float radian = angle * Mathf.Deg2Rad;
+            Vector2 checkPosition = currentPosition + new Vector2(
+                Mathf.Cos(radian) * checkRadius,
+                Mathf.Sin(radian) * checkRadius
+            );
+
+            Node node = PathFindingManager.Instance.GetNodeFromWorldPosition(checkPosition);
+            if (node != null && node.walkable)
+            {
+                return checkPosition;
+            }
+        }
+
+        return FindNearestSafePosition(currentPosition + Vector2.one * checkRadius);
+    }
     #endregion
 
     #region Movement Helpers
@@ -791,28 +816,5 @@ public class Enemy : MonoBehaviour, ILaserStay
     }
     #endregion
 
-    private Vector2 FindNearestSafePosition(Vector2 currentPosition)
-    {
-        float checkRadius = 1f;
-        int maxAttempts = 8;
-        float angleStep = 360f / maxAttempts;
 
-        for (int i = 0; i < maxAttempts; i++)
-        {
-            float angle = i * angleStep;
-            float radian = angle * Mathf.Deg2Rad;
-            Vector2 checkPosition = currentPosition + new Vector2(
-                Mathf.Cos(radian) * checkRadius,
-                Mathf.Sin(radian) * checkRadius
-            );
-
-            Node node = PathFindingManager.Instance.GetNodeFromWorldPosition(checkPosition);
-            if (node != null && node.walkable)
-            {
-                return checkPosition;
-            }
-        }
-
-        return FindNearestSafePosition(currentPosition + Vector2.one * checkRadius);
-    }
 }

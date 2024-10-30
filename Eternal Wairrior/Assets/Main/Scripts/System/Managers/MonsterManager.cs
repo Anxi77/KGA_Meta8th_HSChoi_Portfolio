@@ -49,15 +49,13 @@ public class MonsterManager : SingletonManager<MonsterManager>
         for (int i = 0; i < count; i++)
         {
             Vector2 playerPos = GameManager.Instance.player.transform.position;
-
             Vector2 ranPos = Random.insideUnitCircle;
-
-            Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);            
-
-            Vector2 FinalPos = playerPos + spawnPos;
+            Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
+            Vector2 finalPos = playerPos + spawnPos;
 
             Enemy enemy = LeanPool.Spawn(enemyPrefab);
 
+            enemy.transform.position = finalPos;
         }
     }
     #endregion

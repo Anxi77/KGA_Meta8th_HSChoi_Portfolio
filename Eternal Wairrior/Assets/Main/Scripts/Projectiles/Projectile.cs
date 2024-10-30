@@ -23,15 +23,20 @@ public abstract class Projectile : MonoBehaviour
     public ElementType elementType;
     public float elementalPower;
 
-
-    protected virtual void Awake() 
+    protected virtual void Awake()
     {
         coll = GetComponent<CircleCollider2D>();
         coll.enabled = false;
+
+        // Enemy 레이어와만 충돌하도록 설정
+        int enemyLayer = LayerMask.NameToLayer("Enemy");
+        Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, false); // Enemy 레이어와의 충돌만 활성화
     }
 
     protected virtual void OnEnable()
     {
+        Debug.Log($"Projectile enabled with damage: {damage}");
+
         if (isHoming)
         {
             FindTarget();
@@ -40,7 +45,9 @@ public abstract class Projectile : MonoBehaviour
         hasReachedMaxDistance = false;
         if (coll != null)
         {
-            coll.radius = 0.01f;
+            coll.radius = 0.2f;
+            coll.isTrigger = true;
+            coll.enabled = true;
         }
         projectileRender = gameObject.GetComponentInChildren<ParticleSystem>();
         if (projectileRender != null)
@@ -52,7 +59,6 @@ public abstract class Projectile : MonoBehaviour
     protected virtual void Update()
     {
         CheckTravelDistance();
-
         ProjectileMove();
     }
 
@@ -65,7 +71,7 @@ public abstract class Projectile : MonoBehaviour
         }
     }
 
-    protected virtual void ProjectileMove() 
+    protected virtual void ProjectileMove()
     {
         if (isHoming)
         {
@@ -87,7 +93,6 @@ public abstract class Projectile : MonoBehaviour
         if (GameManager.Instance.enemies.Count > 0)
         {
             float targetDistance = float.MaxValue;
-
             foreach (Enemy enemy in GameManager.Instance.enemies)
             {
                 float distance = Vector3.Distance(enemy.transform.position, transform.position);
@@ -126,7 +131,7 @@ public abstract class Projectile : MonoBehaviour
         transform.up = direction;
     }
 
-    public virtual void CheckTravelDistance() 
+    public virtual void CheckTravelDistance()
     {
         if (!hasReachedMaxDistance)
         {
@@ -134,56 +139,55 @@ public abstract class Projectile : MonoBehaviour
             if (distanceTraveled >= maxTravelDistance)
             {
                 hasReachedMaxDistance = true;
-                LeanPool.Despawn(gameObject);
+                ProjectilePool.Instance.DespawnProjectile(gameObject);
             }
         }
     }
 
-    public virtual void Attack() 
+    protected virtual void OnTriggerEnter2D(Collider2D other)
     {
-        Collider2D contactedColl = Physics2D.OverlapCircle(transform.position, coll.radius);
-        if (contactedColl != null)
+        Debug.Log($"Collision detected with: {other.gameObject.name} on layer: {other.gameObject.layer}");
+        Debug.Log($"Current projectile damage: {damage}");
+
+        if (!other.TryGetComponent<Enemy>(out Enemy enemy))
         {
-            if (contactedColl.TryGetComponent<Enemy>(out Enemy enemy))
-            {
-                if (!contactedColls.Contains(contactedColl))
-                {
-
-                    enemy.TakeDamage(damage);
-
-                    var particle = Instantiate(impactParticle, transform.position, Quaternion.identity);
-                    particle.Play();
-                    Destroy(particle.gameObject, 0.5f);
-                    contactedColls.Add(contactedColl);
-
-                    if (isHoming)
-                    { 
-                        LeanPool.Despawn(gameObject);                        
-                    }
-                    else
-                    {
-                        pierceCount--;
-                        if (pierceCount == 0)
-                        {
-                            LeanPool.Despawn(gameObject);
-                        }
-                    }
-                }
-            }
+            Debug.Log("Enemy component not found");
+            return;
         }
-    }
+        float enemyHpBefore = enemy.hp;
+        enemy.TakeDamage(damage);
+        Debug.Log($"Enemy HP changed from {enemyHpBefore} to {enemy.hp}");
 
-    private void OnHitTarget(GameObject target)
-    {
-        if (target.TryGetComponent<Enemy>(out Enemy enemy))
+        if (contactedColls.Contains(other))
         {
-            enemy.TakeDamage(damage);
+            Debug.Log("Already hit this enemy");
+            return;
+        }
 
-            // 속성 효과 적용
-            if (elementType != ElementType.None)
-            {
-                ElementalEffects.ApplyElementalEffect(elementType, elementalPower, target);
-            }
+        Debug.Log($"Dealing {damage} damage to enemy");
+
+        if (impactParticle != null)
+        {
+            var particle = Instantiate(impactParticle, transform.position, Quaternion.identity);
+            particle.Play();
+            Destroy(particle.gameObject, 0.5f);
+        }
+
+        contactedColls.Add(other);
+
+        // 속성 효과 적용
+        if (elementType != ElementType.None)
+        {
+            ElementalEffects.ApplyElementalEffect(elementType, elementalPower, other.gameObject);
+        }
+
+        if (isHoming)
+        {
+            ProjectilePool.Instance.DespawnProjectile(gameObject);
+        }
+        else if (--pierceCount <= 0)
+        {
+            ProjectilePool.Instance.DespawnProjectile(gameObject);
         }
     }
 }
