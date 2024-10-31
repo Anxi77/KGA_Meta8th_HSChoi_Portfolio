@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class SkillManager : SingletonManager<SkillManager>
 {
-    private List<SkillData> availableSkills;
-    private List<Skill> activeSkills;
+    private List<SkillData> availableSkills = new List<SkillData>();
+    private List<Skill> activeSkills = new List<Skill>();
 
     protected override void Awake()
     {
@@ -19,36 +19,33 @@ public class SkillManager : SingletonManager<SkillManager>
         activeSkills = new List<Skill>();
     }
 
-    public List<SkillData> GetRandomSkills(int count = 3)
+    public List<SkillData> GetRandomSkills(int count = 3, ElementType? elementType = null)
     {
-        List<SkillData> selectedSkills = new List<SkillData>();
+        var selectedSkills = new List<SkillData>();
+        var filteredSkills = availableSkills.Where(skill =>
+            elementType == null || skill.metadata.Element == elementType).ToList();
 
-        List<ElementType> availableElements = new List<ElementType>();
-        foreach (SkillData skill in availableSkills)
+        if (!filteredSkills.Any())
+            return selectedSkills;
+
+        // 특정 원소 타입이 지정되지 않은 경우 랜덤하게 선택
+        if (elementType == null)
         {
-            ElementType skillElement = skill.GetCurrentTypeStat().baseStat.element;
-            if (!availableElements.Contains(skillElement))
-            {
-                availableElements.Add(skillElement);
-            }
+            var availableElements = filteredSkills
+                .Select(s => s.metadata.Element)
+                .Distinct()
+                .ToList();
+
+            elementType = availableElements[Random.Range(0, availableElements.Count)];
+            filteredSkills = filteredSkills.Where(s => s.metadata.Element == elementType).ToList();
         }
 
-        if (availableElements.Count == 0) return selectedSkills;
-
-        int randomElementIndex = Random.Range(0, availableElements.Count);
-        ElementType selectedElement = availableElements[randomElementIndex];
-
-        List<SkillData> elementalSkills = availableSkills
-            .Where(skill => skill.GetCurrentTypeStat().baseStat.element == selectedElement)
-            .ToList();
-
-        int skillsToSelect = Mathf.Min(count, elementalSkills.Count);
-
-        while (selectedSkills.Count < skillsToSelect && elementalSkills.Count > 0)
+        // 선택된 원소 타입의 스킬들 중에서 랜덤하게 선택
+        while (selectedSkills.Count < count && filteredSkills.Any())
         {
-            int randomIndex = Random.Range(0, elementalSkills.Count);
-            selectedSkills.Add(elementalSkills[randomIndex]);
-            elementalSkills.RemoveAt(randomIndex);
+            int index = Random.Range(0, filteredSkills.Count);
+            selectedSkills.Add(filteredSkills[index]);
+            filteredSkills.RemoveAt(index);
         }
 
         return selectedSkills;
@@ -59,7 +56,7 @@ public class SkillManager : SingletonManager<SkillManager>
         if (GameManager.Instance.player == null) return;
 
         Player player = GameManager.Instance.player;
-        Skill existingSkill = player.skills.Find(x => x.SkillID == skillData._SkillID);
+        Skill existingSkill = player.skills.Find(x => x.SkillID == skillData.metadata.ID);
 
         if (existingSkill != null)
         {
@@ -68,7 +65,7 @@ public class SkillManager : SingletonManager<SkillManager>
         }
         else
         {
-            GameObject skillObj = Instantiate(skillData.prefabsByLevel[0], player.transform);
+            GameObject skillObj = Instantiate(skillData.metadata.Prefab, player.transform);
             skillObj.transform.localPosition = Vector3.zero;
 
             if (skillObj.TryGetComponent<Skill>(out Skill newSkill))

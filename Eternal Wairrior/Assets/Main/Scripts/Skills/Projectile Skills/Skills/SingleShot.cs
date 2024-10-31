@@ -1,4 +1,4 @@
-    using UnityEngine;
+using UnityEngine;
 
 public class SingleShot : ProjectileSkills
 {
@@ -10,30 +10,46 @@ public class SingleShot : ProjectileSkills
 
     private void InitializeSkillStats()
     {
-        if (currentStats == null)
+        if (skillData.GetStatsForLevel(1) == null)
         {
             var stats = new ProjectileSkillStat
             {
                 baseStat = new BaseSkillStat
                 {
-                    damage = 10f,
+                    damage = _damage,
                     skillName = "Default Gun",
                     skillLevel = 1,
                     maxSkillLevel = 5,
-                    element = ElementType.None,
-                    elementalPower = 1f
+                    element = skillData.metadata.Element,
+                    elementalPower = _elementalPower
                 },
-                projectileSpeed = 25f,
-                projectileScale = 1f,
-                shotInterval = 0.5f,
-                pierceCount = 1,
-                attackRange = 6f,
-                homingRange = 3.5f,
-                isHoming = false,
-                projectileCount = 1,
-                innerInterval = 0.5f
+                projectileSpeed = _projectileSpeed,
+                projectileScale = _projectileScale,
+                shotInterval = _shotInterval,
+                pierceCount = _pierceCount,
+                attackRange = _attackRange,
+                homingRange = _homingRange,
+                isHoming = _isHoming,
+                projectileCount = _projectileCount,
+                innerInterval = _innerInterval
             };
-            currentStats = stats;
+            skillData.SetStatsForLevel(1, stats);
+        }
+    }
+
+    protected override void Fire()
+    {
+        Vector3 spawnPosition = transform.position + transform.up * 0.5f;
+
+        Projectile proj = PoolManager.Instance.Spawn<Projectile>(
+            skillData.projectile,
+            spawnPosition,
+            transform.rotation
+        );
+
+        if (proj != null)
+        {
+            InitializeProjectile(proj);
         }
     }
 }

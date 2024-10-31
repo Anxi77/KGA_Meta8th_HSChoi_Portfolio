@@ -9910,6 +9910,7 @@ GameObject:
   - component: {fileID: 9124478475789960834}
   - component: {fileID: 7040242027871617858}
   - component: {fileID: 3426596224219949305}
+  - component: {fileID: 2242369258069043279}
   m_Layer: 0
   m_Name: BindRenderer
   m_TagString: Untagged
@@ -14943,6 +14944,18 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
+--- !u!114 &2242369258069043279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2727022525017941769}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca6abaca56a501d49b8c605c2a595786, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5176611775303655361
 GameObject:
   m_ObjectHideFlags: 0
@@ -19906,9 +19919,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7773986693d7e246a18285a328ff07e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 10
-  duration: 5
-  cooldown: 5
+  skillData:
+    icon: {fileID: 0}
+    projectile: {fileID: 0}
+    prefabsByLevel: []
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 0
+      cooldown: 0
+      triggerChance: 0
+  _damage: 10
+  _radius: 5
+  _duration: 5
+  _tickRate: 0.1
+  _isPersistent: 1
+  _moveSpeed: 180
   bindPrefab: {fileID: 2727022525017941769}
 --- !u!1 &9071367999916517002
 GameObject:

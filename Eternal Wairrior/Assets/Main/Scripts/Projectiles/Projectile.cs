@@ -2,23 +2,37 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Projectile : MonoBehaviour
+public class Projectile : MonoBehaviour, IPoolable
 {
-    public float damage;
-    public float moveSpeed;
-    public bool isHoming;
-    public int pierceCount;
-    public float maxTravelDistance;
+    [Header("Base Stats")]
+    [SerializeField] protected float _damage = 10f;
+    [SerializeField] protected float _moveSpeed = 10f;
+    [SerializeField] protected float _elementalPower = 1f;
+    [SerializeField] protected ElementType _elementType = ElementType.None;
+
+    [Header("Projectile Settings")]
+    [SerializeField] protected bool _isHoming = false;
+    [SerializeField] protected int _pierceCount = 1;
+    [SerializeField] protected float _maxTravelDistance = 10f;
+    public ParticleSystem impactParticle;
+
+    // Properties
+    public float damage { get => _damage; set => _damage = value; }
+    public float moveSpeed { get => _moveSpeed; set => _moveSpeed = value; }
+    public bool isHoming { get => _isHoming; set => _isHoming = value; }
+    public int pierceCount { get => _pierceCount; set => _pierceCount = value; }
+    public float maxTravelDistance { get => _maxTravelDistance; set => _maxTravelDistance = value; }
+    public float elementalPower { get => _elementalPower; set => _elementalPower = value; }
+    public ElementType elementType { get => _elementType; set => _elementType = value; }
+
+    // Runtime variables
     public Vector2 initialPosition;
     public Vector2 direction;
     protected bool hasReachedMaxDistance = false;
     public Enemy targetEnemy;
-    public ParticleSystem impactParticle;
     protected CircleCollider2D coll;
     protected List<Collider2D> contactedColls = new();
     protected ParticleSystem projectileRender;
-    public float elementalPower;
-    public ElementType elementType;
 
     protected virtual void Awake()
     {
@@ -28,10 +42,8 @@ public class Projectile : MonoBehaviour
         Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, false);
     }
 
-    protected virtual void OnEnable()
+    public void OnSpawnFromPool()
     {
-        //Debug.Log($"Projectile enabled with damage: {damage}");
-
         if (isHoming)
         {
             FindTarget();
@@ -41,6 +53,16 @@ public class Projectile : MonoBehaviour
 
         InitializeCollider();
         InitializeParticleSystem();
+    }
+
+    public void OnReturnToPool()
+    {
+        contactedColls.Clear();
+        if (projectileRender != null)
+        {
+            projectileRender.Stop();
+        }
+        ResetProjectile();
     }
 
     private void InitializeCollider()
@@ -66,15 +88,6 @@ public class Projectile : MonoBehaviour
     {
         CheckTravelDistance();
         ProjectileMove();
-    }
-
-    protected virtual void OnDisable()
-    {
-        contactedColls.Clear();
-        if (projectileRender != null)
-        {
-            projectileRender.Stop();
-        }
     }
 
     protected virtual void ProjectileMove()
@@ -145,7 +158,7 @@ public class Projectile : MonoBehaviour
             if (distanceTraveled >= maxTravelDistance)
             {
                 hasReachedMaxDistance = true;
-                ProjectilePool.Instance.DespawnProjectile(this);
+                PoolManager.Instance.Despawn(this);
             }
         }
     }
@@ -161,25 +174,37 @@ public class Projectile : MonoBehaviour
 
         if (impactParticle != null)
         {
-            var particle = Instantiate(impactParticle, transform.position, Quaternion.identity);
-            particle.Play();
-            Destroy(particle.gameObject, 0.5f);
+            ParticleSystem particle = PoolManager.Instance.Spawn<ParticleSystem>(
+                impactParticle.gameObject,
+                transform.position,
+                Quaternion.identity
+            );
+            if (particle != null)
+            {
+                particle.Play();
+                StartCoroutine(ReturnParticleToPool(particle, 0.5f));
+            }
         }
 
         contactedColls.Add(other);
 
-        if (elementType != ElementType.None)
+        if (elementType != ElementType.None && elementalPower > 0)
         {
             ElementalEffects.ApplyElementalEffect(elementType, elementalPower, other.gameObject);
         }
 
-        if (isHoming)
+        if (isHoming || --pierceCount <= 0)
         {
-            ProjectilePool.Instance.DespawnProjectile(this);
+            PoolManager.Instance.Despawn(this);
         }
-        else if (--pierceCount <= 0)
+    }
+
+    private IEnumerator ReturnParticleToPool(ParticleSystem particle, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (particle != null)
         {
-            ProjectilePool.Instance.DespawnProjectile(this);
+            PoolManager.Instance.Despawn(particle);
         }
     }
 
@@ -187,12 +212,12 @@ public class Projectile : MonoBehaviour
     {
         contactedColls.Clear();
         hasReachedMaxDistance = false;
-        pierceCount = 0;
-        damage = 0;
-        moveSpeed = 0;
-        isHoming = false;
+        _pierceCount = 1;
+        _damage = 10f;
+        _moveSpeed = 10f;
+        _isHoming = false;
         targetEnemy = null;
-        elementType = ElementType.None;
-        elementalPower = 0;
+        _elementType = ElementType.None;
+        _elementalPower = 1f;
     }
 }

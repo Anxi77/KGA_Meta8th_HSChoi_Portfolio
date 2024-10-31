@@ -1,7 +1,1 @@
 SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower,ProjectileSpeed,ProjectileScale,ShotInterval,PierceCount,AttackRange,HomingRange,IsHoming,ExplosionRad,ProjectileCount,InnerInterval
-None,1,10,5,None,1,10,1,0.5,1,10,5,False,0,1,0.1
-None,2,11,5,None,1.1,10,1,0.5,1,10,5,False,0,1,0.1
-EarthRift,1,10,5,None,1,10,1,0.5,1,10,5,False,0,1,0.1
-EarthRift,2,11,5,None,1.1,10,1,0.5,1,10,5,False,0,1,0.1
-EarthRift,3,12.1,5,None,1.21,10,1,0.5,1,10,5,False,0,1,0.1
-EarthRift,4,13.31,5,None,1.331,10,1,0.5,1,10,5,False,0,1,0.1

@@ -17,66 +17,61 @@ public class MultiShot : ProjectileSkills
         {
             skillData = new SkillData
             {
-                _SkillID = SkillID.None,
-                Name = "Multi Shot",
-                Description = "Fires multiple projectiles"
+                metadata = new SkillMetadata
+                {
+                    Name = "Multi Shot",
+                    Description = "Fires multiple projectiles",
+                    Type = SkillType.Projectile,
+                    Element = ElementType.None,
+                    Tier = 1
+                }
             };
         }
     }
 
     protected override void Fire()
     {
-        //Debug.Log($"MultiShot Fire() - Base Damage from currentStats: {currentStats.baseStat.damage}");
-        //Debug.Log($"MultiShot Fire() - Final Damage property: {Damage}");
-
         foreach (var shotPoint in shotPoints)
         {
-            Projectile proj = ProjectilePool.Instance.SpawnProjectile(
+            Projectile proj = PoolManager.Instance.Spawn<Projectile>(
                 skillData.projectile,
                 shotPoint.position,
                 transform.rotation
             );
 
-            proj.damage = Damage;
-            //Debug.Log($"Projectile created with damage: {proj.damage}");
-
-            proj.moveSpeed = ProjectileSpeed;
-            proj.isHoming = IsHoming;
-            proj.transform.localScale *= ProjectileScale;
-            proj.pierceCount = PierceCount;
-            proj.maxTravelDistance = AttackRange;
-            proj.elementType = currentStats.baseStat.element;
-            proj.elementalPower = currentStats.baseStat.elementalPower;
+            if (proj != null)
+            {
+                InitializeProjectile(proj);
+            }
         }
     }
 
     private void InitializeSkillStats()
     {
-        if (currentStats == null)
+        if (skillData.GetStatsForLevel(1) == null)
         {
             var stats = new ProjectileSkillStat
             {
                 baseStat = new BaseSkillStat
                 {
-                    damage = 10f,
-                    skillName = "Multi Shot",
+                    damage = _damage,
+                    skillName = skillData.metadata.Name,
                     skillLevel = 1,
                     maxSkillLevel = 5,
-                    element = ElementType.None,
-                    elementalPower = 1f
+                    element = skillData.metadata.Element,
+                    elementalPower = _elementalPower
                 },
-                projectileSpeed = 25f,
-                projectileScale = 1f,
-                shotInterval = 0.5f,
-                pierceCount = 1,
-                attackRange = 6f,
-                homingRange = 3.5f,
-                isHoming = false,
-                projectileCount = 3,
-                innerInterval = 0.5f
+                projectileSpeed = _projectileSpeed,
+                projectileScale = _projectileScale,
+                shotInterval = _shotInterval,
+                pierceCount = _pierceCount,
+                attackRange = _attackRange,
+                homingRange = _homingRange,
+                isHoming = _isHoming,
+                projectileCount = _projectileCount,
+                innerInterval = _innerInterval
             };
-
-            currentStats = stats;
+            skillData.SetStatsForLevel(1, stats);
         }
     }
 }

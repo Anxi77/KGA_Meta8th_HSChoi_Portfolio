@@ -1,17 +1,30 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Lean.Pool;
 
 public class Bind : AreaSkills
 {
     public GameObject bindPrefab;
-    private List<GameObject> spawnedBindEffects = new List<GameObject>();
+    private List<BindEffect> spawnedBindEffects = new List<BindEffect>();
     private Transform playerTransform;
 
     protected override void Awake()
     {
         base.Awake();
+        if (skillData == null)
+        {
+            skillData = new SkillData
+            {
+                metadata = new SkillMetadata
+                {
+                    Name = "Bind",
+                    Description = "Immobilizes enemies in range",
+                    Type = SkillType.Area,
+                    Element = ElementType.Dark,
+                    Tier = 1
+                }
+            };
+        }
         playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
         if (playerTransform == null)
         {
@@ -19,13 +32,45 @@ public class Bind : AreaSkills
         }
     }
 
+    private void InitializeSkillStats()
+    {
+        if (skillData.GetStatsForLevel(1) == null)
+        {
+            var stats = new AreaSkillStat
+            {
+                baseStat = new BaseSkillStat
+                {
+                    damage = 5f,
+                    skillName = skillData.metadata.Name,
+                    skillLevel = 1,
+                    maxSkillLevel = 5,
+                    element = skillData.metadata.Element,
+                    elementalPower = 1f
+                },
+                radius = 3f,
+                duration = 3f,
+                tickRate = 0.5f,
+                isPersistent = true,
+                moveSpeed = 0f
+            };
+            skillData.SetStatsForLevel(1, stats);
+        }
+    }
+
     private void Start()
     {
+        InitializeSkillStats();
         StartCoroutine(BindingCoroutine());
     }
 
     private IEnumerator BindingCoroutine()
     {
+        if (PoolManager.Instance == null)
+        {
+            Debug.LogError("PoolManager not found!");
+            yield break;
+        }
+
         while (true)
         {
             yield return new WaitForSeconds(TickRate);
@@ -45,9 +90,31 @@ public class Bind : AreaSkills
                         {
                             affectedEnemies.Add(enemy);
                             enemy.moveSpeed = 0;
-                            GameObject spawnedEffect = LeanPool.Spawn(bindPrefab, enemy.transform);
-                            spawnedBindEffects.Add(spawnedEffect);
-                            Debug.DrawLine(playerTransform.position, enemy.transform.position, Color.red, Duration);
+
+                            Vector3 effectPosition = enemy.transform.position;
+
+                            BindEffect bindEffect = PoolManager.Instance.Spawn<BindEffect>(
+                                bindPrefab,
+                                effectPosition,
+                                Quaternion.identity
+                            );
+
+                            if (bindEffect != null)
+                            {
+                                bindEffect.gameObject.SetActive(false);
+                                bindEffect.transform.SetParent(enemy.transform);
+                                bindEffect.transform.localPosition = Vector3.zero;
+                                bindEffect.transform.localRotation = Quaternion.identity;
+                                bindEffect.gameObject.SetActive(true);
+
+                                spawnedBindEffects.Add(bindEffect);
+
+                                Debug.Log($"Bind effect spawned at {effectPosition}, parent: {enemy.name}");
+                            }
+                            else
+                            {
+                                Debug.LogError("Failed to spawn BindEffect!");
+                            }
                         }
                     }
                 }
@@ -75,11 +142,11 @@ public class Bind : AreaSkills
                 }
             }
 
-            foreach (GameObject effect in spawnedBindEffects)
+            foreach (BindEffect effect in spawnedBindEffects)
             {
                 if (effect != null)
                 {
-                    LeanPool.Despawn(effect);
+                    PoolManager.Instance.Despawn(effect);
                 }
             }
             spawnedBindEffects.Clear();

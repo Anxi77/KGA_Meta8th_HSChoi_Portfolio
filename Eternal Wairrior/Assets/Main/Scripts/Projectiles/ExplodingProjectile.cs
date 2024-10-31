@@ -5,53 +5,61 @@ using UnityEngine;
 
 public class ExplodingProjectile : Projectile
 {
-    public float explosionRad;
+    [Header("Explosion Settings")]
+    [SerializeField] protected float _explosionRadius = 2f;
+    public float explosionRad { get => _explosionRadius; set => _explosionRadius = value; }
+
     private ParticleSystem projectileParticle;
 
     protected override void Awake()
     {
-        coll = GetComponent<CircleCollider2D>();
+        base.Awake();
         projectileParticle = GetComponentInChildren<ParticleSystem>();
-        coll.enabled = true;
     }
 
-    protected override void OnEnable()
+    protected override void OnTriggerEnter2D(Collider2D other)
     {
-        base.OnEnable();
-        if (coll != null)
-        {
-            coll.radius = 0.01f;
-        }
-    }
+        if (!other.CompareTag("Enemy")) return;
 
-    protected override void Update()
-    {
-        base.Update();       
+        StartCoroutine(ExplodeCoroutine());
     }
-
 
     private IEnumerator ExplodeCoroutine()
     {
         moveSpeed = 0;
         projectileParticle.Stop();
 
-        ParticleSystem impactInstance = LeanPool.Spawn(impactParticle, transform.position, transform.rotation);
-        impactInstance.Play();
+        ParticleSystem impactInstance = PoolManager.Instance.Spawn<ParticleSystem>(
+            impactParticle.gameObject,
+            transform.position,
+            transform.rotation
+        );
 
-        float explosionRadius = GetParticleSystemRadius(impactInstance);
+        if (impactInstance != null)
+        {
+            impactInstance.Play();
+            float explosionRadius = GetParticleSystemRadius(impactInstance);
 
-        // 폭발 반경 내의 콜라이더 감지 및 데미지 적용
-        Collider2D[] contactedColls = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
-        Explode(contactedColls);
+            // Apply explosion damage and effects
+            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
+            foreach (Collider2D hitCollider in hitColliders)
+            {
+                if (hitCollider.TryGetComponent<Enemy>(out Enemy enemy))
+                {
+                    enemy.TakeDamage(_damage);
 
-        // 파티클 지속 시간만큼 대기
-        yield return new WaitForSeconds(impactInstance.main.duration);
+                    if (_elementType != ElementType.None && _elementalPower > 0)
+                    {
+                        ElementalEffects.ApplyElementalEffect(_elementType, _elementalPower, hitCollider.gameObject);
+                    }
+                }
+            }
 
-        // 임팩트 파티클 인스턴스 제거
-        LeanPool.Despawn(impactInstance);
+            yield return new WaitForSeconds(impactInstance.main.duration);
+            PoolManager.Instance.Despawn(impactInstance);
+        }
 
-        // 미사일 프로젝타일 제거
-        LeanPool.Despawn(gameObject);
+        PoolManager.Instance.Despawn(this);
     }
 
     private float GetParticleSystemRadius(ParticleSystem particleSystem)
@@ -69,25 +77,14 @@ public class ExplodingProjectile : Projectile
         }
         else
         {
-            // 다른 모드의 경우 평균값 사용
+            // Use average value for other modes
             return (startSize.constantMin + startSize.constantMax) / 4f;
         }
     }
 
-    private void Explode(Collider2D[] contactedColls)
+    public override void ResetProjectile()
     {
-        foreach (Collider2D contactedColl in contactedColls)
-        {
-            if (contactedColl.CompareTag("Enemy"))
-            {
-                Enemy enemy = contactedColl.GetComponent<Enemy>();
-                if (enemy != null)
-                {
-                    enemy.TakeDamage(damage);
-                    Debug.Log($"폭발 범위 내 적 피해: {contactedColl.name}");
-                }
-            }
-        }
+        base.ResetProjectile();
+        _explosionRadius = 2f;
     }
-
 }

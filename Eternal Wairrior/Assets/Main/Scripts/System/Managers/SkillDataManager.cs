@@ -78,12 +78,11 @@ public class SkillDataManager : DataManager
     private void CreateDefaultSkillData()
     {
         // 기본 스킬 데이터 생성 로직
-        // 필요한 경우 구현
     }
 
     public void UpdateSkillData(SkillData updatedSkill)
     {
-        int index = skillDatas.FindIndex(x => x._SkillID == updatedSkill._SkillID);
+        int index = skillDatas.FindIndex(x => x.metadata.ID == updatedSkill.metadata.ID);
         if (index != -1)
         {
             skillDatas[index] = updatedSkill;
@@ -99,7 +98,7 @@ public class SkillDataManager : DataManager
             return null;
         }
 
-        SkillData skillData = skillDatas.Find(x => x._SkillID == skillID);
+        SkillData skillData = skillDatas.Find(x => x.metadata.ID == skillID);
         if (skillData == null)
         {
             Debug.LogError($"No skill data found for SkillID: {skillID}");
@@ -110,19 +109,8 @@ public class SkillDataManager : DataManager
         {
             if (levelStats.TryGetValue(1, out var statData))
             {
-                ISkillStat skillStat = statData.CreateSkillStat(skillData._SkillType);
-                switch (skillData._SkillType)
-                {
-                    case SkillType.Projectile:
-                        skillData.projectileStat = (ProjectileSkillStat)skillStat;
-                        break;
-                    case SkillType.Area: 
-                        skillData.areaStat = (AreaSkillStat)skillStat; 
-                        break;
-                    case SkillType.Passive:
-                        skillData.passiveStat = (PassiveSkillStat)skillStat;
-                        break;
-                }
+                ISkillStat skillStat = statData.CreateSkillStat(skillData.metadata.Type);
+                skillData.SetStatsForLevel(1, skillStat);
             }
         }
 
@@ -134,7 +122,7 @@ public class SkillDataManager : DataManager
         TextAsset csvFile = Resources.Load<TextAsset>($"{RESOURCE_PATH}/ProjectileSkillStats");
         if (csvFile == null)
         {
-            Debug.LogError("스킬 스탯 CSV 파일을 찾을 수 없습니다!");
+            Debug.LogError("스킬 CSV 로드 실패!");
             return;
         }
 
@@ -168,7 +156,7 @@ public class SkillDataManager : DataManager
             string value = values[i].Trim();
             switch (headers[i].Trim().ToLower())
             {
-                // 기본 스탯
+                // 기본 스킬
                 case "skillid":
                     if (System.Enum.TryParse(value, out SkillID skillID))
                         statData.skillID = skillID;
@@ -194,7 +182,7 @@ public class SkillDataManager : DataManager
                         statData.elementalPower = elementalPower;
                     break;
 
-                // 프로젝타일 스킬 스탯
+                // 투사 스킬
                 case "projectilespeed":
                     if (float.TryParse(value, out float speed))
                         statData.projectileSpeed = speed;
@@ -236,7 +224,7 @@ public class SkillDataManager : DataManager
                         statData.innerInterval = innerInterval;
                     break;
 
-                // 영역 스킬 스탯
+                // 범위 스킬
                 case "radius":
                     if (float.TryParse(value, out float radius))
                         statData.radius = radius;
@@ -258,7 +246,7 @@ public class SkillDataManager : DataManager
                         statData.moveSpeed = moveSpeed;
                     break;
 
-                // 패시브 스킬 스탯
+                // 효과 스킬
                 case "effectduration":
                     if (float.TryParse(value, out float effectDuration))
                         statData.effectDuration = effectDuration;

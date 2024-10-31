@@ -1,4 +1,4 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 using UnityEngine.UI;
@@ -21,6 +21,19 @@ public class SkillDataEditor : EditorWindow
     public static void ShowWindow()
     {
         GetWindow<SkillDataEditor>("Skill Data Editor");
+    }
+
+    [MenuItem("Tools/Clear Skill Data")]
+    public static void ClearSkillData()
+    {
+        if (EditorUtility.DisplayDialog("Clear Skill Data",
+            "Are you sure you want to clear all skill data? This cannot be undone.",
+            "Clear", "Cancel"))
+        {
+            var window = GetWindow<SkillDataEditor>();
+            window.ClearAllData();
+            window.LoadAllData(); // Reload empty data structures
+        }
     }
 
     private void OnEnable()
@@ -58,7 +71,7 @@ public class SkillDataEditor : EditorWindow
         if (GUILayout.Button("Delete", GUILayout.Width(60)))
         {
             if (currentSkill != null && EditorUtility.DisplayDialog("Delete Skill",
-                $"Are you sure you want to delete '{currentSkill.Name}'?", "Delete", "Cancel"))
+                $"Are you sure you want to delete '{currentSkill.metadata.Name}'?", "Delete", "Cancel"))
             {
                 DeleteCurrentSkill();
             }
@@ -81,12 +94,12 @@ public class SkillDataEditor : EditorWindow
                 EditorGUILayout.BeginHorizontal();
 
                 GUI.backgroundColor = currentSkill == skill ? Color.cyan : Color.white;
-                if (GUILayout.Button(skill.Name, GUILayout.Height(30)))
+                if (GUILayout.Button(skill.metadata.Name, GUILayout.Height(30)))
                 {
                     currentSkill = skill;
 
-                    // ø¿∏•¬  ≈¨∏Ø ∏ﬁ¥∫ √≥∏Æ
-                    if (Event.current.button == 1) // ø¿∏•¬  ≈¨∏Ø
+                    // ≈¨ ﬁ¥ √≥
+                    if (Event.current.button == 1) // ≈¨
                     {
                         ShowSkillContextMenu(skill);
                     }
@@ -99,13 +112,13 @@ public class SkillDataEditor : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
-    // Ω∫≈≥ ƒ¡≈ÿΩ∫∆Æ ∏ﬁ¥∫ «•Ω√
+    // ≈≥ ∆Æﬁ¥ «•
     private void ShowSkillContextMenu(SkillData skill)
     {
         GenericMenu menu = new GenericMenu();
         menu.AddItem(new GUIContent("Delete"), false, () => {
             if (EditorUtility.DisplayDialog("Delete Skill",
-                $"Are you sure you want to delete '{skill.Name}'?", "Delete", "Cancel"))
+                $"Are you sure you want to delete '{skill.metadata.Name}'?", "Delete", "Cancel"))
             {
                 DeleteSkill(skill);
             }
@@ -113,7 +126,7 @@ public class SkillDataEditor : EditorWindow
         menu.ShowAsContext();
     }
 
-    // «ˆ¿Á º±≈√µ» Ω∫≈≥ ªË¡¶
+    // √µ  ≈≥
     private void DeleteCurrentSkill()
     {
         if (currentSkill != null)
@@ -123,29 +136,25 @@ public class SkillDataEditor : EditorWindow
         }
     }
 
-    // Ω∫≈≥ ªË¡¶ ∑Œ¡˜
+    // ≈≥ 
     private void DeleteSkill(SkillData skill)
     {
-        // Ω∫≈≥ ∏ÆΩ∫∆Æø°º≠ ¡¶∞≈
         skillList.Remove(skill);
 
-        // Ω∫≈≥ Ω∫≈» µ•¿Ã≈Õ ¡¶∞≈
-        if (skillStatsList.ContainsKey(skill._SkillID))
+        // Ïä§ÌÇ¨ Ïä§ÌÉØ Ï†úÍ±∞ (metadata.ID ÏÇ¨Ïö©)
+        if (skillStatsList.ContainsKey(skill.metadata.ID))
         {
-            skillStatsList.Remove(skill._SkillID);
+            skillStatsList.Remove(skill.metadata.ID);
         }
 
-        // SkillDataManager æ˜µ•¿Ã∆Æ
         var skillDataManager = FindObjectOfType<SkillDataManager>();
         if (skillDataManager != null)
         {
             EditorUtility.SetDirty(skillDataManager);
         }
 
-        // ¿˙¿Â
         SaveSkillData();
-
-        Debug.Log($"Skill '{skill.Name}' has been deleted.");
+        Debug.Log($"Skill '{skill.metadata.Name}' has been deleted.");
     }
     #endregion
 
@@ -172,7 +181,7 @@ public class SkillDataEditor : EditorWindow
 
         if (EditorGUI.EndChangeCheck())
         {
-            // SkillDataManager∏¶ √£æ∆º≠ dirty∑Œ «•Ω√
+            // SkillDataManager √£∆º dirty «•
             var skillDataManager = FindObjectOfType<SkillDataManager>();
             if (skillDataManager != null)
             {
@@ -191,18 +200,51 @@ public class SkillDataEditor : EditorWindow
         EditorGUI.indentLevel++;
 
         EditorGUI.BeginChangeCheck();
-        currentSkill.Name = EditorGUILayout.TextField("Name", currentSkill.Name);
-        currentSkill.Description = EditorGUILayout.TextField("Description", currentSkill.Description);
 
-        // SkillType¿Ã ∫Ø∞Êµ… ∂ß Ω∫≈» √ ±‚»≠
-        SkillType newSkillType = (SkillType)EditorGUILayout.EnumPopup("Skill Type", currentSkill._SkillType);
-        if (newSkillType != currentSkill._SkillType)
+        // Î©îÌÉÄÎç∞Ïù¥ÌÑ∞ Ìé∏Ïßë
+        currentSkill.metadata.Name = EditorGUILayout.TextField("Name", currentSkill.metadata.Name);
+        currentSkill.metadata.Description = EditorGUILayout.TextField("Description", currentSkill.metadata.Description);
+
+        SkillType newSkillType = (SkillType)EditorGUILayout.EnumPopup("Skill Type", currentSkill.metadata.Type);
+        if (newSkillType != currentSkill.metadata.Type)
         {
-            currentSkill._SkillType = newSkillType;
+            currentSkill.metadata.Type = newSkillType;
             InitializeSkillStats(currentSkill);
         }
 
-        currentSkill._SkillID = (SkillID)EditorGUILayout.EnumPopup("Skill ID", currentSkill._SkillID);
+        currentSkill.metadata.ID = (SkillID)EditorGUILayout.EnumPopup("Skill ID", currentSkill.metadata.ID);
+        currentSkill.metadata.Element = (ElementType)EditorGUILayout.EnumPopup("Element Type", currentSkill.metadata.Element);
+        currentSkill.metadata.Tier = EditorGUILayout.IntField("Tier", currentSkill.metadata.Tier);
+
+        // ÌÉúÍ∑∏ Ìé∏Ïßë
+        if (currentSkill.metadata.Tags == null)
+            currentSkill.metadata.Tags = new string[0];
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Tags");
+        if (GUILayout.Button("+", GUILayout.Width(20)))
+        {
+            string[] newTags = new string[currentSkill.metadata.Tags.Length + 1];
+            currentSkill.metadata.Tags.CopyTo(newTags, 0);
+            newTags[newTags.Length - 1] = "";
+            currentSkill.metadata.Tags = newTags;
+        }
+        EditorGUILayout.EndHorizontal();
+
+        for (int i = 0; i < currentSkill.metadata.Tags.Length; i++)
+        {
+            EditorGUILayout.BeginHorizontal();
+            currentSkill.metadata.Tags[i] = EditorGUILayout.TextField(currentSkill.metadata.Tags[i]);
+            if (GUILayout.Button("-", GUILayout.Width(20)))
+            {
+                string[] newTags = new string[currentSkill.metadata.Tags.Length - 1];
+                System.Array.Copy(currentSkill.metadata.Tags, 0, newTags, 0, i);
+                System.Array.Copy(currentSkill.metadata.Tags, i + 1, newTags, i, currentSkill.metadata.Tags.Length - i - 1);
+                currentSkill.metadata.Tags = newTags;
+                break;
+            }
+            EditorGUILayout.EndHorizontal();
+        }
 
         EditorGUI.indentLevel--;
     }
@@ -250,32 +292,26 @@ public class SkillDataEditor : EditorWindow
 
         try
         {
-            if (currentSkill._SkillType == SkillType.None)
+            if (currentSkill.metadata.Type == SkillType.None)
             {
                 EditorGUILayout.HelpBox("Please select a skill type first", MessageType.Info);
                 return;
             }
 
-            // ±‚∫ª Ω∫≈» ±◊∏Æ±‚
+            // Í∏∞Î≥∏ Ïä§ÌÉØ
             DrawBaseStats();
 
-            // Ω∫≈≥ ≈∏¿‘∫∞ Ω∫≈»∏∏ ±◊∏Æ±‚
-            switch (currentSkill._SkillType)
+            // Ïä§ÌÇ¨ ÌÉÄÏûÖÎ≥Ñ Ïä§ÌÉØ
+            switch (currentSkill.metadata.Type)
             {
                 case SkillType.Projectile:
-                    if (currentSkill.projectileStat == null)
-                        currentSkill.projectileStat = new ProjectileSkillStat();
-                    DrawProjectileStats();
+                    DrawProjectileStats(currentSkill.GetStatsForLevel(1) as ProjectileSkillStat);
                     break;
                 case SkillType.Area:
-                    if (currentSkill.areaStat == null)
-                        currentSkill.areaStat = new AreaSkillStat();
-                    DrawAreaStats();
+                    DrawAreaStats(currentSkill.GetStatsForLevel(1) as AreaSkillStat);
                     break;
                 case SkillType.Passive:
-                    if (currentSkill.passiveStat == null)
-                        currentSkill.passiveStat = new PassiveSkillStat();
-                    DrawPassiveStats();
+                    DrawPassiveStats(currentSkill.GetStatsForLevel(1) as PassiveSkillStat);
                     break;
             }
         }
@@ -314,13 +350,12 @@ public class SkillDataEditor : EditorWindow
         }
     }
 
-    private void DrawProjectileStats()
+    private void DrawProjectileStats(ProjectileSkillStat stats)
     {
         EditorGUILayout.Space(5);
         EditorGUILayout.LabelField("Projectile Stats", EditorStyles.boldLabel);
         EditorGUI.indentLevel++;
 
-        var stats = currentSkill.projectileStat;
         stats.projectileSpeed = EditorGUILayout.FloatField("Speed", stats.projectileSpeed);
         stats.projectileScale = EditorGUILayout.FloatField("Scale", stats.projectileScale);
         stats.shotInterval = EditorGUILayout.FloatField("Shot Interval", stats.shotInterval);
@@ -335,13 +370,12 @@ public class SkillDataEditor : EditorWindow
         EditorGUI.indentLevel--;
     }
 
-    private void DrawAreaStats()
+    private void DrawAreaStats(AreaSkillStat stats)
     {
         EditorGUILayout.Space(5);
         EditorGUILayout.LabelField("Area Stats", EditorStyles.boldLabel);
         EditorGUI.indentLevel++;
 
-        var stats = currentSkill.areaStat;
         stats.radius = EditorGUILayout.FloatField("Radius", stats.radius);
         stats.duration = EditorGUILayout.FloatField("Duration", stats.duration);
         stats.tickRate = EditorGUILayout.FloatField("Tick Rate", stats.tickRate);
@@ -351,13 +385,12 @@ public class SkillDataEditor : EditorWindow
         EditorGUI.indentLevel--;
     }
 
-    private void DrawPassiveStats()
+    private void DrawPassiveStats(PassiveSkillStat stats)
     {
         EditorGUILayout.Space(5);
         EditorGUILayout.LabelField("Passive Stats", EditorStyles.boldLabel);
         EditorGUI.indentLevel++;
 
-        var stats = currentSkill.passiveStat;
         stats.effectDuration = EditorGUILayout.FloatField("Effect Duration", stats.effectDuration);
         stats.cooldown = EditorGUILayout.FloatField("Cooldown", stats.cooldown);
         stats.triggerChance = EditorGUILayout.FloatField("Trigger Chance", stats.triggerChance);
@@ -372,100 +405,114 @@ public class SkillDataEditor : EditorWindow
 
         if (!showLevelStats) return;
 
-        if (!skillStatsList.ContainsKey(currentSkill._SkillID))
-        {
-            skillStatsList[currentSkill._SkillID] = new List<SkillStatData>();
-        }
-
-        var levelStats = skillStatsList[currentSkill._SkillID];
-
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button("Add Level", GUILayout.Width(100)))
         {
             AddNewLevelStat();
         }
-        if (GUILayout.Button("Remove Last Level", GUILayout.Width(120)))
-        {
-            if (levelStats.Count > 0)
-                levelStats.RemoveAt(levelStats.Count - 1);
-        }
         EditorGUILayout.EndHorizontal();
 
-        for (int i = 0; i < levelStats.Count; i++)
+        // Î†àÎ≤®Î≥Ñ Ïä§ÌÉØ ÌëúÏãú
+        for (int level = 1; level <= currentSkill.GetMaxLevel(); level++)
         {
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            EditorGUILayout.LabelField($"Level {i + 1}", EditorStyles.boldLabel);
-            var stat = levelStats[i];
+            EditorGUILayout.LabelField($"Level {level}", EditorStyles.boldLabel);
+            var stats = currentSkill.GetStatsForLevel(level);
 
-            // ±‚∫ª Ω∫≈»
-            stat.damage = EditorGUILayout.FloatField("Damage", stat.damage);
-            stat.maxSkillLevel = EditorGUILayout.IntField("Max Level", stat.maxSkillLevel);
-            stat.element = (ElementType)EditorGUILayout.EnumPopup("Element", stat.element);
-            stat.elementalPower = EditorGUILayout.FloatField("Elemental Power", stat.elementalPower);
-
-            // Ω∫≈≥ ≈∏¿‘∫∞ Ω∫≈»∏∏ «•Ω√
-            switch (currentSkill._SkillType)
-            {
-                case SkillType.Projectile:
-                    EditorGUILayout.Space(5);
-                    EditorGUILayout.LabelField("Projectile Stats", EditorStyles.boldLabel);
-                    stat.projectileSpeed = EditorGUILayout.FloatField("Speed", stat.projectileSpeed);
-                    stat.projectileScale = EditorGUILayout.FloatField("Scale", stat.projectileScale);
-                    stat.shotInterval = EditorGUILayout.FloatField("Shot Interval", stat.shotInterval);
-                    stat.pierceCount = EditorGUILayout.IntField("Pierce Count", stat.pierceCount);
-                    stat.attackRange = EditorGUILayout.FloatField("Attack Range", stat.attackRange);
-                    stat.homingRange = EditorGUILayout.FloatField("Homing Range", stat.homingRange);
-                    stat.isHoming = EditorGUILayout.Toggle("Is Homing", stat.isHoming);
-                    stat.explosionRad = EditorGUILayout.FloatField("Explosion Radius", stat.explosionRad);
-                    stat.projectileCount = EditorGUILayout.IntField("Projectile Count", stat.projectileCount);
-                    stat.innerInterval = EditorGUILayout.FloatField("Inner Interval", stat.innerInterval);
-                    break;
-                case SkillType.Area:
-                    // Area Ω∫≈≥ Ω∫≈»
-                    break;
-                case SkillType.Passive:
-                    // Passive Ω∫≈≥ Ω∫≈»
-                    break;
-            }
+            DrawStatsForType(stats, currentSkill.metadata.Type);
 
             EditorGUILayout.EndVertical();
         }
     }
 
+    private void DrawStatsForType(ISkillStat stats, SkillType skillType)
+    {
+        // Í∏∞Î≥∏ Ïä§ÌÉØ ÌëúÏãú
+        var baseStat = stats.baseStat;
+        baseStat.damage = EditorGUILayout.FloatField("Damage", baseStat.damage);
+        baseStat.elementalPower = EditorGUILayout.FloatField("Elemental Power", baseStat.elementalPower);
+
+        // Ïä§ÌÇ¨ ÌÉÄÏûÖÎ≥Ñ ÌäπÏàò Ïä§ÌÉØ ÌëúÏãú
+        switch (skillType)
+        {
+            case SkillType.Projectile:
+                DrawProjectileStats(stats as ProjectileSkillStat);
+                break;
+            case SkillType.Area:
+                DrawAreaStats(stats as AreaSkillStat);
+                break;
+            case SkillType.Passive:
+                DrawPassiveStats(stats as PassiveSkillStat);
+                break;
+        }
+    }
+
     private void AddNewLevelStat()
     {
-        var levelStats = skillStatsList[currentSkill._SkillID];
+        var levelStats = skillStatsList[currentSkill.metadata.ID];
         var newStat = new SkillStatData
         {
-            skillID = currentSkill._SkillID,
+            skillID = currentSkill.metadata.ID,
             level = levelStats.Count + 1
         };
 
-        // ¿Ã¿¸ ∑π∫ß¿« Ω∫≈»¿ª ∫πªÁ (¿÷¥¬ ∞ÊøÏ)
+        // Ïù¥Ï†Ñ Î†àÎ≤®Ïùò Ïä§ÌÉØÏùÑ Í∏∞Î∞òÏúºÎ°ú ÏÉà Ïä§ÌÉØ ÏÉùÏÑ±
         if (levelStats.Count > 0)
         {
             var prevStat = levelStats[levelStats.Count - 1];
-            newStat.damage = prevStat.damage * 1.1f; // 10% ¡ı∞°
+            newStat.damage = prevStat.damage * 1.1f; // 10% Ï¶ùÍ∞Ä
             newStat.maxSkillLevel = prevStat.maxSkillLevel;
-            newStat.element = prevStat.element;
+            newStat.element = currentSkill.metadata.Element;
             newStat.elementalPower = prevStat.elementalPower * 1.1f;
 
-            // πﬂªÁ√º Ω∫≈≥ Ω∫≈»
-            newStat.projectileSpeed = prevStat.projectileSpeed;
-            newStat.projectileScale = prevStat.projectileScale;
-            newStat.shotInterval = prevStat.shotInterval;
-            newStat.pierceCount = prevStat.pierceCount;
-            newStat.attackRange = prevStat.attackRange;
-            newStat.homingRange = prevStat.homingRange;
-            newStat.isHoming = prevStat.isHoming;
-            newStat.explosionRad = prevStat.explosionRad;
-            newStat.projectileCount = prevStat.projectileCount;
-            newStat.innerInterval = prevStat.innerInterval;
+            // Ïä§ÌÇ¨ ÌÉÄÏûÖÎ≥Ñ Ïä§ÌÉØ Î≥µÏÇ¨
+            switch (currentSkill.metadata.Type)
+            {
+                case SkillType.Projectile:
+                    CopyProjectileStats(prevStat, newStat);
+                    break;
+                case SkillType.Area:
+                    CopyAreaStats(prevStat, newStat);
+                    break;
+                case SkillType.Passive:
+                    CopyPassiveStats(prevStat, newStat);
+                    break;
+            }
         }
 
         levelStats.Add(newStat);
+    }
+
+    private void CopyProjectileStats(SkillStatData from, SkillStatData to)
+    {
+        to.projectileSpeed = from.projectileSpeed;
+        to.projectileScale = from.projectileScale;
+        to.shotInterval = from.shotInterval;
+        to.pierceCount = from.pierceCount;
+        to.attackRange = from.attackRange;
+        to.homingRange = from.homingRange;
+        to.isHoming = from.isHoming;
+        to.explosionRad = from.explosionRad;
+        to.projectileCount = from.projectileCount;
+        to.innerInterval = from.innerInterval;
+    }
+
+    private void CopyAreaStats(SkillStatData from, SkillStatData to)
+    {
+        to.radius = from.radius;
+        to.duration = from.duration;
+        to.tickRate = from.tickRate;
+        to.isPersistent = from.isPersistent;
+        to.moveSpeed = from.moveSpeed;
+    }
+
+    private void CopyPassiveStats(SkillStatData from, SkillStatData to)
+    {
+        to.effectDuration = from.effectDuration;
+        to.cooldown = from.cooldown;
+        to.triggerChance = from.triggerChance;
     }
 
     private void LoadSkillStatsData()
@@ -476,7 +523,7 @@ public class SkillDataEditor : EditorWindow
         LoadSkillStatsFromCSV("SkillData/AreaSkillStats");
         LoadSkillStatsFromCSV("SkillData/PassiveSkillStats");
 
-        Debug.Log($"CSV ∆ƒ¿œø°º≠ {skillStatsList.Count}∞≥¿« Ω∫≈≥ Ω∫≈»¿ª ∑ŒµÂ«ﬂΩ¿¥œ¥Ÿ.");
+        Debug.Log($"Loaded {skillStatsList.Count} skill stats from CSV files.");
     }
 
     private void LoadSkillStatsFromCSV(string fileName)
@@ -510,7 +557,7 @@ public class SkillDataEditor : EditorWindow
         string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
         Directory.CreateDirectory(directory);
 
-        // Ω∫≈≥ ≈∏¿‘∫∞∑Œ CSV ∆ƒ¿œ ª˝º∫
+        // Save CSV files by skill type
         SaveProjectileSkillStats(directory);
         SaveAreaSkillStats(directory);
         SavePassiveSkillStats(directory);
@@ -523,12 +570,12 @@ public class SkillDataEditor : EditorWindow
         string path = Path.Combine(directory, "ProjectileSkillStats.csv");
         StringBuilder csv = new StringBuilder();
 
-        // «¡∑Œ¡ß≈∏¿œ Ω∫≈≥ «Ï¥ı
+        // Header for projectile skills
         csv.AppendLine("SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower," +
                       "ProjectileSpeed,ProjectileScale,ShotInterval,PierceCount,AttackRange," +
                       "HomingRange,IsHoming,ExplosionRad,ProjectileCount,InnerInterval");
 
-        // «¡∑Œ¡ß≈∏¿œ Ω∫≈≥ µ•¿Ã≈Õ∏∏ ¿˙¿Â
+        // Save projectile skill data
         foreach (var skillStats in skillStatsList.Values)
         {
             foreach (var stat in skillStats)
@@ -552,18 +599,17 @@ public class SkillDataEditor : EditorWindow
         string path = Path.Combine(directory, "AreaSkillStats.csv");
         StringBuilder csv = new StringBuilder();
 
-        // øµø™ Ω∫≈≥ «Ï¥ı
+        // Header for area skills
         csv.AppendLine("SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower," +
                       "Radius,Duration,TickRate,IsPersistent,MoveSpeed");
 
-        // øµø™ Ω∫≈≥ µ•¿Ã≈Õ∏∏ ¿˙¿Â
+        // Save area skill data
         foreach (var skillStats in skillStatsList.Values)
         {
             foreach (var stat in skillStats)
             {
                 if (GetSkillType(stat.skillID) == SkillType.Area)
                 {
-                    // øµø™ Ω∫≈≥ µ•¿Ã≈Õ ∆˜∏À
                     csv.AppendLine($"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
                                  $"{stat.element},{stat.elementalPower},{stat.radius}," +
                                  $"{stat.duration},{stat.tickRate},{stat.isPersistent},{stat.moveSpeed}");
@@ -579,18 +625,17 @@ public class SkillDataEditor : EditorWindow
         string path = Path.Combine(directory, "PassiveSkillStats.csv");
         StringBuilder csv = new StringBuilder();
 
-        // ∆–Ω√∫Í Ω∫≈≥ «Ï¥ı
+        // Header for passive skills
         csv.AppendLine("SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower," +
                       "EffectDuration,Cooldown,TriggerChance");
 
-        // ∆–Ω√∫Í Ω∫≈≥ µ•¿Ã≈Õ∏∏ ¿˙¿Â
+        // Save passive skill data
         foreach (var skillStats in skillStatsList.Values)
         {
             foreach (var stat in skillStats)
             {
                 if (GetSkillType(stat.skillID) == SkillType.Passive)
                 {
-                    // ∆–Ω√∫Í Ω∫≈≥ µ•¿Ã≈Õ ∆˜∏À
                     csv.AppendLine($"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
                                  $"{stat.element},{stat.elementalPower},{stat.effectDuration}," +
                                  $"{stat.cooldown},{stat.triggerChance}");
@@ -603,8 +648,8 @@ public class SkillDataEditor : EditorWindow
 
     private SkillType GetSkillType(SkillID skillID)
     {
-        var skill = skillList.Find(x => x._SkillID == skillID);
-        return skill?._SkillType ?? SkillType.Projectile;
+        var skill = skillList.Find(x => x.metadata.ID == skillID);
+        return skill?.metadata.Type ?? SkillType.Projectile;
     }
 
     #region Bottom Panel
@@ -622,6 +667,17 @@ public class SkillDataEditor : EditorWindow
             SaveSkillStatsToCSV();
         }
 
+        if (GUILayout.Button("Clear All", GUILayout.Height(30)))
+        {
+            if (EditorUtility.DisplayDialog("Clear All Data",
+                "Are you sure you want to clear all skill data? This cannot be undone.",
+                "Clear", "Cancel"))
+            {
+                ClearAllData();
+                LoadAllData();
+            }
+        }
+
         if (GUILayout.Button("Export JSON", GUILayout.Height(30)))
             ExportToJson();
 
@@ -635,13 +691,13 @@ public class SkillDataEditor : EditorWindow
     #region Data Management
     private void LoadAllData()
     {
-        // 1. SkillDataManagerø°º≠ ±‚∫ª Ω∫≈≥ µ•¿Ã≈Õ ∑ŒµÂ
+        // 1. SkillDataManager‚∫ª ≈≥  Œµ
         LoadSkillData();
 
-        // 2. CSVø°º≠ Ω∫≈≥ Ω∫≈» µ•¿Ã≈Õ ∑ŒµÂ
+        // 2. CSV ≈≥  Œµ
         LoadSkillStatsData();
 
-        // 3. JSON ∆ƒ¿œø°º≠ √ﬂ∞° µ•¿Ã≈Õ ∑ŒµÂ (πÈæ˜øÎ)
+        // 3. JSON œøﬂ∞  Œµ ( )
         LoadJsonData();
     }
 
@@ -655,32 +711,28 @@ public class SkillDataEditor : EditorWindow
                 string jsonContent = File.ReadAllText(jsonPath);
                 SkillDataWrapper wrapper = JsonUtility.FromJson<SkillDataWrapper>(jsonContent);
 
-                // JSON µ•¿Ã≈ÕøÕ «ˆ¿Á µ•¿Ã≈Õ ∫¥«’
                 if (wrapper != null && wrapper.skillDatas != null)
                 {
                     foreach (var jsonSkill in wrapper.skillDatas)
                     {
-                        // ±‚¡∏ Ω∫≈≥ √£±‚
-                        var existingSkill = skillList.Find(s => s._SkillID == jsonSkill._SkillID);
+                        var existingSkill = skillList.Find(s => s.metadata.ID == jsonSkill.metadata.ID);
                         if (existingSkill == null)
                         {
-                            // ªı∑ŒøÓ Ω∫≈≥¿Ã∏È √ﬂ∞°
                             skillList.Add(jsonSkill);
                         }
                         else
                         {
-                            // ±‚¡∏ Ω∫≈≥¿Ã∏È µ•¿Ã≈Õ æ˜µ•¿Ã∆Æ
                             int index = skillList.IndexOf(existingSkill);
                             skillList[index] = jsonSkill;
                         }
                     }
                 }
 
-                Debug.Log($"JSON µ•¿Ã≈Õ∏¶ º∫∞¯¿˚¿∏∑Œ ∑ŒµÂ«ﬂΩ¿¥œ¥Ÿ: {jsonPath}");
+                Debug.Log($"Successfully loaded JSON data from: {jsonPath}");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"JSON µ•¿Ã≈Õ ∑ŒµÂ ¡ﬂ ø¿∑˘ πﬂª˝: {e.Message}");
+                Debug.LogError($"Failed to load JSON data: {e.Message}");
             }
         }
     }
@@ -695,12 +747,12 @@ public class SkillDataEditor : EditorWindow
             {
                 skillList = new List<SkillData>();
             }
-            Debug.Log($"SkillDataManagerø°º≠ {skillList.Count}∞≥¿« Ω∫≈≥¿ª ∑ŒµÂ«ﬂΩ¿¥œ¥Ÿ.");
+            Debug.Log($"Loaded {skillList.Count} skills from SkillDataManager.");
         }
         else
         {
             skillList = new List<SkillData>();
-            Debug.LogError("SkillDataManager∏¶ √£¿ª ºˆ æ¯Ω¿¥œ¥Ÿ!");
+            Debug.LogError("SkillDataManager not found!");
         }
     }
 
@@ -709,12 +761,12 @@ public class SkillDataEditor : EditorWindow
         var skillDataManager = FindObjectOfType<SkillDataManager>();
         if (skillDataManager != null)
         {
-            // ±‚¡∏ µ•¿Ã≈Õ ¿˙¿Â
+            // Save base data
             skillDataManager.SaveAllSkillData();
             EditorUtility.SetDirty(skillDataManager);
             AssetDatabase.SaveAssets();
 
-            // JSON ¿˙¿Â
+            // Save JSON
             string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
             Directory.CreateDirectory(directory);
             string jsonPath = Path.Combine(directory, "SkillData.json");
@@ -723,17 +775,17 @@ public class SkillDataEditor : EditorWindow
             string json = JsonUtility.ToJson(wrapper, true);
             File.WriteAllText(jsonPath, json);
 
-            // CSV µ•¿Ã≈Õµµ ¿˙¿Â
+            // Save CSV data
             SaveSkillStatsToCSV();
 
             AssetDatabase.Refresh();
-            Debug.Log($"Ω∫≈≥ µ•¿Ã≈Õ∞° ¿˙¿Âµ«æ˙Ω¿¥œ¥Ÿ!\n" +
-                     $"JSON ∆ƒ¿œ: {jsonPath}\n" +
-                     $"CSV ∆ƒ¿œ: {directory}/[Type]SkillStats.csv");
+            Debug.Log($"Skill data saved successfully!\n" +
+                     $"JSON Path: {jsonPath}\n" +
+                     $"CSV Path: {directory}/[Type]SkillStats.csv");
         }
         else
         {
-            Debug.LogError("SkillDataManager∏¶ √£¿ª ºˆ æ¯Ω¿¥œ¥Ÿ!");
+            Debug.LogError("SkillDataManager not found!");
         }
     }
 
@@ -741,40 +793,63 @@ public class SkillDataEditor : EditorWindow
     {
         SkillData newSkill = new SkillData
         {
-            Name = "New Skill",
-            _SkillType = SkillType.None,
-            _SkillID = SkillID.None,
-            prefabsByLevel = new GameObject[1]
+            metadata = new SkillMetadata
+            {
+                Name = "New Skill",
+                Description = "New skill description",
+                Type = SkillType.None,
+                ID = SkillID.None,
+                Element = ElementType.None,
+                Tier = 1,
+                Tags = new string[0],
+                Prefab = null
+            }
         };
 
-        // ∏µÁ Ω∫≈» ≈∏¿‘ √ ±‚»≠
-        InitializeSkillStats(newSkill);
+        // Initialize default stats
+        var defaultStats = new ProjectileSkillStat
+        {
+            baseStat = new BaseSkillStat
+            {
+                damage = 10f,
+                skillName = "New Skill",
+                skillLevel = 1,
+                maxSkillLevel = 5,
+                element = ElementType.None,
+                elementalPower = 1f
+            }
+        };
 
+        // Set initial stats for level 1
+        newSkill.SetStatsForLevel(1, defaultStats);
+
+        // Add to list and select
         skillList.Add(newSkill);
         currentSkill = newSkill;
 
-        if (!skillStatsList.ContainsKey(newSkill._SkillID))
+        // Initialize skill stats list if needed
+        if (!skillStatsList.ContainsKey(newSkill.metadata.ID))
         {
-            skillStatsList[newSkill._SkillID] = new List<SkillStatData>();
+            skillStatsList[newSkill.metadata.ID] = new List<SkillStatData>();
         }
 
-        Debug.Log("ªı∑ŒøÓ Ω∫≈≥¿Ã ª˝º∫µ«æ˙Ω¿¥œ¥Ÿ!");
+        Debug.Log("Created new skill with default values");
     }
 
     private void InitializeSkillStats(SkillData skill)
     {
-        // ∏µÁ Ω∫≈» ≈∏¿‘ø° ¥Î«— ±‚∫ª∞™ √ ±‚»≠
+        // Î™®Îì† Ïä§ÌÇ¨ ÌÉÄÏûÖÏóê ÎåÄÌïú Í∏∞Î≥∏ Ïä§ÌÉØ Ï¥àÍ∏∞Ìôî
         skill.projectileStat = new ProjectileSkillStat
         {
-            baseStat = new BaseSkillStat { skillName = skill.Name }
+            baseStat = new BaseSkillStat { skillName = skill.metadata.Name }
         };
         skill.areaStat = new AreaSkillStat
         {
-            baseStat = new BaseSkillStat { skillName = skill.Name }
+            baseStat = new BaseSkillStat { skillName = skill.metadata.Name }
         };
         skill.passiveStat = new PassiveSkillStat
         {
-            baseStat = new BaseSkillStat { skillName = skill.Name }
+            baseStat = new BaseSkillStat { skillName = skill.metadata.Name }
         };
     }
 
@@ -787,7 +862,7 @@ public class SkillDataEditor : EditorWindow
             SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillList };
             string json = JsonUtility.ToJson(wrapper, true);
             System.IO.File.WriteAllText(path, json);
-            Debug.Log($"Ω∫≈≥ µ•¿Ã≈Õ∞° ¥Ÿ¿Ω ∞Ê∑Œ∑Œ ≥ª∫∏≥ª¡≥Ω¿¥œ¥Ÿ: {path}");
+            Debug.Log($"≈≥ Õ∞  Œ∑œ¥: {path}");
             AssetDatabase.Refresh();
         }
     }
@@ -800,7 +875,7 @@ public class SkillDataEditor : EditorWindow
             string json = System.IO.File.ReadAllText(path);
             SkillDataWrapper wrapper = JsonUtility.FromJson<SkillDataWrapper>(json);
             skillList = wrapper.skillDatas;
-            Debug.Log($"Ω∫≈≥ µ•¿Ã≈Õ∏¶ ¥Ÿ¿Ω ∞Ê∑Œø°º≠ ∫“∑Øø‘Ω¿¥œ¥Ÿ: {path}");
+            Debug.Log($"„Ñ¥: {path}");
         }
     }
     #endregion
@@ -882,5 +957,50 @@ public class SkillDataEditor : EditorWindow
         }
 
         return statData;
+    }
+
+    private void ClearAllData()
+    {
+        // Clear all existing data
+        if (skillList != null)
+            skillList.Clear();
+        if (skillStatsList != null)
+            skillStatsList.Clear();
+
+        // Delete all files in the Resources/SkillData folder
+        string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
+        if (Directory.Exists(directory))
+        {
+            try
+            {
+                // Delete JSON file
+                string jsonPath = Path.Combine(directory, "SkillData.json");
+                if (File.Exists(jsonPath))
+                    File.Delete(jsonPath);
+
+                // Delete CSV files
+                string[] csvFiles = {
+                    "ProjectileSkillStats.csv",
+                    "AreaSkillStats.csv",
+                    "PassiveSkillStats.csv"
+                };
+
+                foreach (var file in csvFiles)
+                {
+                    string path = Path.Combine(directory, file);
+                    if (File.Exists(path))
+                        File.Delete(path);
+                }
+
+                Debug.Log("All skill data files have been cleared.");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Failed to clear data files: {e.Message}");
+            }
+        }
+
+        // Refresh Unity's asset database
+        AssetDatabase.Refresh();
     }
 }

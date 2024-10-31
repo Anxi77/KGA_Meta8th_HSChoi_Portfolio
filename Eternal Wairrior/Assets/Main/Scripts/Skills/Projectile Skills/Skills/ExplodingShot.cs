@@ -1,10 +1,7 @@
-using Lean.Pool;
 using UnityEngine;
 
 public class ExplodingShot : ProjectileSkills
 {
-    public Projectile explodingProjectile;
-
     protected override void Start()
     {
         base.Start();
@@ -13,45 +10,46 @@ public class ExplodingShot : ProjectileSkills
 
     protected override void Fire()
     {
-        Projectile proj = LeanPool.Spawn(explodingProjectile, transform.position, transform.rotation)
-            .GetComponent<Projectile>();
+        Projectile proj = PoolManager.Instance.Spawn<Projectile>(
+            skillData.projectile,
+            transform.position,
+            transform.rotation
+        );
 
-        proj.damage = Damage;
-        proj.moveSpeed = ProjectileSpeed;
-        proj.isHoming = IsHoming;
-        proj.maxTravelDistance = AttackRange;
-        proj.transform.localScale = Vector3.one * ProjectileScale;
-        proj.elementType = currentStats.baseStat.element;
-        proj.elementalPower = currentStats.baseStat.elementalPower;
+        if (proj != null)
+        {
+            InitializeProjectile(proj);
+            proj.transform.localScale = Vector3.one * ProjectileScale;
+        }
     }
 
     private void InitializeSkillStats()
     {
-        if (currentStats == null)
+        if (skillData.GetStatsForLevel(1) == null)
         {
             var stats = new ProjectileSkillStat
             {
                 baseStat = new BaseSkillStat
                 {
-                    damage = 10f,
+                    damage = _damage,
                     skillName = "Missile Launcher",
                     skillLevel = 1,
                     maxSkillLevel = 5,
                     element = ElementType.Fire,
-                    elementalPower = 1.2f
+                    elementalPower = _elementalPower
                 },
-                projectileSpeed = 25f,
-                projectileScale = 1f,
-                shotInterval = 0.5f,
-                pierceCount = 1,
-                attackRange = 6f,
-                homingRange = 3.5f,
-                isHoming = true,
-                explosionRad = 1.8f,
-                projectileCount = 1,
-                innerInterval = 0.5f
+                projectileSpeed = _projectileSpeed,
+                projectileScale = _projectileScale,
+                shotInterval = _shotInterval,
+                pierceCount = _pierceCount,
+                attackRange = _attackRange,
+                homingRange = _homingRange,
+                isHoming = _isHoming,
+                explosionRad = _explosionRadius,
+                projectileCount = _projectileCount,
+                innerInterval = _innerInterval
             };
-            currentStats = stats;
+            skillData.SetStatsForLevel(1, stats);
         }
     }
 }

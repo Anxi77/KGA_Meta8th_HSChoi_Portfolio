@@ -14,21 +14,73 @@ public abstract class ProjectileSkills : Skill
         if (skillData == null)
         {
             skillData = new SkillData();
+            skillData.metadata.Type = SkillType.Projectile;
         }
-        skillData._SkillType = SkillType.Projectile;
     }
 
-    protected ProjectileSkillStat TypedStats => GetTypeStats<ProjectileSkillStat>();
-    public float ProjectileSpeed => TypedStats?.projectileSpeed ?? 0f;
-    public float ProjectileScale => TypedStats?.projectileScale ?? 1f;
-    public float ShotInterval => TypedStats?.shotInterval ?? 0.5f;
-    public int PierceCount => TypedStats?.pierceCount ?? 0;
-    public float AttackRange => TypedStats?.attackRange ?? 5f;
-    public float HomingRange => TypedStats?.homingRange ?? 0f;
-    public bool IsHoming => TypedStats?.isHoming ?? false;
-    public float ExplosionRadius => TypedStats?.explosionRad ?? 0f;
-    public int ProjectileCount => TypedStats?.projectileCount ?? 1;
-    public float InnerInterval => TypedStats?.innerInterval ?? 0.1f;
+    protected ProjectileSkillStat TypedStats
+    {
+        get
+        {
+            var stats = skillData?.GetStatsForLevel(SkillLevel) as ProjectileSkillStat;
+            if (stats == null)
+            {
+                stats = new ProjectileSkillStat
+                {
+                    baseStat = new BaseSkillStat
+                    {
+                        damage = _damage,
+                        skillLevel = 1,
+                        maxSkillLevel = 5,
+                        element = skillData?.metadata.Element ?? ElementType.None,
+                        elementalPower = _elementalPower
+                    },
+                    projectileSpeed = _projectileSpeed,
+                    projectileScale = _projectileScale,
+                    shotInterval = _shotInterval,
+                    pierceCount = _pierceCount,
+                    attackRange = _attackRange,
+                    homingRange = _homingRange,
+                    isHoming = _isHoming,
+                    explosionRad = _explosionRadius,
+                    projectileCount = _projectileCount,
+                    innerInterval = _innerInterval
+                };
+                skillData?.SetStatsForLevel(1, stats);
+            }
+            return stats;
+        }
+    }
+
+    // Inspector-editable fields
+    [Header("Base Stats")]
+    [SerializeField] protected float _damage = 10f;
+    [SerializeField] protected float _elementalPower = 1f;
+
+    [Header("Projectile Stats")]
+    [SerializeField] protected float _projectileSpeed = 25f;
+    [SerializeField] protected float _projectileScale = 1f;
+    [SerializeField] protected float _shotInterval = 0.5f;
+    [SerializeField] protected int _pierceCount = 1;
+    [SerializeField] protected float _attackRange = 6f;
+    [SerializeField] protected float _homingRange = 3.5f;
+    [SerializeField] protected bool _isHoming = false;
+    [SerializeField] protected float _explosionRadius = 0f;
+    [SerializeField] protected int _projectileCount = 1;
+    [SerializeField] protected float _innerInterval = 0.1f;
+
+    // Properties using inspector values
+    public override float Damage => _damage;
+    public float ProjectileSpeed => _projectileSpeed;
+    public float ProjectileScale => _projectileScale;
+    public float ShotInterval => _shotInterval;
+    public int PierceCount => _pierceCount;
+    public float AttackRange => _attackRange;
+    public float HomingRange => _homingRange;
+    public bool IsHoming => _isHoming;
+    public float ExplosionRadius => _explosionRadius;
+    public int ProjectileCount => _projectileCount;
+    public float InnerInterval => _innerInterval;
 
     protected virtual void Start()
     {
@@ -75,15 +127,19 @@ public abstract class ProjectileSkills : Skill
     {
         Vector3 spawnPosition = transform.position + transform.up * 0.5f;
 
-        Projectile proj = ProjectilePool.Instance.SpawnProjectile(
-            skillData.projectile,
-            spawnPosition,
-            transform.rotation
-        );
-
-        if (proj != null)
+        var pool = GetComponent<ObjectPool>();
+        if (pool != null)
         {
-            InitializeProjectile(proj);
+            Projectile proj = pool.Spawn<Projectile>(
+                skillData.projectile,
+                spawnPosition,
+                transform.rotation
+            );
+
+            if (proj != null)
+            {
+                InitializeProjectile(proj);
+            }
         }
     }
 
@@ -95,8 +151,8 @@ public abstract class ProjectileSkills : Skill
         proj.transform.localScale *= ProjectileScale;
         proj.pierceCount = PierceCount;
         proj.maxTravelDistance = AttackRange;
-        proj.elementType = currentStats.baseStat.element;
-        proj.elementalPower = currentStats.baseStat.elementalPower;
+        proj.elementType = skillData.metadata.Element;
+        proj.elementalPower = TypedStats.baseStat.elementalPower;
 
         proj.SetInitialTarget(FindNearestEnemy());
     }
@@ -147,14 +203,34 @@ public abstract class ProjectileSkills : Skill
     {
         if (newLevel <= MaxSkillLevel)
         {
-            var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(SkillID, newLevel, SkillType.Projectile);
+            var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(skillData.metadata.ID, newLevel, SkillType.Projectile);
             if (newStats != null)
             {
-                currentStats = newStats;
+                skillData.SetStatsForLevel(newLevel, newStats);
+                UpdateInspectorValues(newStats as ProjectileSkillStat);
                 return true;
             }
         }
         return false;
+    }
+
+    protected virtual void UpdateInspectorValues(ProjectileSkillStat stats)
+    {
+        if (stats != null)
+        {
+            _damage = stats.baseStat.damage;
+            _elementalPower = stats.baseStat.elementalPower;
+            _projectileSpeed = stats.projectileSpeed;
+            _projectileScale = stats.projectileScale;
+            _shotInterval = stats.shotInterval;
+            _pierceCount = stats.pierceCount;
+            _attackRange = stats.attackRange;
+            _homingRange = stats.homingRange;
+            _isHoming = stats.isHoming;
+            _explosionRadius = stats.explosionRad;
+            _projectileCount = stats.projectileCount;
+            _innerInterval = stats.innerInterval;
+        }
     }
     #endregion
 }

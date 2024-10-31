@@ -12,7 +12,47 @@ public class Orbit : AreaSkills
     protected override void Awake()
     {
         base.Awake();
+        if (skillData == null)
+        {
+            skillData = new SkillData
+            {
+                metadata = new SkillMetadata
+                {
+                    Name = "Orbit",
+                    Description = "Rotating orbs that damage enemies",
+                    Type = SkillType.Area,
+                    Element = ElementType.None,
+                    Tier = 1
+                }
+            };
+            InitializeSkillStats();
+        }
         orbs = GetComponentInChildren<RotatingOrb>();
+    }
+
+    private void InitializeSkillStats()
+    {
+        if (skillData.GetStatsForLevel(1) == null)
+        {
+            var stats = new AreaSkillStat
+            {
+                baseStat = new BaseSkillStat
+                {
+                    damage = 8f,
+                    skillName = skillData.metadata.Name,
+                    skillLevel = 1,
+                    maxSkillLevel = 5,
+                    element = skillData.metadata.Element,
+                    elementalPower = 1f
+                },
+                radius = 2f,
+                duration = 0f,
+                tickRate = 0f,
+                isPersistent = true,
+                moveSpeed = 500f
+            };
+            skillData.SetStatsForLevel(1, stats);
+        }
     }
 
     private void Start()
@@ -35,7 +75,6 @@ public class Orbit : AreaSkills
         if (currentOrbCount != newOrbCount)
         {
             currentOrbCount = newOrbCount;
-            orbs.damage = Damage;
             orbs.InitializeOrbs(currentOrbCount);
         }
     }

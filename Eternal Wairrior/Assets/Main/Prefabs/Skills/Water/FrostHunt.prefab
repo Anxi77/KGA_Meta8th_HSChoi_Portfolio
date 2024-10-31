@@ -78,7 +78,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &86054773460267591
 Transform:
   m_ObjectHideFlags: 0
@@ -110,14 +110,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   skillData:
-    _SkillID: 100003
-    _SkillType: 0
-    Name: 
-    Description: 
-    id: 0
-    prefabsByLevel: []
-    projectile: {fileID: 386763069966558345, guid: 40817c4eba2031347b629e33e0edfc72, type: 3}
     icon: {fileID: 0}
+    projectile: {fileID: 386763069966558345, guid: 40817c4eba2031347b629e33e0edfc72, type: 3}
+    prefabsByLevel: []
     projectileStat:
       projectileSpeed: 26
       projectileScale: 1
@@ -139,6 +134,18 @@ MonoBehaviour:
       effectDuration: 0
       cooldown: 0
       triggerChance: 0
+  _damage: 10
+  _elementalPower: 1
+  _projectileSpeed: 25
+  _projectileScale: 1
+  _shotInterval: 0.5
+  _pierceCount: 1
+  _attackRange: 6
+  _homingRange: 3.5
+  _isHoming: 1
+  _explosionRadius: 0
+  _projectileCount: 1
+  _innerInterval: 0.1
   shotPoints:
   - {fileID: 6163675465727884809}
   - {fileID: 3648903425861063294}
