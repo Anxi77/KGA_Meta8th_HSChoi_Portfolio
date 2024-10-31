@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class SkillManager : SingletonManager<SkillManager>
@@ -21,13 +22,33 @@ public class SkillManager : SingletonManager<SkillManager>
     public List<SkillData> GetRandomSkills(int count = 3)
     {
         List<SkillData> selectedSkills = new List<SkillData>();
-        List<SkillData> tempSkills = new List<SkillData>(availableSkills);
 
-        while (selectedSkills.Count < count && tempSkills.Count > 0)
+        List<ElementType> availableElements = new List<ElementType>();
+        foreach (SkillData skill in availableSkills)
         {
-            int randomIndex = Random.Range(0, tempSkills.Count);
-            selectedSkills.Add(tempSkills[randomIndex]);
-            tempSkills.RemoveAt(randomIndex);
+            ElementType skillElement = skill.GetCurrentTypeStat().baseStat.element;
+            if (!availableElements.Contains(skillElement))
+            {
+                availableElements.Add(skillElement);
+            }
+        }
+
+        if (availableElements.Count == 0) return selectedSkills;
+
+        int randomElementIndex = Random.Range(0, availableElements.Count);
+        ElementType selectedElement = availableElements[randomElementIndex];
+
+        List<SkillData> elementalSkills = availableSkills
+            .Where(skill => skill.GetCurrentTypeStat().baseStat.element == selectedElement)
+            .ToList();
+
+        int skillsToSelect = Mathf.Min(count, elementalSkills.Count);
+
+        while (selectedSkills.Count < skillsToSelect && elementalSkills.Count > 0)
+        {
+            int randomIndex = Random.Range(0, elementalSkills.Count);
+            selectedSkills.Add(elementalSkills[randomIndex]);
+            elementalSkills.RemoveAt(randomIndex);
         }
 
         return selectedSkills;
