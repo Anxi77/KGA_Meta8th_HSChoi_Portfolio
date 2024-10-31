@@ -75,7 +75,7 @@ GameObject:
   m_Layer: 0
   m_Name: IceBorn
   m_TagString: Untagged
-  m_Icon: {fileID: 5132851093641282708, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
@@ -109,21 +109,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b32512aaf1dae0845bba470ccc1499c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  skillData:
+    _SkillID: 100003
+    _SkillType: 0
+    Name: 
+    Description: 
+    id: 0
+    prefabsByLevel: []
+    projectile: {fileID: 386763069966558345, guid: 40817c4eba2031347b629e33e0edfc72, type: 3}
+    icon: {fileID: 0}
+    projectileStat:
+      projectileSpeed: 26
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 25
+      homingRange: 27
+      isHoming: 1
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.5
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 0
+      cooldown: 0
+      triggerChance: 0
   shotPoints:
   - {fileID: 6163675465727884809}
   - {fileID: 3648903425861063294}
   - {fileID: 5871350030294971789}
-  damage: 6
-  projectileSpeed: 7
-  projectileScale: 1
-  shotInterval: 1
-  projectileCount: 1
-  pierceCount: 1
-  fireDir: {x: 0, y: 0}
-  attackRange: 5
-  innerInterval: 1
-  projectile: {fileID: 386763069966558345, guid: 40817c4eba2031347b629e33e0edfc72, type: 3}
-  isHoming: 0
 --- !u!1 &5964606156233289005
 GameObject:
   m_ObjectHideFlags: 0

@@ -23,16 +23,6 @@ public class SkillManager : SingletonManager<SkillManager>
         List<SkillData> selectedSkills = new List<SkillData>();
         List<SkillData> tempSkills = new List<SkillData>(availableSkills);
 
-        // 이미 가지고 있는 스킬 제외
-        if (GameManager.Instance.player != null && GameManager.Instance.player.skills != null)
-        {
-            foreach (Skill activeSkill in GameManager.Instance.player.skills)
-            {
-                tempSkills.RemoveAll(x => x._SkillID == activeSkill.SkillID);
-            }
-        }
-
-        // 랜덤으로 스킬 선택
         while (selectedSkills.Count < count && tempSkills.Count > 0)
         {
             int randomIndex = Random.Range(0, tempSkills.Count);
@@ -52,13 +42,11 @@ public class SkillManager : SingletonManager<SkillManager>
 
         if (existingSkill != null)
         {
-            // 기존 스킬 레벨업
             int nextLevel = existingSkill.SkillLevel + 1;
             existingSkill.SkillLevelUpdate(nextLevel);
         }
         else
         {
-            // 새 스킬 추가
             GameObject skillObj = Instantiate(skillData.prefabsByLevel[0], player.transform);
             skillObj.transform.localPosition = Vector3.zero;
 

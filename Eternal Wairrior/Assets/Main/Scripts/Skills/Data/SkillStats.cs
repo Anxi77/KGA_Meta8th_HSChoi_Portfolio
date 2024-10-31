@@ -1,26 +1,36 @@
-// 스탯 인터페이스
+
+
 public interface ISkillStat
 {
     BaseSkillStat baseStat { get; set; }
 }
 
-// 모든 스킬이 공통적으로 가지는 기본 스탯
+
 [System.Serializable]
-public struct BaseSkillStat
+public class BaseSkillStat
 {
     public float damage;
     public string skillName;
     public int skillLevel;
     public int maxSkillLevel;
-    public ElementType element;        // 스킬 속성
-    public float elementalPower;       // 속성 효과 계수
+    public ElementType element;     
+    public float elementalPower;      
+
+    public BaseSkillStat()
+    {
+        damage = 10f;
+        skillLevel = 1;
+        maxSkillLevel = 5;
+    }
 }
 
 // 발사체 스킬 전용 스탯
+
 [System.Serializable]
-public struct ProjectileSkillStat : ISkillStat
+public class ProjectileSkillStat : ISkillStat
 {
-    private BaseSkillStat _baseStat;
+    private BaseSkillStat _baseStat = new BaseSkillStat();
+
     public BaseSkillStat baseStat
     {
         get => _baseStat;
@@ -39,11 +49,12 @@ public struct ProjectileSkillStat : ISkillStat
     public float innerInterval;
 }
 
-// 영역 스킬 전용 스탯
+
 [System.Serializable]
-public struct AreaSkillStat : ISkillStat
+public class AreaSkillStat : ISkillStat
 {
-    private BaseSkillStat _baseStat;
+    private BaseSkillStat _baseStat = new BaseSkillStat();
+
     public BaseSkillStat baseStat
     {
         get => _baseStat;
@@ -57,11 +68,11 @@ public struct AreaSkillStat : ISkillStat
     public float moveSpeed;
 }
 
-// 패시브 스킬 전용 스탯
 [System.Serializable]
-public struct PassiveSkillStat : ISkillStat
+public class PassiveSkillStat : ISkillStat
 {
-    private BaseSkillStat _baseStat;
+    private BaseSkillStat _baseStat = new BaseSkillStat();
+
     public BaseSkillStat baseStat
     {
         get => _baseStat;

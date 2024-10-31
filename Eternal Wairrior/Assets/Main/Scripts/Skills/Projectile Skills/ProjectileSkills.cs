@@ -130,25 +130,19 @@ public abstract class ProjectileSkills : Skill
     {
         if (newLevel <= MaxSkillLevel)
         {
-            // ų Ʈ
             var updatedSkillData = SkillDataManager.Instance.GetSkillData(SkillID);
             var projectileStats = (ProjectileSkillStat)updatedSkillData.GetCurrentTypeStat();
 
-            // ο ü
             var newBaseStat = projectileStats.baseStat;
             newBaseStat.skillLevel = newLevel;
 
-            // ο ProjectileSkillStat 
             var newStats = projectileStats;
             newStats.baseStat = newBaseStat;
 
-            // 
             currentStats = newStats;
 
-            // Ʈ (ʿ)
             if (newLevel < skillData.prefabsByLevel.Length)
             {
-                // ü
             }
 
             return true;

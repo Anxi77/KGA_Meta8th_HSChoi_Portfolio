@@ -9,7 +9,6 @@ public class SkillDataManagerEditor : EditorWindow
     private SkillData currentSkill;
     private List<SkillData> skillList;
     private bool showBaseStats = true;
-    private SerializedObject serializedSkill;
     private GUIStyle headerStyle;
 
     [MenuItem("Tools/Skill Data Manager")]
@@ -47,10 +46,8 @@ public class SkillDataManagerEditor : EditorWindow
     private void DrawLeftPanel()
     {
         EditorGUILayout.BeginVertical(GUILayout.Width(200));
-
         EditorGUILayout.LabelField("Skills", headerStyle);
         DrawSkillList();
-
         EditorGUILayout.EndVertical();
     }
 
@@ -62,13 +59,14 @@ public class SkillDataManagerEditor : EditorWindow
         {
             foreach (var skill in skillList)
             {
+                GUI.backgroundColor = currentSkill == skill ? Color.cyan : Color.white;
                 if (GUILayout.Button(skill.Name, GUILayout.Height(30)))
                 {
                     currentSkill = skill;
                 }
             }
         }
-
+        GUI.backgroundColor = Color.white;
         EditorGUILayout.EndScrollView();
     }
     #endregion
@@ -78,7 +76,7 @@ public class SkillDataManagerEditor : EditorWindow
     {
         EditorGUILayout.BeginVertical();
 
-        if (currentSkill.Equals(default(SkillData)))
+        if (currentSkill == null)
         {
             EditorGUILayout.LabelField("Select a skill to edit", headerStyle);
             EditorGUILayout.EndVertical();
@@ -98,6 +96,7 @@ public class SkillDataManagerEditor : EditorWindow
         EditorGUILayout.LabelField("Basic Information", headerStyle);
         EditorGUI.indentLevel++;
 
+        EditorGUI.BeginChangeCheck();
         currentSkill.Name = EditorGUILayout.TextField("Name", currentSkill.Name);
         currentSkill.Description = EditorGUILayout.TextField("Description", currentSkill.Description);
         currentSkill._SkillID = (SkillID)EditorGUILayout.EnumPopup("Skill ID", currentSkill._SkillID);
@@ -145,6 +144,10 @@ public class SkillDataManagerEditor : EditorWindow
         EditorGUILayout.LabelField("Skill Stats", headerStyle);
         EditorGUI.indentLevel++;
 
+        // 기본 스탯 그리기
+        DrawBaseStats();
+
+        // 스킬 타입별 스탯 그리기
         switch (currentSkill._SkillType)
         {
             case SkillType.Projectile:
@@ -161,71 +164,69 @@ public class SkillDataManagerEditor : EditorWindow
         EditorGUI.indentLevel--;
     }
 
+    private void DrawBaseStats()
+    {
+        EditorGUILayout.LabelField("Base Stats", EditorStyles.boldLabel);
+        EditorGUI.indentLevel++;
+
+        var baseStat = currentSkill.GetCurrentTypeStat().baseStat;
+        baseStat.damage = EditorGUILayout.FloatField("Damage", baseStat.damage);
+        baseStat.skillName = EditorGUILayout.TextField("Skill Name", baseStat.skillName);
+        baseStat.skillLevel = EditorGUILayout.IntField("Skill Level", baseStat.skillLevel);
+        baseStat.maxSkillLevel = EditorGUILayout.IntField("Max Level", baseStat.maxSkillLevel);
+        baseStat.element = (ElementType)EditorGUILayout.EnumPopup("Element", baseStat.element);
+        baseStat.elementalPower = EditorGUILayout.FloatField("Elemental Power", baseStat.elementalPower);
+
+        EditorGUI.indentLevel--;
+    }
+
     private void DrawProjectileStats()
     {
-        var stats = currentSkill.projectileStat;
-        DrawBaseStats(stats.baseStat);
         EditorGUILayout.Space(5);
         EditorGUILayout.LabelField("Projectile Stats", EditorStyles.boldLabel);
         EditorGUI.indentLevel++;
 
-        currentSkill.projectileStat.projectileSpeed = EditorGUILayout.FloatField("Speed", stats.projectileSpeed);
-        currentSkill.projectileStat.projectileScale = EditorGUILayout.FloatField("Scale", stats.projectileScale);
-        currentSkill.projectileStat.shotInterval = EditorGUILayout.FloatField("Shot Interval", stats.shotInterval);
-        currentSkill.projectileStat.pierceCount = EditorGUILayout.IntField("Pierce Count", stats.pierceCount);
-        currentSkill.projectileStat.attackRange = EditorGUILayout.FloatField("Attack Range", stats.attackRange);
-        currentSkill.projectileStat.homingRange = EditorGUILayout.FloatField("Homing Range", stats.homingRange);
-        currentSkill.projectileStat.isHoming = EditorGUILayout.Toggle("Is Homing", stats.isHoming);
-        currentSkill.projectileStat.explosionRad = EditorGUILayout.FloatField("Explosion Radius", stats.explosionRad);
-        currentSkill.projectileStat.projectileCount = EditorGUILayout.IntField("Projectile Count", stats.projectileCount);
-        currentSkill.projectileStat.innerInterval = EditorGUILayout.FloatField("Inner Interval", stats.innerInterval);
+        var stats = currentSkill.projectileStat;
+        stats.projectileSpeed = EditorGUILayout.FloatField("Speed", stats.projectileSpeed);
+        stats.projectileScale = EditorGUILayout.FloatField("Scale", stats.projectileScale);
+        stats.shotInterval = EditorGUILayout.FloatField("Shot Interval", stats.shotInterval);
+        stats.pierceCount = EditorGUILayout.IntField("Pierce Count", stats.pierceCount);
+        stats.attackRange = EditorGUILayout.FloatField("Attack Range", stats.attackRange);
+        stats.homingRange = EditorGUILayout.FloatField("Homing Range", stats.homingRange);
+        stats.isHoming = EditorGUILayout.Toggle("Is Homing", stats.isHoming);
+        stats.explosionRad = EditorGUILayout.FloatField("Explosion Radius", stats.explosionRad);
+        stats.projectileCount = EditorGUILayout.IntField("Projectile Count", stats.projectileCount);
+        stats.innerInterval = EditorGUILayout.FloatField("Inner Interval", stats.innerInterval);
 
         EditorGUI.indentLevel--;
     }
 
     private void DrawAreaStats()
     {
-        var stats = currentSkill.areaStat;
-        DrawBaseStats(stats.baseStat);
         EditorGUILayout.Space(5);
         EditorGUILayout.LabelField("Area Stats", EditorStyles.boldLabel);
         EditorGUI.indentLevel++;
 
-        currentSkill.areaStat.radius = EditorGUILayout.FloatField("Radius", stats.radius);
-        currentSkill.areaStat.duration = EditorGUILayout.FloatField("Duration", stats.duration);
-        currentSkill.areaStat.tickRate = EditorGUILayout.FloatField("Tick Rate", stats.tickRate);
-        currentSkill.areaStat.isPersistent = EditorGUILayout.Toggle("Is Persistent", stats.isPersistent);
-        currentSkill.areaStat.moveSpeed = EditorGUILayout.FloatField("Move Speed", stats.moveSpeed);
+        var stats = currentSkill.areaStat;
+        stats.radius = EditorGUILayout.FloatField("Radius", stats.radius);
+        stats.duration = EditorGUILayout.FloatField("Duration", stats.duration);
+        stats.tickRate = EditorGUILayout.FloatField("Tick Rate", stats.tickRate);
+        stats.isPersistent = EditorGUILayout.Toggle("Is Persistent", stats.isPersistent);
+        stats.moveSpeed = EditorGUILayout.FloatField("Move Speed", stats.moveSpeed);
 
         EditorGUI.indentLevel--;
     }
 
     private void DrawPassiveStats()
     {
-        var stats = currentSkill.passiveStat;
-        DrawBaseStats(stats.baseStat);
         EditorGUILayout.Space(5);
         EditorGUILayout.LabelField("Passive Stats", EditorStyles.boldLabel);
         EditorGUI.indentLevel++;
 
-        currentSkill.passiveStat.effectDuration = EditorGUILayout.FloatField("Effect Duration", stats.effectDuration);
-        currentSkill.passiveStat.cooldown = EditorGUILayout.FloatField("Cooldown", stats.cooldown);
-        currentSkill.passiveStat.triggerChance = EditorGUILayout.FloatField("Trigger Chance", stats.triggerChance);
-
-        EditorGUI.indentLevel--;
-    }
-
-    private void DrawBaseStats(BaseSkillStat baseStat)
-    {
-        EditorGUILayout.LabelField("Base Stats", EditorStyles.boldLabel);
-        EditorGUI.indentLevel++;
-
-        baseStat.damage = EditorGUILayout.FloatField("Damage", baseStat.damage);
-        baseStat.skillName = EditorGUILayout.TextField("Skill Name", baseStat.skillName);
-        baseStat.skillLevel = EditorGUILayout.IntField("Skill Level", baseStat.skillLevel);
-        baseStat.maxSkillLevel = EditorGUILayout.IntField("Max Level", baseStat.maxSkillLevel);
-        baseStat.element = (ElementType)EditorGUILayout.EnumPopup("Element", baseStat.element);
-        baseStat.elementalPower = EditorGUILayout.FloatField("Element Power", baseStat.elementalPower);
+        var stats = currentSkill.passiveStat;
+        stats.effectDuration = EditorGUILayout.FloatField("Effect Duration", stats.effectDuration);
+        stats.cooldown = EditorGUILayout.FloatField("Cooldown", stats.cooldown);
+        stats.triggerChance = EditorGUILayout.FloatField("Trigger Chance", stats.triggerChance);
 
         EditorGUI.indentLevel--;
     }
@@ -256,25 +257,36 @@ public class SkillDataManagerEditor : EditorWindow
     #region Data Management
     private void LoadSkillData()
     {
-        if (SkillDataManager.Instance != null)
+        var skillDataManager = FindObjectOfType<SkillDataManager>();
+        if (skillDataManager != null)
         {
-            skillList = SkillDataManager.Instance.GetAllSkillData();
+            skillList = skillDataManager.GetAllSkillData();
+            if (skillList == null)
+            {
+                skillList = new List<SkillData>();
+            }
+            Debug.Log($"Loaded {skillList.Count} skills");
         }
         else
         {
             skillList = new List<SkillData>();
-            Debug.LogWarning("SkillDataManager instance not found!");
+            Debug.LogError("SkillDataManager를 찾을 수 없습니다!");
         }
     }
 
     private void SaveSkillData()
     {
-        if (SkillDataManager.Instance != null)
+        var skillDataManager = FindObjectOfType<SkillDataManager>();
+        if (skillDataManager != null)
         {
-            SkillDataManager.Instance.SaveAllSkillData();
-            EditorUtility.SetDirty(SkillDataManager.Instance);
+            skillDataManager.SaveAllSkillData();
+            EditorUtility.SetDirty(skillDataManager);
             AssetDatabase.SaveAssets();
-            Debug.Log("Skill data saved successfully!");
+            Debug.Log("스킬 데이터가 저장되었습니다!");
+        }
+        else
+        {
+            Debug.LogError("SkillDataManager를 찾을 수 없습니다!");
         }
     }
 
@@ -290,7 +302,7 @@ public class SkillDataManagerEditor : EditorWindow
 
         skillList.Add(newSkill);
         currentSkill = newSkill;
-        Debug.Log("New skill created!");
+        Debug.Log("새로운 스킬이 생성되었습니다!");
     }
 
     private void ExportToJson()
@@ -301,7 +313,7 @@ public class SkillDataManagerEditor : EditorWindow
             SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillList };
             string json = JsonUtility.ToJson(wrapper, true);
             System.IO.File.WriteAllText(path, json);
-            Debug.Log($"Skill data exported to: {path}");
+            Debug.Log($"스킬 데이터가 다음 경로로 내보내졌습니다: {path}");
         }
     }
 
@@ -313,7 +325,7 @@ public class SkillDataManagerEditor : EditorWindow
             string json = System.IO.File.ReadAllText(path);
             SkillDataWrapper wrapper = JsonUtility.FromJson<SkillDataWrapper>(json);
             skillList = wrapper.skillDatas;
-            Debug.Log($"Skill data imported from: {path}");
+            Debug.Log($"스킬 데이터를 다음 경로에서 불러왔습니다: {path}");
         }
     }
     #endregion

@@ -27,10 +27,8 @@ public abstract class Projectile : MonoBehaviour
     {
         coll = GetComponent<CircleCollider2D>();
         coll.enabled = false;
-
-        // Enemy 레이어와만 충돌하도록 설정
         int enemyLayer = LayerMask.NameToLayer("Enemy");
-        Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, false); // Enemy 레이어와의 충돌만 활성화
+        Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, false);
     }
 
     protected virtual void OnEnable()
@@ -146,8 +144,8 @@ public abstract class Projectile : MonoBehaviour
 
     protected virtual void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log($"Collision detected with: {other.gameObject.name} on layer: {other.gameObject.layer}");
-        Debug.Log($"Current projectile damage: {damage}");
+        //Debug.Log($"Collision detected with: {other.gameObject.name} on layer: {other.gameObject.layer}");
+        //Debug.Log($"Current projectile damage: {damage}");
 
         if (!other.TryGetComponent<Enemy>(out Enemy enemy))
         {
@@ -156,7 +154,7 @@ public abstract class Projectile : MonoBehaviour
         }
         float enemyHpBefore = enemy.hp;
         enemy.TakeDamage(damage);
-        Debug.Log($"Enemy HP changed from {enemyHpBefore} to {enemy.hp}");
+        //Debug.Log($"Enemy HP changed from {enemyHpBefore} to {enemy.hp}");
 
         if (contactedColls.Contains(other))
         {
@@ -175,7 +173,6 @@ public abstract class Projectile : MonoBehaviour
 
         contactedColls.Add(other);
 
-        // 속성 효과 적용
         if (elementType != ElementType.None)
         {
             ElementalEffects.ApplyElementalEffect(elementType, elementalPower, other.gameObject);

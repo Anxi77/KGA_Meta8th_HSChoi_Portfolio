@@ -53,9 +53,7 @@ public class MonsterManager : SingletonManager<MonsterManager>
             Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
             Vector2 finalPos = playerPos + spawnPos;
 
-            Enemy enemy = LeanPool.Spawn(enemyPrefab);
-
-            enemy.transform.position = finalPos;
+            Enemy enemy = MonsterPool.Instance.SpawnMob(enemyPrefab.gameObject,finalPos,Quaternion.identity);
         }
     }
     #endregion

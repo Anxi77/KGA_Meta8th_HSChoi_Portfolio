@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 
 [System.Serializable]
-public struct SkillData
+public class SkillData
 {
     public SkillID _SkillID;
     public SkillType _SkillType;
@@ -14,21 +14,30 @@ public struct SkillData
     public GameObject projectile;
     public Image icon;
 
-    // 타입별 스탯
     public ProjectileSkillStat projectileStat;
     public AreaSkillStat areaStat;
     public PassiveSkillStat passiveStat;
 
-    // 현재 스킬 타입에 맞는 스탯 반환
+    public SkillData()
+    {
+        projectileStat = new ProjectileSkillStat();
+        areaStat = new AreaSkillStat();
+        passiveStat = new PassiveSkillStat();
+    }
+
     public ISkillStat GetCurrentTypeStat()
     {
-        return _SkillType switch
+        switch (_SkillType)
         {
-            SkillType.Projectile => projectileStat,
-            SkillType.Area => areaStat,
-            SkillType.Passive => passiveStat,
-            _ => throw new System.ArgumentException("Invalid skill type")
-        };
+            case SkillType.Projectile:
+                return projectileStat;
+            case SkillType.Area:
+                return areaStat;
+            case SkillType.Passive:
+                return passiveStat;
+            default:
+                throw new System.ArgumentException("Invalid skill type");
+        }
     }
 }
 

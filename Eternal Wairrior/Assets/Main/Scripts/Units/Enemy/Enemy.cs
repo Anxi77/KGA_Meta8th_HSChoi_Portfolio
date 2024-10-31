@@ -687,7 +687,7 @@ public class Enemy : MonoBehaviour, ILaserStay
             GameManager.Instance.player.killCount++;
         }
         GameManager.Instance.enemies.Remove(this);
-        LeanPool.Despawn(gameObject);
+        MonsterPool.Instance.DespawnMob(gameObject);
     }
 
     private void Attack()
