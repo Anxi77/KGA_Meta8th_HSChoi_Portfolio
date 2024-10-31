@@ -1,5 +1,7 @@
 
 
+using Unity.VisualScripting;
+
 public interface ISkillStat
 {
     BaseSkillStat baseStat { get; set; }
@@ -13,6 +15,7 @@ public class BaseSkillStat
     public string skillName;
     public int skillLevel;
     public int maxSkillLevel;
+    public SkillType skillType;
     public ElementType element;     
     public float elementalPower;      
 
@@ -37,6 +40,7 @@ public class ProjectileSkillStat : ISkillStat
         set => _baseStat = value;
     }
 
+    public SkillType skillType = SkillType.Projectile;
     public float projectileSpeed;
     public float projectileScale;
     public float shotInterval;
@@ -61,6 +65,7 @@ public class AreaSkillStat : ISkillStat
         set => _baseStat = value;
     }
 
+    public SkillType skillType = SkillType.Area;
     public float radius;
     public float duration;
     public float tickRate;
@@ -79,6 +84,7 @@ public class PassiveSkillStat : ISkillStat
         set => _baseStat = value;
     }
 
+    public SkillType skillType = SkillType.Passive;
     public float effectDuration;
     public float cooldown;
     public float triggerChance;

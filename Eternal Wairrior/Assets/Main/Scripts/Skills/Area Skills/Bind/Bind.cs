@@ -3,26 +3,34 @@ using System.Collections.Generic;
 using UnityEngine;
 using Lean.Pool;
 
-public class Bind : MonoBehaviour
+public class Bind : AreaSkills
 {
-    public float damage;
-    public float duration;
-    public float cooldown;
-
     public GameObject bindPrefab;
-
     private List<GameObject> spawnedBindEffects = new List<GameObject>();
+    private Transform playerTransform;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (playerTransform == null)
+        {
+            Debug.LogError("Player not found for Bind skill!");
+        }
+    }
 
     private void Start()
     {
-        StartCoroutine(Binding());
+        StartCoroutine(BindingCoroutine());
     }
 
-    private IEnumerator Binding()
+    private IEnumerator BindingCoroutine()
     {
         while (true)
         {
-            yield return new WaitForSeconds(cooldown);
+            yield return new WaitForSeconds(TickRate);
+
+            if (playerTransform == null) continue;
 
             List<Enemy> affectedEnemies = new List<Enemy>();
 
@@ -32,29 +40,33 @@ public class Bind : MonoBehaviour
                 {
                     if (enemy != null)
                     {
-                        affectedEnemies.Add(enemy);
-                        enemy.moveSpeed = 0;
-                        GameObject spawnedEffect = LeanPool.Spawn(bindPrefab, enemy.transform);
-                        spawnedBindEffects.Add(spawnedEffect);
+                        float distanceToPlayer = Vector2.Distance(playerTransform.position, enemy.transform.position);
+                        if (distanceToPlayer <= Radius)
+                        {
+                            affectedEnemies.Add(enemy);
+                            enemy.moveSpeed = 0;
+                            GameObject spawnedEffect = LeanPool.Spawn(bindPrefab, enemy.transform);
+                            spawnedBindEffects.Add(spawnedEffect);
+                            Debug.DrawLine(playerTransform.position, enemy.transform.position, Color.red, Duration);
+                        }
                     }
                 }
             }
 
             float elapsedTime = 0f;
-            while (elapsedTime < duration)
+            while (elapsedTime < Duration)
             {
                 foreach (Enemy enemy in affectedEnemies)
                 {
                     if (enemy != null)
                     {
-                        enemy.TakeDamage(damage);
+                        enemy.TakeDamage(Damage);
                     }
                 }
-                yield return new WaitForSeconds(0.1f);
-                elapsedTime += 0.1f;
+                yield return new WaitForSeconds(TickRate);
+                elapsedTime += TickRate;
             }
 
-            // duration 종료 후 속도 복원 및 이펙트 디스폰
             foreach (Enemy enemy in affectedEnemies)
             {
                 if (enemy != null)
@@ -63,7 +75,6 @@ public class Bind : MonoBehaviour
                 }
             }
 
-            // 스폰된 이펙트 디스폰
             foreach (GameObject effect in spawnedBindEffects)
             {
                 if (effect != null)
@@ -72,6 +83,20 @@ public class Bind : MonoBehaviour
                 }
             }
             spawnedBindEffects.Clear();
+
+            if (!IsPersistent)
+            {
+                break;
+            }
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (playerTransform != null)
+        {
+            Gizmos.color = new Color(1, 0, 0, 0.2f);
+            Gizmos.DrawWireSphere(playerTransform.position, Radius);
         }
     }
 }

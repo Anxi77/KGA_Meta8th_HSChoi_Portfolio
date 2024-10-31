@@ -1,0 +1,49 @@
+{
+    "skillDatas": [
+        {
+            "_SkillID": 100001,
+            "_SkillType": 1,
+            "Name": "New Skill",
+            "Description": "",
+            "id": 0,
+            "prefabsByLevel": [
+                {
+                    "instanceID": 0
+                }
+            ],
+            "projectile": {
+                "instanceID": 0
+            },
+            "icon": {
+                "instanceID": 0
+            },
+            "projectileStat": {
+                "skillType": 1,
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "skillType": 2,
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "skillType": 3,
+                "effectDuration": 0.0,
+                "cooldown": 0.0,
+                "triggerChance": 0.0
+            }
+        }
+    ]
+}

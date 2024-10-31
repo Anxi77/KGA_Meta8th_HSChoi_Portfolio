@@ -51,6 +51,9 @@ TagManager:
   - name: Indicator
     uniqueID: 2043536669
     locked: 0
+  - name: Projectiles
+    uniqueID: 1635404947
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0

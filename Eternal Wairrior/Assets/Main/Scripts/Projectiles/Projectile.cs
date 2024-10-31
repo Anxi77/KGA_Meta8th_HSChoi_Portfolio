@@ -1,27 +1,24 @@
-using Lean.Pool;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.IO.LowLevel.Unsafe;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-public abstract class Projectile : MonoBehaviour
+public class Projectile : MonoBehaviour
 {
     public float damage;
     public float moveSpeed;
     public bool isHoming;
     public int pierceCount;
-    public Enemy targetEnemy;
-    public Vector2 direction;
-    public Vector2 initialPosition;
     public float maxTravelDistance;
+    public Vector2 initialPosition;
+    public Vector2 direction;
+    protected bool hasReachedMaxDistance = false;
+    public Enemy targetEnemy;
     public ParticleSystem impactParticle;
     protected CircleCollider2D coll;
-    protected bool hasReachedMaxDistance = false;
     protected List<Collider2D> contactedColls = new();
     protected ParticleSystem projectileRender;
-    public ElementType elementType;
     public float elementalPower;
+    public ElementType elementType;
 
     protected virtual void Awake()
     {
@@ -33,7 +30,7 @@ public abstract class Projectile : MonoBehaviour
 
     protected virtual void OnEnable()
     {
-        Debug.Log($"Projectile enabled with damage: {damage}");
+        //Debug.Log($"Projectile enabled with damage: {damage}");
 
         if (isHoming)
         {
@@ -41,12 +38,23 @@ public abstract class Projectile : MonoBehaviour
         }
         initialPosition = transform.position;
         hasReachedMaxDistance = false;
+
+        InitializeCollider();
+        InitializeParticleSystem();
+    }
+
+    private void InitializeCollider()
+    {
         if (coll != null)
         {
             coll.radius = 0.2f;
             coll.isTrigger = true;
             coll.enabled = true;
         }
+    }
+
+    private void InitializeParticleSystem()
+    {
         projectileRender = gameObject.GetComponentInChildren<ParticleSystem>();
         if (projectileRender != null)
         {
@@ -137,32 +145,19 @@ public abstract class Projectile : MonoBehaviour
             if (distanceTraveled >= maxTravelDistance)
             {
                 hasReachedMaxDistance = true;
-                ProjectilePool.Instance.DespawnProjectile(gameObject);
+                ProjectilePool.Instance.DespawnProjectile(this);
             }
         }
     }
 
     protected virtual void OnTriggerEnter2D(Collider2D other)
     {
-        //Debug.Log($"Collision detected with: {other.gameObject.name} on layer: {other.gameObject.layer}");
-        //Debug.Log($"Current projectile damage: {damage}");
-
         if (!other.TryGetComponent<Enemy>(out Enemy enemy))
         {
-            Debug.Log("Enemy component not found");
             return;
         }
-        float enemyHpBefore = enemy.hp;
+
         enemy.TakeDamage(damage);
-        //Debug.Log($"Enemy HP changed from {enemyHpBefore} to {enemy.hp}");
-
-        if (contactedColls.Contains(other))
-        {
-            Debug.Log("Already hit this enemy");
-            return;
-        }
-
-        Debug.Log($"Dealing {damage} damage to enemy");
 
         if (impactParticle != null)
         {
@@ -180,11 +175,24 @@ public abstract class Projectile : MonoBehaviour
 
         if (isHoming)
         {
-            ProjectilePool.Instance.DespawnProjectile(gameObject);
+            ProjectilePool.Instance.DespawnProjectile(this);
         }
         else if (--pierceCount <= 0)
         {
-            ProjectilePool.Instance.DespawnProjectile(gameObject);
+            ProjectilePool.Instance.DespawnProjectile(this);
         }
+    }
+
+    public virtual void ResetProjectile()
+    {
+        contactedColls.Clear();
+        hasReachedMaxDistance = false;
+        pierceCount = 0;
+        damage = 0;
+        moveSpeed = 0;
+        isHoming = false;
+        targetEnemy = null;
+        elementType = ElementType.None;
+        elementalPower = 0;
     }
 }

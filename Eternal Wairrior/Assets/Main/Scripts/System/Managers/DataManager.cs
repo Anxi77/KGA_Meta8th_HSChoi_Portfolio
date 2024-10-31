@@ -86,7 +86,6 @@ public class DataManager : SingletonManager<DataManager>
 
     public virtual void LoadAllData()
     {
-        // 각 데이터 매니저에서 구현
     }
     #endregion
 
@@ -129,7 +128,6 @@ public class DataManager : SingletonManager<DataManager>
     {
         string errorMessage = $"Data {operation} error: {details}";
         Debug.LogError(errorMessage);
-        // 추가적인 에러 처리 (예: 사용자에게 알림, 로그 파일 작성 등)
     }
     #endregion
 

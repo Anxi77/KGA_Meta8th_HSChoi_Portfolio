@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 
-//UI를 관리하는 싱글톤 오브젝트
 public class UIManager : SingletonManager<UIManager>
 {
     public Canvas mainCanvas;
@@ -65,7 +64,8 @@ public class UIManager : SingletonManager<UIManager>
             totalKillCountText.text = player.totalKillCount.ToString();
             levelText.text = player.level.ToString();
             expText.text = player.exp.ToString();
-            hpText.text = $"{player.hp.ToString()} / {player.maxHp.ToString()}"; 
+            hpText.text = $"{player.hp.ToString()} / {player.maxHp.ToString()}";
+            hpBarImage.fillAmount = player.hp / player.maxHp;
             if (player.level >= player._expList.Count)
             {
                 expText.text = "MAX LEVEL";

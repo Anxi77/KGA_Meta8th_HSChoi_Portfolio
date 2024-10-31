@@ -17,8 +17,6 @@ public class GameManager : MonoBehaviour
 
     internal Player player;
 
-    internal LaserGun gun;
-
     #endregion
     
     #region Unity Message Methods

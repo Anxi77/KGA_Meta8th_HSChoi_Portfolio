@@ -1,4 +1,3 @@
-using Lean.Pool;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -7,8 +6,6 @@ using UnityEngine;
 public class MonsterManager : SingletonManager<MonsterManager>
 {
     #region Members
-
-    private static MonsterManager instance;
 
     #region Stats
 
@@ -27,6 +24,24 @@ public class MonsterManager : SingletonManager<MonsterManager>
     #endregion
 
     #region Unity Message Methods
+
+    protected override void Awake()
+    {
+        base.Awake();
+        if (MonsterPool.Instance == null)
+        {
+            Debug.LogError("MonsterPool이 초기화되지 않았습니다.");
+            return;
+        }
+
+        if (enemyPrefab == null)
+        {
+            Debug.LogError("Enemy Prefab이 할당되지 않았습니다. MonsterManager에서 Enemy Prefab을 설정해주세요.");
+            return;
+        }
+
+        MonsterPool.Instance.InitializePool(enemyPrefab.gameObject);
+    }
 
     private void Start()
     {
@@ -53,7 +68,7 @@ public class MonsterManager : SingletonManager<MonsterManager>
             Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
             Vector2 finalPos = playerPos + spawnPos;
 
-            Enemy enemy = MonsterPool.Instance.SpawnMob(enemyPrefab.gameObject,finalPos,Quaternion.identity);
+            MonsterPool.Instance.SpawnMob(finalPos, Quaternion.identity);
         }
     }
     #endregion

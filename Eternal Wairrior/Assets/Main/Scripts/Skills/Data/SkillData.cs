@@ -9,11 +9,9 @@ public class SkillData
     public SkillType _SkillType;
     public string Name;
     public string Description;
-    public int id;
     public GameObject[] prefabsByLevel;
     public GameObject projectile;
     public Image icon;
-
     public ProjectileSkillStat projectileStat;
     public AreaSkillStat areaStat;
     public PassiveSkillStat passiveStat;

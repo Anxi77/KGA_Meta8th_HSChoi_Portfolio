@@ -8,17 +8,27 @@ using Unity.VisualScripting;
 
 public abstract class ProjectileSkills : Skill
 {
+    protected override void Awake()
+    {
+        base.Awake();
+        if (skillData == null)
+        {
+            skillData = new SkillData();
+        }
+        skillData._SkillType = SkillType.Projectile;
+    }
+
     protected ProjectileSkillStat TypedStats => GetTypeStats<ProjectileSkillStat>();
-    public float ProjectileSpeed => TypedStats.projectileSpeed;
-    public float ProjectileScale => TypedStats.projectileScale;
-    public float ShotInterval => TypedStats.shotInterval;
-    public int PierceCount => TypedStats.pierceCount;
-    public float AttackRange => TypedStats.attackRange;
-    public float HomingRange => TypedStats.homingRange;
-    public bool IsHoming => TypedStats.isHoming;
-    public float ExplosionRadius => TypedStats.explosionRad;
-    public int ProjectileCount => TypedStats.projectileCount;
-    public float InnerInterval => TypedStats.innerInterval;
+    public float ProjectileSpeed => TypedStats?.projectileSpeed ?? 0f;
+    public float ProjectileScale => TypedStats?.projectileScale ?? 1f;
+    public float ShotInterval => TypedStats?.shotInterval ?? 0.5f;
+    public int PierceCount => TypedStats?.pierceCount ?? 0;
+    public float AttackRange => TypedStats?.attackRange ?? 5f;
+    public float HomingRange => TypedStats?.homingRange ?? 0f;
+    public bool IsHoming => TypedStats?.isHoming ?? false;
+    public float ExplosionRadius => TypedStats?.explosionRad ?? 0f;
+    public int ProjectileCount => TypedStats?.projectileCount ?? 1;
+    public float InnerInterval => TypedStats?.innerInterval ?? 0.1f;
 
     protected virtual void Start()
     {
@@ -63,15 +73,22 @@ public abstract class ProjectileSkills : Skill
 
     protected virtual void Fire()
     {
+        Vector3 spawnPosition = transform.position + transform.up * 0.5f;
+
         Projectile proj = ProjectilePool.Instance.SpawnProjectile(
             skillData.projectile,
-            transform.position,
+            spawnPosition,
             transform.rotation
         );
 
-        Vector3 spawnPosition = transform.position + transform.up * 0.5f;
-        proj.transform.SetPositionAndRotation(spawnPosition, transform.rotation);
+        if (proj != null)
+        {
+            InitializeProjectile(proj);
+        }
+    }
 
+    protected virtual void InitializeProjectile(Projectile proj)
+    {
         proj.damage = Damage;
         proj.moveSpeed = ProjectileSpeed;
         proj.isHoming = IsHoming;
@@ -130,22 +147,12 @@ public abstract class ProjectileSkills : Skill
     {
         if (newLevel <= MaxSkillLevel)
         {
-            var updatedSkillData = SkillDataManager.Instance.GetSkillData(SkillID);
-            var projectileStats = (ProjectileSkillStat)updatedSkillData.GetCurrentTypeStat();
-
-            var newBaseStat = projectileStats.baseStat;
-            newBaseStat.skillLevel = newLevel;
-
-            var newStats = projectileStats;
-            newStats.baseStat = newBaseStat;
-
-            currentStats = newStats;
-
-            if (newLevel < skillData.prefabsByLevel.Length)
+            var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(SkillID, newLevel, SkillType.Projectile);
+            if (newStats != null)
             {
+                currentStats = newStats;
+                return true;
             }
-
-            return true;
         }
         return false;
     }

@@ -1,5 +1,6 @@
 public enum SkillType
 {
+    None,
     Projectile,
     Area,
     Passive
@@ -7,19 +8,18 @@ public enum SkillType
 
 public enum SkillID
 {
-    DefaultGun = 100000,
-    LaserGun,
-    MissileLauncher,
-    MultiShot,
-    Bind,
-    GuardianOrb
+    None = 100000,
+    EarthRift,
+    FrostHunt,
+    Vine,
+    ShadowWaltz
 }
 
 public enum ElementType
 {
     None,
-    Dark,   // 어둠
-    Water,  // 물
-    Fire,   // 불
-    Earth   // 대지
+    Dark, 
+    Water, 
+    Fire, 
+    Earth 
 }
