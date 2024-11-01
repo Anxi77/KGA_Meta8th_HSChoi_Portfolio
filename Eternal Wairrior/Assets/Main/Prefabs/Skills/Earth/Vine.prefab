@@ -45,6 +45,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   skillData:
+    metadata:
+      ID: 0
+      Name: 
+      Description: 
+      Type: 0
+      Element: 0
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 0}
+      Icon: {fileID: 0}
     icon: {fileID: 0}
     projectile: {fileID: 0}
     prefabsByLevel: []
@@ -75,4 +85,4 @@ MonoBehaviour:
   _tickRate: 0.1
   _isPersistent: 1
   _moveSpeed: 180
-  bindPrefab: {fileID: 3645943139255219267, guid: cac5a7b346808f841a5019c7d09f7a77, type: 3}
+  bindPrefab: {fileID: 4754228476112803559, guid: 7ac52a1f44a4cea43a0dd4e671109042, type: 3}

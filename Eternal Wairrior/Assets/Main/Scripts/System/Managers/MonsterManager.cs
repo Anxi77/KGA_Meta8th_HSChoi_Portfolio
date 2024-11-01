@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class MonsterManager : SingletonManager<MonsterManager>
 {
@@ -28,19 +30,6 @@ public class MonsterManager : SingletonManager<MonsterManager>
     protected override void Awake()
     {
         base.Awake();
-        if (MonsterPool.Instance == null)
-        {
-            Debug.LogError("MonsterPool이 초기화되지 않았습니다.");
-            return;
-        }
-
-        if (enemyPrefab == null)
-        {
-            Debug.LogError("Enemy Prefab이 할당되지 않았습니다. MonsterManager에서 Enemy Prefab을 설정해주세요.");
-            return;
-        }
-
-        MonsterPool.Instance.InitializePool(enemyPrefab.gameObject);
     }
 
     private void Start()
@@ -68,7 +57,7 @@ public class MonsterManager : SingletonManager<MonsterManager>
             Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
             Vector2 finalPos = playerPos + spawnPos;
 
-            MonsterPool.Instance.SpawnMob(finalPos, Quaternion.identity);
+            PoolManager.Instance.Spawn<Enemy>(enemyPrefab.gameObject,finalPos,quaternion.identity);
         }
     }
     #endregion

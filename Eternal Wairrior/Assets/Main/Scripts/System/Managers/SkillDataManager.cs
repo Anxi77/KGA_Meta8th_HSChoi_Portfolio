@@ -1,54 +1,25 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
 
 public class SkillDataManager : DataManager
 {
-    private const int CURRENT_DATA_VERSION = 2;
-    private const string VERSION_KEY = "SkillDataVersion";
+    private static new SkillDataManager instance;
 
-    private void MigrateDataIfNeeded()
+    public static new SkillDataManager Instance
     {
-        int savedVersion = PlayerPrefs.GetInt(VERSION_KEY, 1);
-        if (savedVersion < CURRENT_DATA_VERSION)
+        get
         {
-            try
+            if (instance == null)
             {
-                MigrateData(savedVersion);
-                PlayerPrefs.SetInt(VERSION_KEY, CURRENT_DATA_VERSION);
-                PlayerPrefs.Save();
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"Data migration failed: {e.Message}");
-                BackupAndResetData();
-            }
-        }
-    }
-
-    private void MigrateData(int fromVersion)
-    {
-        switch (fromVersion)
-        {
-            case 1:
-                MigrateFromVersion1To2();
-                break;
-                // 추가 버전 마이그레이션...
-        }
-    }
-
-    private void MigrateFromVersion1To2()
-    {
-        foreach (var skillData in skillDatas)
-        {
-            if (skillData.GetStatsForLevel(1) is ProjectileSkillStat projectileStats)
-            {
-                projectileStats.persistenceData = new ProjectilePersistenceData
+                instance = FindObjectOfType<SkillDataManager>();
+                if (instance == null)
                 {
-                    isPersistent = false,
-                    duration = 0f,
-                    effectInterval = 0.5f
-                };
+                    GameObject go = new GameObject("SkillDataManager");
+                    instance = go.AddComponent<SkillDataManager>();
+                }
             }
-<<<<<<< HEAD
             return instance;
         }
     }
@@ -141,27 +112,44 @@ public class SkillDataManager : DataManager
         if (skillStatsByLevel.TryGetValue(skillID, out var levelStats))
         {
             if (levelStats.TryGetValue(1, out var statData))
-=======
-            else if (skillData.GetStatsForLevel(1) is AreaSkillStat areaStats)
->>>>>>> 636e55d9921dee25edf69b9286cacd4495ea6e5a
             {
-                areaStats.persistenceData = new AreaPersistenceData
-                {
-                    isPersistent = true,
-                    duration = 0f,
-                    effectInterval = 0f
-                };
+                ISkillStat skillStat = statData.CreateSkillStat(skillData.metadata.Type);
+                skillData.SetStatsForLevel(1, skillStat);
             }
         }
+
+        return skillData;
     }
 
-    private void BackupAndResetData()
+    private void LoadSkillStatsFromCSV()
     {
-        BackupCSVFiles();
-        ClearAllData();
-        LoadAllData();
+        TextAsset csvFile = Resources.Load<TextAsset>($"{RESOURCE_PATH}/ProjectileSkillStats");
+        if (csvFile == null)
+        {
+            Debug.LogError("스킬 CSV 로드 실패!");
+            return;
+        }
+
+        string[] lines = csvFile.text.Split('\n');
+        string[] headers = lines[0].Trim().Split(',');
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+
+            string[] values = line.Split(',');
+
+            SkillStatData statData = ParseSkillStatLine(headers, values);
+
+            if (!skillStatsByLevel.ContainsKey(statData.skillID))
+            {
+                skillStatsByLevel[statData.skillID] = new Dictionary<int, SkillStatData>();
+            }
+
+            skillStatsByLevel[statData.skillID][statData.level] = statData;
+        }
     }
-<<<<<<< HEAD
 
     private SkillStatData ParseSkillStatLine(string[] headers, string[] values)
     {
@@ -365,6 +353,3 @@ public class SkillDataManager : DataManager
     }
 #endif
 }
-=======
-}
->>>>>>> 636e55d9921dee25edf69b9286cacd4495ea6e5a

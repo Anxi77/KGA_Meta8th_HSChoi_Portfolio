@@ -2,12 +2,12 @@
     "skillDatas": [
         {
             "metadata": {
-                "ID": 100001,
-                "Name": "fsadasdfsfs",
-                "Description": "415dfsafsd",
+                "ID": 100003,
+                "Name": "New Skill",
+                "Description": "New skill description",
                 "Type": 1,
-                "Element": 2,
-                "Tier": 5,
+                "Element": 3,
+                "Tier": 1,
                 "Tags": [],
                 "Prefab": {
                     "instanceID": 0

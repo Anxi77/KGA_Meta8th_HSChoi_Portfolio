@@ -74,13 +74,6 @@ public class Enemy : MonoBehaviour
     private const float FORMATION_RADIUS = 5f;
     private Vector2 formationOffset;
     #endregion
-
-    #region Events
-
-    public event Action OnEnemyDeath;
-
-    #endregion
-
     #endregion
 
     #region Unity Lifecycle
@@ -688,13 +681,18 @@ public class Enemy : MonoBehaviour
     {
         float finalDamage = damage * (1 + defenseDebuffAmount);
         hp -= finalDamage;
+        if (attackParticle != null)
+        {
+            var particle = PoolManager.Instance.Spawn<ParticleSystem>(attackParticle.gameObject,transform.position,quaternion.identity);
+            particle.Play();
+            Destroy(particle.gameObject, particle.main.duration);
+        }
         if (hp <= 0) Die();
     }
 
     public void Die()
     {
-        OnEnemyDeath?.Invoke();
-        OnEnemyDeath = null;
+
         if (GameManager.Instance?.player != null)
         {
             GameManager.Instance.player.GainExperience(mobEXP);
@@ -706,14 +704,7 @@ public class Enemy : MonoBehaviour
             GameManager.Instance.enemies.Remove(this);
         }
 
-        if (attackParticle != null)
-        {
-            var particle = Instantiate(attackParticle, transform.position, Quaternion.identity);
-            particle.Play();
-            Destroy(particle.gameObject, particle.main.duration);
-        }
-
-        MonsterPool.Instance.DespawnMob(gameObject);
+        PoolManager.Instance.Despawn<Enemy>(this);
     }
 
     private void Attack()

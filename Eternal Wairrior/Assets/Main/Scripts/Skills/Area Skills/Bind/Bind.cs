@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public class Bind : AreaSkills
@@ -8,7 +7,7 @@ public class Bind : AreaSkills
     public GameObject bindPrefab;
     private List<BindEffect> spawnedBindEffects = new List<BindEffect>();
     private Transform playerTransform;
-    private Dictionary<Enemy, BindEffect> enemyBindEffectMap = new Dictionary<Enemy, BindEffect>();
+
     protected override void Awake()
     {
         base.Awake();
@@ -51,7 +50,7 @@ public class Bind : AreaSkills
                 radius = 3f,
                 duration = 3f,
                 tickRate = 0.5f,
-                areaPersistent = true,
+                isPersistent = true,
                 moveSpeed = 0f
             };
             skillData.SetStatsForLevel(1, stats);
@@ -66,8 +65,6 @@ public class Bind : AreaSkills
 
     private IEnumerator BindingCoroutine()
     {
-
-
         if (PoolManager.Instance == null)
         {
             Debug.LogError("PoolManager not found!");
@@ -94,9 +91,6 @@ public class Bind : AreaSkills
                             affectedEnemies.Add(enemy);
                             enemy.moveSpeed = 0;
 
-                            if (enemyBindEffectMap.ContainsKey(enemy))
-                                continue;
-
                             Vector3 effectPosition = enemy.transform.position;
 
                             BindEffect bindEffect = PoolManager.Instance.Spawn<BindEffect>(
@@ -107,30 +101,20 @@ public class Bind : AreaSkills
 
                             if (bindEffect != null)
                             {
-                                bindEffect.gameObject.SetActive(true);
+                                bindEffect.gameObject.SetActive(false);
                                 bindEffect.transform.SetParent(enemy.transform);
-                                enemyBindEffectMap.Add(enemy, bindEffect);
+                                bindEffect.transform.localPosition = Vector3.zero;
+                                bindEffect.transform.localRotation = Quaternion.identity;
+                                bindEffect.gameObject.SetActive(true);
+
                                 spawnedBindEffects.Add(bindEffect);
 
-                                enemy.OnEnemyDeath += () => RemoveBindEffect(enemy);
+                                Debug.Log($"Bind effect spawned at {effectPosition}, parent: {enemy.name}");
                             }
                             else
                             {
                                 Debug.LogError("Failed to spawn BindEffect!");
                             }
-                        }
-                    }
-                    else
-                    {
-                        if (enemyBindEffectMap.ContainsKey(enemy))
-                        {
-                            var effectToRemove = enemyBindEffectMap[enemy];
-                            if (effectToRemove != null)
-                            {
-                                PoolManager.Instance.Despawn(effectToRemove);
-                                spawnedBindEffects.Remove(effectToRemove);
-                            }
-                            enemyBindEffectMap.Remove(enemy);
                         }
                     }
                 }
@@ -155,18 +139,17 @@ public class Bind : AreaSkills
                 if (enemy != null)
                 {
                     enemy.moveSpeed = enemy.originalMoveSpeed;
-                    if (enemyBindEffectMap.ContainsKey(enemy))
-                    {
-                        var effectToRemove = enemyBindEffectMap[enemy];
-                        if (effectToRemove != null)
-                        {
-                            PoolManager.Instance.Despawn(effectToRemove);
-                            spawnedBindEffects.Remove(effectToRemove);
-                        }
-                        enemyBindEffectMap.Remove(enemy);
-                    }
                 }
             }
+
+            foreach (BindEffect effect in spawnedBindEffects)
+            {
+                if (effect != null)
+                {
+                    PoolManager.Instance.Despawn(effect);
+                }
+            }
+            spawnedBindEffects.Clear();
 
             if (!IsPersistent)
             {
@@ -179,22 +162,8 @@ public class Bind : AreaSkills
     {
         if (playerTransform != null)
         {
-            Gizmos.color = new Color(1, 0, 0, 1f);
+            Gizmos.color = new Color(1, 0, 0, 0.2f);
             Gizmos.DrawWireSphere(playerTransform.position, Radius);
-        }
-    }
-
-    public void RemoveBindEffect(Enemy enemy)
-    {
-        if (enemyBindEffectMap.ContainsKey(enemy))
-        {
-            var effectToRemove = enemyBindEffectMap[enemy];
-            if (effectToRemove != null)
-            {
-                PoolManager.Instance.Despawn(effectToRemove);
-                spawnedBindEffects.Remove(effectToRemove);
-            }
-            enemyBindEffectMap.Remove(enemy);
         }
     }
 }

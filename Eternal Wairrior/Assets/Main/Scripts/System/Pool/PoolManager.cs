@@ -1,8 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using System;
-using System.Collections.Generic;
 using System.Collections;
 
 public class PoolManager : MonoBehaviour
@@ -74,6 +70,5 @@ public class PoolManager : MonoBehaviour
         {
             objectPool.Despawn(obj);
         }
-    } 
-
+    }
 }

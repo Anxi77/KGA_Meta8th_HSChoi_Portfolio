@@ -22,7 +22,7 @@ public class RotatingOrb : MonoBehaviour
         }
     }
 
-    public void InitializeOrbs(int count, float damage)
+    public void InitializeOrbs(int count)
     {
         ClearOrbs();
 
@@ -39,7 +39,7 @@ public class RotatingOrb : MonoBehaviour
             {
                 orbDamage = orb.AddComponent<OrbDamage>();
             }
-            orbDamage.Initialize(damage, parentSkill.TypedStats.baseStat.elementType, parentSkill.TypedStats.baseStat.elementalPower);
+            orbDamage.damage = parentSkill.Damage;
         }
 
         originalRadius = Vector3.right * parentSkill.Radius;
@@ -83,16 +83,7 @@ public class RotatingOrb : MonoBehaviour
 
 public class OrbDamage : MonoBehaviour
 {
-    private float damage;
-    private ElementType elementType;
-    private float elementalPower;
-
-    public void Initialize(float damage, ElementType elementType, float elementalPower)
-    {
-        this.damage = damage;
-        this.elementType = elementType;
-        this.elementalPower = elementalPower;
-    }
+    public float damage;
 
     private void OnCollisionEnter2D(Collision2D other)
     {
@@ -102,10 +93,6 @@ public class OrbDamage : MonoBehaviour
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
-                if (elementType != ElementType.None)
-                {
-                    ElementalEffects.ApplyElementalEffect(elementType, elementalPower, enemy.gameObject);
-                }
             }
         }
     }

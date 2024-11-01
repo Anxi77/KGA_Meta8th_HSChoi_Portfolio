@@ -7,7 +7,7 @@ public class Orbit : AreaSkills
 
     private const int ORBS_PER_LEVEL = 2;
 
-    private const int BASE_ORB_COUNT = 5;
+    private const int BASE_ORB_COUNT = 1;
 
     protected override void Awake()
     {
@@ -38,22 +38,18 @@ public class Orbit : AreaSkills
             {
                 baseStat = new BaseSkillStat
                 {
-                    damage = _damage,
+                    damage = 8f,
                     skillName = skillData.metadata.Name,
                     skillLevel = 1,
                     maxSkillLevel = 5,
                     element = skillData.metadata.Element,
-                    elementalPower = _elementalPower
+                    elementalPower = 1f
                 },
-                radius = _radius,
-                tickRate = _tickRate,
-                moveSpeed = _moveSpeed,
-                persistenceData = new AreaPersistenceData
-                {
-                    isPersistent = true,
-                    duration = 0f,
-                    effectInterval = 0f
-                }
+                radius = 2f,
+                duration = 0f,
+                tickRate = 0f,
+                isPersistent = true,
+                moveSpeed = 500f
             };
             skillData.SetStatsForLevel(1, stats);
         }
@@ -79,7 +75,7 @@ public class Orbit : AreaSkills
         if (currentOrbCount != newOrbCount)
         {
             currentOrbCount = newOrbCount;
-            orbs.InitializeOrbs(currentOrbCount, Damage);
+            orbs.InitializeOrbs(currentOrbCount);
         }
     }
 

@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public class SingleShot : ProjectileSkills
 {
     protected override void Start()
@@ -29,13 +31,7 @@ public class SingleShot : ProjectileSkills
                 homingRange = _homingRange,
                 isHoming = _isHoming,
                 projectileCount = _projectileCount,
-                innerInterval = _innerInterval,
-                persistenceData = new ProjectilePersistenceData
-                {
-                    isPersistent = _isPersistent,
-                    duration = _projectileDuration,
-                    effectInterval = 0.5f
-                }
+                innerInterval = _innerInterval
             };
             skillData.SetStatsForLevel(1, stats);
         }
@@ -45,7 +41,7 @@ public class SingleShot : ProjectileSkills
     {
         Vector3 spawnPosition = transform.position + transform.up * 0.5f;
 
-        BaseProjectile proj = PoolManager.Instance.Spawn<BaseProjectile>(
+        Projectile proj = PoolManager.Instance.Spawn<Projectile>(
             skillData.projectile,
             spawnPosition,
             transform.rotation

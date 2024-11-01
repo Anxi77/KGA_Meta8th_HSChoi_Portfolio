@@ -8,10 +8,6 @@ using Unity.VisualScripting;
 
 public abstract class ProjectileSkills : Skill
 {
-    private ProjectileStats cachedStats;
-    private float lastStatsUpdateTime;
-    private const float STATS_UPDATE_INTERVAL = 0.5f; // 스탯 업데이트 간격
-
     protected override void Awake()
     {
         base.Awake();
@@ -22,7 +18,39 @@ public abstract class ProjectileSkills : Skill
         }
     }
 
-    protected ProjectileSkillStat TypedStats => GetTypeStats<ProjectileSkillStat>();
+    protected ProjectileSkillStat TypedStats
+    {
+        get
+        {
+            var stats = skillData?.GetStatsForLevel(SkillLevel) as ProjectileSkillStat;
+            if (stats == null)
+            {
+                stats = new ProjectileSkillStat
+                {
+                    baseStat = new BaseSkillStat
+                    {
+                        damage = _damage,
+                        skillLevel = 1,
+                        maxSkillLevel = 5,
+                        element = skillData?.metadata.Element ?? ElementType.None,
+                        elementalPower = _elementalPower
+                    },
+                    projectileSpeed = _projectileSpeed,
+                    projectileScale = _projectileScale,
+                    shotInterval = _shotInterval,
+                    pierceCount = _pierceCount,
+                    attackRange = _attackRange,
+                    homingRange = _homingRange,
+                    isHoming = _isHoming,
+                    explosionRad = _explosionRadius,
+                    projectileCount = _projectileCount,
+                    innerInterval = _innerInterval
+                };
+                skillData?.SetStatsForLevel(1, stats);
+            }
+            return stats;
+        }
+    }
 
     // Inspector-editable fields
     [Header("Base Stats")]
@@ -40,8 +68,6 @@ public abstract class ProjectileSkills : Skill
     [SerializeField] protected float _explosionRadius = 0f;
     [SerializeField] protected int _projectileCount = 1;
     [SerializeField] protected float _innerInterval = 0.1f;
-    [SerializeField] protected bool _isPersistent;
-    [SerializeField] protected float _projectileDuration;
 
     // Properties using inspector values
     public override float Damage => _damage;
@@ -55,8 +81,6 @@ public abstract class ProjectileSkills : Skill
     public float ExplosionRadius => _explosionRadius;
     public int ProjectileCount => _projectileCount;
     public float InnerInterval => _innerInterval;
-    public bool IsPersistent => _isPersistent;
-    public float ProjectileDuration => _projectileDuration;
 
     protected virtual void Start()
     {
@@ -119,50 +143,18 @@ public abstract class ProjectileSkills : Skill
         }
     }
 
-    protected virtual void InitializeProjectile(BaseProjectile proj)
+    protected virtual void InitializeProjectile(Projectile proj)
     {
-        UpdateProjectileStats();
-        proj.Initialize(cachedStats, CreateProjectileBehavior());
-    }
+        proj.damage = Damage;
+        proj.moveSpeed = ProjectileSpeed;
+        proj.isHoming = IsHoming;
+        proj.transform.localScale *= ProjectileScale;
+        proj.pierceCount = PierceCount;
+        proj.maxTravelDistance = AttackRange;
+        proj.elementType = skillData.metadata.Element;
+        proj.elementalPower = TypedStats.baseStat.elementalPower;
 
-    protected virtual void UpdateProjectileStats()
-    {
-        if (Time.time - lastStatsUpdateTime < STATS_UPDATE_INTERVAL) return;
-
-        cachedStats = new ProjectileStats
-        {
-            damage = Damage,
-            moveSpeed = TypedStats.projectileSpeed,
-            scale = TypedStats.projectileScale,
-            elementType = skillData.metadata.Element,
-            elementalPower = TypedStats.baseStat.elementalPower,
-            pierceCount = TypedStats.pierceCount,
-            maxTravelDistance = TypedStats.attackRange,
-            persistenceData = TypedStats.persistenceData
-        };
-
-        lastStatsUpdateTime = Time.time;
-    }
-
-    // 객체 풀링 최적화
-    private readonly Dictionary<ProjectileBehaviorType, IProjectileBehavior> behaviorPool
-        = new Dictionary<ProjectileBehaviorType, IProjectileBehavior>();
-
-    protected virtual IProjectileBehavior CreateProjectileBehavior()
-    {
-        var behaviorType = TypedStats.isHoming ?
-            ProjectileBehaviorType.Homing :
-            ProjectileBehaviorType.Standard;
-
-        if (!behaviorPool.TryGetValue(behaviorType, out var behavior))
-        {
-            behavior = behaviorType == ProjectileBehaviorType.Homing ?
-                new HomingProjectileBehavior() :
-                new StandardProjectileBehavior();
-            behaviorPool[behaviorType] = behavior;
-        }
-
-        return behavior;
+        proj.SetInitialTarget(FindNearestEnemy());
     }
     #endregion
 
