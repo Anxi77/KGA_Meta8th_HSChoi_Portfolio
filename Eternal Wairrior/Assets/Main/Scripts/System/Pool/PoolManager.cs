@@ -70,15 +70,10 @@ public class PoolManager : MonoBehaviour
     private IEnumerator DespawnCoroutine<T>(T obj, float delay) where T : Component
     {
         yield return new WaitForSeconds(delay);
-<<<<<<< HEAD
-        objectPool.Despawn(obj);
-    } 
-
-=======
         if (obj != null)
         {
             objectPool.Despawn(obj);
         }
-    }
->>>>>>> 636e55d9921dee25edf69b9286cacd4495ea6e5a
+    } 
+
 }
