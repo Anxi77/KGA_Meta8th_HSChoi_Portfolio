@@ -46,17 +46,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0488a723a7d6d5f40a07c8d53bfc215d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 0
-  moveSpeed: 0
-  isHoming: 0
-  pierceCount: 0
-  maxTravelDistance: 0
+  _damage: 10
+  _moveSpeed: 10
+  _elementalPower: 1
+  _elementType: 0
+  _isHoming: 0
+  _pierceCount: 1
+  _maxTravelDistance: 10
+  impactParticle: {fileID: 198994245063949058, guid: 6fe87ddb63112fe4c8f2f356b2f464be, type: 3}
+  isTracinglikemf: 1
   initialPosition: {x: 0, y: 0}
   direction: {x: 0, y: 0}
   targetEnemy: {fileID: 0}
-  impactParticle: {fileID: 198994245063949058, guid: 6fe87ddb63112fe4c8f2f356b2f464be, type: 3}
-  elementalPower: 0
-  elementType: 0
 --- !u!58 &-6112852474891403317
 CircleCollider2D:
   m_ObjectHideFlags: 0

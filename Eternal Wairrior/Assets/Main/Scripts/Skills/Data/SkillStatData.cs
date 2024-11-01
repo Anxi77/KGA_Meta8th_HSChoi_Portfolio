@@ -7,7 +7,7 @@ public class SkillStatData
     public SkillID skillID;
     public int level;
 
-    // Base Stats
+    // Base Stats 
     public float damage;
     public int maxSkillLevel;
     public ElementType element;
@@ -24,18 +24,24 @@ public class SkillStatData
     public float explosionRad;
     public int projectileCount;
     public float innerInterval;
+    public bool projectilePersistent;
+    public float projectileDuration;
 
     // Area Stats
     public float radius;
-    public float duration;
     public float tickRate;
-    public bool isPersistent;
     public float moveSpeed;
+    public bool areaPersistent;
+    public float areaDuration;
 
     // Passive Stats
     public float effectDuration;
     public float cooldown;
     public float triggerChance;
+
+    // 지속 효과 데이터 통합
+    public PersistenceData projectilePersistenceData { get; set; } = new PersistenceData();
+    public PersistenceData areaPersistenceData { get; set; } = new PersistenceData();
 
     public ISkillStat CreateSkillStat(SkillType skillType)
     {
@@ -61,7 +67,13 @@ public class SkillStatData
                     isHoming = isHoming,
                     explosionRad = explosionRad,
                     projectileCount = projectileCount,
-                    innerInterval = innerInterval
+                    innerInterval = innerInterval,
+                    persistenceData = new ProjectilePersistenceData
+                    {
+                        isPersistent = projectilePersistenceData.isPersistent,
+                        duration = projectilePersistenceData.duration,
+                        effectInterval = projectilePersistenceData.effectInterval
+                    }
                 };
 
             case SkillType.Area:
@@ -78,8 +90,14 @@ public class SkillStatData
                     radius = radius,
                     duration = duration,
                     tickRate = tickRate,
-                    isPersistent = isPersistent,
-                    moveSpeed = moveSpeed
+                    areaPersistent = areaPersistent,
+                    moveSpeed = moveSpeed,
+                    persistenceData = new AreaPersistenceData
+                    {
+                        isPersistent = areaPersistenceData.isPersistent,
+                        duration = areaPersistenceData.duration,
+                        effectInterval = areaPersistenceData.effectInterval
+                    }
                 };
 
             case SkillType.Passive:

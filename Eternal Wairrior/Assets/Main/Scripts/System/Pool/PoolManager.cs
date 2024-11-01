@@ -1,4 +1,7 @@
 using UnityEngine;
+using System;
+using System.Collections.Generic;
+using System.Collections;
 
 public class PoolManager : MonoBehaviour
 {
@@ -55,5 +58,19 @@ public class PoolManager : MonoBehaviour
     public void Despawn<T>(T obj) where T : Component
     {
         objectPool.Despawn(obj);
+    }
+
+    public void Despawn<T>(T obj, float delay) where T : Component
+    {
+        StartCoroutine(DespawnCoroutine(obj, delay));
+    }
+
+    private IEnumerator DespawnCoroutine<T>(T obj, float delay) where T : Component
+    {
+        yield return new WaitForSeconds(delay);
+        if (obj != null)
+        {
+            objectPool.Despawn(obj);
+        }
     }
 }

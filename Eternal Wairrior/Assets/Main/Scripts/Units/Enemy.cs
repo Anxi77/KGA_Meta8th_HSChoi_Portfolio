@@ -74,6 +74,13 @@ public class Enemy : MonoBehaviour
     private const float FORMATION_RADIUS = 5f;
     private Vector2 formationOffset;
     #endregion
+
+    #region Events
+
+    public event Action OnEnemyDeath;
+
+    #endregion
+
     #endregion
 
     #region Unity Lifecycle
@@ -686,6 +693,8 @@ public class Enemy : MonoBehaviour
 
     public void Die()
     {
+        OnEnemyDeath?.Invoke();
+        OnEnemyDeath = null;
         if (GameManager.Instance?.player != null)
         {
             GameManager.Instance.player.GainExperience(mobEXP);

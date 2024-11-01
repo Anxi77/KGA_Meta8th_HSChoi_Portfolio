@@ -261,13 +261,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c2a4f0cd09f6674294dcce7d5e48cda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hp: 10
-  damage: 10
+  hp: 100
+  damage: 0
   moveSpeed: 5
   mobEXP: 0
   damageInterval: 0.5
   attackRange: 0.9
   preferredDistance: 1
+  elementType: 0
   hpBar: {fileID: 3705600860709169156}
   attackParticle: {fileID: 7242367112545350938, guid: b59d613d3271c084b9b225b91e4756df, type: 3}
 --- !u!1 &5897277061234933057

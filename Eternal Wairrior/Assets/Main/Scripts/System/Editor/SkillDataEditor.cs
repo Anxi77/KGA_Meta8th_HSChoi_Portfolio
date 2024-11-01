@@ -16,6 +16,10 @@ public class SkillDataEditor : EditorWindow
     private GUIStyle headerStyle;
     private Vector2 statsScrollPosition;
     private const string RESOURCE_PATH = "SkillData";
+    private bool hasUnsavedChanges = false;
+
+    private Stack<SkillDataState> undoStack = new Stack<SkillDataState>();
+    private Stack<SkillDataState> redoStack = new Stack<SkillDataState>();
 
     [MenuItem("Tools/Skill Data Editor")]
     public static void ShowWindow()
@@ -54,11 +58,65 @@ public class SkillDataEditor : EditorWindow
 
     private void OnGUI()
     {
-        EditorGUILayout.BeginHorizontal();
-        DrawLeftPanel();
-        DrawRightPanel();
+        DrawToolbar();
+        EditorGUI.BeginChangeCheck();
+
+        DrawMainContent();
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            hasUnsavedChanges = true;
+        }
+
+        DrawSaveButton();
+    }
+
+    private void DrawToolbar()
+    {
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+
+        if (GUILayout.Button("Undo", EditorStyles.toolbarButton, GUILayout.Width(50)))
+        {
+            Undo();
+        }
+
+        if (GUILayout.Button("Redo", EditorStyles.toolbarButton, GUILayout.Width(50)))
+        {
+            Redo();
+        }
+
         EditorGUILayout.EndHorizontal();
-        DrawBottomPanel();
+    }
+
+    private void DrawSaveButton()
+    {
+        if (hasUnsavedChanges)
+        {
+            EditorGUILayout.Space(10);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.HelpBox("You have unsaved changes!", MessageType.Warning);
+
+            if (GUILayout.Button("Save", GUILayout.Width(100)))
+            {
+                SaveChanges();
+                hasUnsavedChanges = false;
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+
+    private void OnLostFocus()
+    {
+        if (hasUnsavedChanges)
+        {
+            if (EditorUtility.DisplayDialog("Unsaved Changes",
+                "You have unsaved changes. Would you like to save them?",
+                "Save", "Discard"))
+            {
+                SaveChanges();
+            }
+            hasUnsavedChanges = false;
+        }
     }
 
     #region Left Panel
@@ -84,32 +142,38 @@ public class SkillDataEditor : EditorWindow
 
     private void DrawSkillList()
     {
-        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+        float listHeight = position.height - 150f; // 상단 여백 고려
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition,
+            GUILayout.Width(200), GUILayout.Height(listHeight));
 
         if (skillList != null)
         {
             for (int i = 0; i < skillList.Count; i++)
             {
-                var skill = skillList[i];
-                EditorGUILayout.BeginHorizontal();
-
-                GUI.backgroundColor = currentSkill == skill ? Color.cyan : Color.white;
-                if (GUILayout.Button(skill.metadata.Name, GUILayout.Height(30)))
-                {
-                    currentSkill = skill;
-
-                    // Ŭ ޴ ó
-                    if (Event.current.button == 1) // Ŭ
-                    {
-                        ShowSkillContextMenu(skill);
-                    }
-                }
-
-                EditorGUILayout.EndHorizontal();
+                DrawSkillListItem(skillList[i], i);
             }
         }
-        GUI.backgroundColor = Color.white;
+
         EditorGUILayout.EndScrollView();
+    }
+
+    private void DrawSkillListItem(SkillData skill, int index)
+    {
+        EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+
+        GUI.backgroundColor = currentSkill == skill ? Color.cyan : Color.white;
+        if (GUILayout.Button(skill.metadata.Name, GUILayout.Height(30)))
+        {
+            currentSkill = skill;
+            GUI.FocusControl(null); // 포커스 초기화
+        }
+
+        if (GUILayout.Button("⋮", GUILayout.Width(20), GUILayout.Height(30)))
+        {
+            ShowSkillContextMenu(skill);
+        }
+
+        EditorGUILayout.EndHorizontal();
     }
 
     // ų Ʈ޴ ǥ
@@ -126,7 +190,7 @@ public class SkillDataEditor : EditorWindow
         menu.ShowAsContext();
     }
 
-    // õ  ų
+    // õ  
     private void DeleteCurrentSkill()
     {
         if (currentSkill != null)
@@ -366,6 +430,8 @@ public class SkillDataEditor : EditorWindow
         stats.explosionRad = EditorGUILayout.FloatField("Explosion Radius", stats.explosionRad);
         stats.projectileCount = EditorGUILayout.IntField("Projectile Count", stats.projectileCount);
         stats.innerInterval = EditorGUILayout.FloatField("Inner Interval", stats.innerInterval);
+        stats.isPersistant = EditorGUILayout.Toggle("isPersistant", stats.isPersistant);
+        stats.duration = EditorGUILayout.FloatField("Duration", stats.duration);
 
         EditorGUI.indentLevel--;
     }
@@ -405,26 +471,67 @@ public class SkillDataEditor : EditorWindow
 
         if (!showLevelStats) return;
 
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+        // 레벨 추가 버튼
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button("Add Level", GUILayout.Width(100)))
         {
-            AddNewLevelStat();
+            if (EditorUtility.DisplayDialog("Add Level",
+                "Are you sure you want to add a new level?", "Add", "Cancel"))
+            {
+                AddNewLevelStat();
+            }
+        }
+
+        if (GUILayout.Button("Remove Last Level", GUILayout.Width(120)))
+        {
+            if (EditorUtility.DisplayDialog("Remove Level",
+                "Are you sure you want to remove the last level?", "Remove", "Cancel"))
+            {
+                RemoveLastLevel();
+            }
         }
         EditorGUILayout.EndHorizontal();
 
         // 레벨별 스탯 표시
+        statsScrollPosition = EditorGUILayout.BeginScrollView(statsScrollPosition);
+
         for (int level = 1; level <= currentSkill.GetMaxLevel(); level++)
         {
-            EditorGUILayout.Space(5);
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-            EditorGUILayout.LabelField($"Level {level}", EditorStyles.boldLabel);
-            var stats = currentSkill.GetStatsForLevel(level);
-
-            DrawStatsForType(stats, currentSkill.metadata.Type);
-
-            EditorGUILayout.EndVertical();
+            DrawLevelStatGroup(level);
         }
+
+        EditorGUILayout.EndScrollView();
+        EditorGUILayout.EndVertical();
+    }
+
+    private void DrawLevelStatGroup(int level)
+    {
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField($"Level {level}", EditorStyles.boldLabel);
+
+        if (GUILayout.Button("Reset", GUILayout.Width(60)))
+        {
+            if (EditorUtility.DisplayDialog("Reset Level",
+                $"Reset level {level} stats to default?", "Reset", "Cancel"))
+            {
+                ResetLevelStats(level);
+            }
+        }
+        EditorGUILayout.EndHorizontal();
+
+        var stats = currentSkill.GetStatsForLevel(level);
+        if (stats != null)
+        {
+            EditorGUI.indentLevel++;
+            DrawStatsForType(stats, currentSkill.metadata.Type);
+            EditorGUI.indentLevel--;
+        }
+
+        EditorGUILayout.EndVertical();
     }
 
     private void DrawStatsForType(ISkillStat stats, SkillType skillType)
@@ -451,38 +558,68 @@ public class SkillDataEditor : EditorWindow
 
     private void AddNewLevelStat()
     {
-        var levelStats = skillStatsList[currentSkill.metadata.ID];
-        var newStat = new SkillStatData
+        try
         {
-            skillID = currentSkill.metadata.ID,
-            level = levelStats.Count + 1
-        };
-
-        // 이전 레벨의 스탯을 기반으로 새 스탯 생성
-        if (levelStats.Count > 0)
-        {
-            var prevStat = levelStats[levelStats.Count - 1];
-            newStat.damage = prevStat.damage * 1.1f; // 10% 증가
-            newStat.maxSkillLevel = prevStat.maxSkillLevel;
-            newStat.element = currentSkill.metadata.Element;
-            newStat.elementalPower = prevStat.elementalPower * 1.1f;
-
-            // 스킬 타입별 스탯 복사
-            switch (currentSkill.metadata.Type)
+            if (currentSkill == null)
             {
-                case SkillType.Projectile:
-                    CopyProjectileStats(prevStat, newStat);
-                    break;
-                case SkillType.Area:
-                    CopyAreaStats(prevStat, newStat);
-                    break;
-                case SkillType.Passive:
-                    CopyPassiveStats(prevStat, newStat);
-                    break;
+                EditorUtility.DisplayDialog("Error", "No skill selected", "OK");
+                return;
             }
-        }
 
-        levelStats.Add(newStat);
+            var levelStats = skillStatsList[currentSkill.metadata.ID];
+            int newLevel = levelStats.Count + 1;
+
+            // 최대 레벨 체크
+            if (newLevel > currentSkill.GetCurrentTypeStat()?.baseStat?.maxSkillLevel)
+            {
+                EditorUtility.DisplayDialog("Error", "Cannot exceed max skill level", "OK");
+                return;
+            }
+
+            var newStat = new SkillStatData
+            {
+                skillID = currentSkill.metadata.ID,
+                level = newLevel
+            };
+
+            // 이전 레벨의 스탯을 기반으로 새 스탯 생성
+            if (levelStats.Count > 0)
+            {
+                var prevStat = levelStats[levelStats.Count - 1];
+                CopyAndScaleStats(prevStat, newStat);
+            }
+
+            levelStats.Add(newStat);
+            EditorUtility.SetDirty(currentSkill);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to add new level stat: {e.Message}");
+            EditorUtility.DisplayDialog("Error", "Failed to add new level stat", "OK");
+        }
+    }
+
+    private void CopyAndScaleStats(SkillStatData source, SkillStatData target)
+    {
+        // 기본 스탯 복사 및 스케일링
+        target.damage = source.damage * 1.1f;
+        target.maxSkillLevel = source.maxSkillLevel;
+        target.element = source.element;
+        target.elementalPower = source.elementalPower * 1.05f;
+
+        // 스킬 타입별 스탯 복사
+        switch (currentSkill.metadata.Type)
+        {
+            case SkillType.Projectile:
+                CopyProjectileStats(source, target);
+                break;
+            case SkillType.Area:
+                CopyAreaStats(source, target);
+                break;
+            case SkillType.Passive:
+                CopyPassiveStats(source, target);
+                break;
+        }
     }
 
     private void CopyProjectileStats(SkillStatData from, SkillStatData to)
@@ -497,6 +634,8 @@ public class SkillDataEditor : EditorWindow
         to.explosionRad = from.explosionRad;
         to.projectileCount = from.projectileCount;
         to.innerInterval = from.innerInterval;
+        to.duration = from.duration;
+        to.isPersistent = from.isPersistent;
     }
 
     private void CopyAreaStats(SkillStatData from, SkillStatData to)
@@ -570,12 +709,13 @@ public class SkillDataEditor : EditorWindow
         string path = Path.Combine(directory, "ProjectileSkillStats.csv");
         StringBuilder csv = new StringBuilder();
 
-        // Header for projectile skills
+        // 헤더에 새로운 필드 추가
         csv.AppendLine("SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower," +
                       "ProjectileSpeed,ProjectileScale,ShotInterval,PierceCount,AttackRange," +
-                      "HomingRange,IsHoming,ExplosionRad,ProjectileCount,InnerInterval");
+                      "HomingRange,IsHoming,ExplosionRad,ProjectileCount,InnerInterval," +
+                      "ProjectilePersistent,ProjectileDuration");
 
-        // Save projectile skill data
+        // 데이터 저장 부분에도 새로운 필드 추가
         foreach (var skillStats in skillStatsList.Values)
         {
             foreach (var stat in skillStats)
@@ -586,7 +726,8 @@ public class SkillDataEditor : EditorWindow
                                  $"{stat.element},{stat.elementalPower},{stat.projectileSpeed}," +
                                  $"{stat.projectileScale},{stat.shotInterval},{stat.pierceCount}," +
                                  $"{stat.attackRange},{stat.homingRange},{stat.isHoming}," +
-                                 $"{stat.explosionRad},{stat.projectileCount},{stat.innerInterval}");
+                                 $"{stat.explosionRad},{stat.projectileCount},{stat.innerInterval}," +
+                                 $"{stat.projectilePersistent},{stat.projectileDuration}");
                 }
             }
         }
@@ -601,7 +742,7 @@ public class SkillDataEditor : EditorWindow
 
         // Header for area skills
         csv.AppendLine("SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower," +
-                      "Radius,Duration,TickRate,IsPersistent,MoveSpeed");
+                      "Radius,AreaDuration,TickRate,AreaPersistent,MoveSpeed");
 
         // Save area skill data
         foreach (var skillStats in skillStatsList.Values)
@@ -612,7 +753,7 @@ public class SkillDataEditor : EditorWindow
                 {
                     csv.AppendLine($"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
                                  $"{stat.element},{stat.elementalPower},{stat.radius}," +
-                                 $"{stat.duration},{stat.tickRate},{stat.isPersistent},{stat.moveSpeed}");
+                                 $"{stat.areaDuration},{stat.tickRate},{stat.areaPersistent},{stat.moveSpeed}");
                 }
             }
         }
@@ -691,13 +832,11 @@ public class SkillDataEditor : EditorWindow
     #region Data Management
     private void LoadAllData()
     {
-        // 1. SkillDataManager⺻ ų  ε
         LoadSkillData();
 
-        // 2. CSV ų  ε
+
         LoadSkillStatsData();
 
-        // 3. JSON Ͽ߰  ε ( )
         LoadJsonData();
     }
 
@@ -761,21 +900,20 @@ public class SkillDataEditor : EditorWindow
         var skillDataManager = FindObjectOfType<SkillDataManager>();
         if (skillDataManager != null)
         {
-            // Save base data
             skillDataManager.SaveAllSkillData();
             EditorUtility.SetDirty(skillDataManager);
             AssetDatabase.SaveAssets();
 
-            // Save JSON
             string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
             Directory.CreateDirectory(directory);
-            string jsonPath = Path.Combine(directory, "SkillData.json");
 
+            // JSON 저장
+            string jsonPath = Path.Combine(directory, "SkillData.json");
             SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillList };
             string json = JsonUtility.ToJson(wrapper, true);
             File.WriteAllText(jsonPath, json);
 
-            // Save CSV data
+            // CSV 저장
             SaveSkillStatsToCSV();
 
             AssetDatabase.Refresh();
@@ -838,7 +976,6 @@ public class SkillDataEditor : EditorWindow
 
     private void InitializeSkillStats(SkillData skill)
     {
-        // 모든 스킬 타입에 대한 기본 스탯 초기화
         skill.projectileStat = new ProjectileSkillStat
         {
             baseStat = new BaseSkillStat { skillName = skill.metadata.Name }
@@ -953,6 +1090,30 @@ public class SkillDataEditor : EditorWindow
                     if (float.TryParse(value, out float innerInterval))
                         statData.innerInterval = innerInterval;
                     break;
+                case "duration":
+                    if (float.TryParse(value, out float duration))
+                        statData.duration = duration;
+                    break;
+                case "ispersistant":
+                    if (bool.TryParse(value, out bool isPersistent))
+                        statData.isPersistent = isPersistent;
+                    break;
+                case "projectilepersistent":
+                    if (bool.TryParse(value, out bool projPersistent))
+                        statData.projectilePersistent = projPersistent;
+                    break;
+                case "projectileduration":
+                    if (float.TryParse(value, out float projDuration))
+                        statData.projectileDuration = projDuration;
+                    break;
+                case "areapersistent":
+                    if (bool.TryParse(value, out bool areaPersistent))
+                        statData.areaPersistent = areaPersistent;
+                    break;
+                case "areaduration":
+                    if (float.TryParse(value, out float areaDuration))
+                        statData.areaDuration = areaDuration;
+                    break;
             }
         }
 
@@ -1002,5 +1163,258 @@ public class SkillDataEditor : EditorWindow
 
         // Refresh Unity's asset database
         AssetDatabase.Refresh();
+    }
+
+    private void DrawPersistenceSettings()
+    {
+        EditorGUILayout.Space(10);
+        EditorGUILayout.LabelField("Persistence Settings", headerStyle);
+        EditorGUI.indentLevel++;
+
+        if (currentSkill?.GetCurrentTypeStat() is ProjectileSkillStat projectileStats)
+        {
+            var persistenceData = projectileStats.persistenceData;
+            if (persistenceData == null)
+            {
+                persistenceData = new ProjectilePersistenceData();
+                projectileStats.persistenceData = persistenceData;
+            }
+
+            EditorGUI.BeginChangeCheck();
+            persistenceData.isPersistent = EditorGUILayout.Toggle("Is Persistent", persistenceData.isPersistent);
+
+            if (persistenceData.isPersistent)
+            {
+                EditorGUI.indentLevel++;
+                persistenceData.duration = EditorGUILayout.FloatField("Duration", persistenceData.duration);
+                persistenceData.effectInterval = EditorGUILayout.FloatField("Effect Interval", persistenceData.effectInterval);
+                EditorGUI.indentLevel--;
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(currentSkill);
+            }
+        }
+
+        EditorGUI.indentLevel--;
+    }
+
+    // 에러 처리 강화
+    private void ValidateSkillData()
+    {
+        if (currentSkill == null) return;
+
+        var stats = currentSkill.GetCurrentTypeStat();
+        if (stats == null)
+        {
+            EditorGUILayout.HelpBox("Invalid skill stats!", MessageType.Error);
+            return;
+        }
+
+        // 값 유효성 검사
+        if (stats is ProjectileSkillStat projectileStats)
+        {
+            if (projectileStats.projectileSpeed <= 0)
+                EditorGUILayout.HelpBox("Projectile speed must be greater than 0", MessageType.Warning);
+
+            if (projectileStats.persistenceData?.duration < 0)
+                EditorGUILayout.HelpBox("Duration cannot be negative", MessageType.Warning);
+        }
+    }
+
+    private class SkillDataState
+    {
+        public SkillData skillData;
+        public Dictionary<SkillID, List<SkillStatData>> skillStats;
+
+        public SkillDataState(SkillData data, Dictionary<SkillID, List<SkillStatData>> stats)
+        {
+            skillData = JsonUtility.FromJson<SkillData>(JsonUtility.ToJson(data));
+            skillStats = new Dictionary<SkillID, List<SkillStatData>>();
+            foreach (var pair in stats)
+            {
+                skillStats[pair.Key] = new List<SkillStatData>(pair.Value);
+            }
+        }
+    }
+
+    private void SaveState()
+    {
+        undoStack.Push(new SkillDataState(currentSkill, skillStatsList));
+        redoStack.Clear();
+    }
+
+    private void Undo()
+    {
+        if (undoStack.Count > 0)
+        {
+            redoStack.Push(new SkillDataState(currentSkill, skillStatsList));
+            var state = undoStack.Pop();
+            RestoreState(state);
+        }
+    }
+
+    private void Redo()
+    {
+        if (redoStack.Count > 0)
+        {
+            undoStack.Push(new SkillDataState(currentSkill, skillStatsList));
+            var state = redoStack.Pop();
+            RestoreState(state);
+        }
+    }
+
+    private void RestoreState(SkillDataState state)
+    {
+        currentSkill = state.skillData;
+        skillStatsList = state.skillStats;
+        Repaint();
+    }
+
+    private void DrawBulkEditTools()
+    {
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+        EditorGUILayout.LabelField("Bulk Edit Tools", EditorStyles.boldLabel);
+
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Scale All Damage"))
+        {
+            float scale = EditorUtility.DisplayDialog("Scale Damage",
+                "Enter scale factor (e.g., 1.1 for 10% increase):", "Scale", "Cancel");
+            if (scale > 0)
+            {
+                ScaleAllDamage(scale);
+            }
+        }
+
+        if (GUILayout.Button("Adjust All Levels"))
+        {
+            BulkLevelAdjustment();
+        }
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Copy Stats to Level"))
+        {
+            CopyStatsToLevel();
+        }
+
+        if (GUILayout.Button("Reset All to Default"))
+        {
+            if (EditorUtility.DisplayDialog("Reset All",
+                "Are you sure you want to reset all skills to default values?",
+                "Reset", "Cancel"))
+            {
+                ResetAllToDefault();
+            }
+        }
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.EndVertical();
+    }
+
+    private void ScaleAllDamage(float scale)
+    {
+        SaveState(); // Undo 지원
+
+        foreach (var skillData in skillList)
+        {
+            var stats = skillData.GetCurrentTypeStat();
+            if (stats?.baseStat != null)
+            {
+                stats.baseStat.damage *= scale;
+            }
+        }
+
+        EditorUtility.SetDirty(FindObjectOfType<SkillDataManager>());
+    }
+
+    private void BulkLevelAdjustment()
+    {
+        SaveState();
+
+        int newMaxLevel = EditorUtility.DisplayDialogComplex("Adjust Levels",
+            "Choose level adjustment option:",
+            "Set Max Level",
+            "Add Level to All",
+            "Remove Last Level");
+
+        switch (newMaxLevel)
+        {
+            case 0: // Set Max Level
+                SetMaxLevelForAll();
+                break;
+            case 1: // Add Level
+                AddLevelToAll();
+                break;
+            case 2: // Remove Level
+                RemoveLastLevelFromAll();
+                break;
+        }
+    }
+
+    private void DrawValidationFeedback()
+    {
+        if (currentSkill == null) return;
+
+        var validationResult = SkillDataValidator.ValidateSkillData(currentSkill);
+
+        if (validationResult.HasErrors || validationResult.HasWarnings)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            if (validationResult.HasErrors)
+            {
+                EditorGUILayout.LabelField("Errors:", EditorStyles.boldLabel);
+                foreach (var error in validationResult.Errors)
+                {
+                    EditorGUILayout.HelpBox(error, MessageType.Error);
+                }
+            }
+
+            if (validationResult.HasWarnings)
+            {
+                EditorGUILayout.LabelField("Warnings:", EditorStyles.boldLabel);
+                foreach (var warning in validationResult.Warnings)
+                {
+                    EditorGUILayout.HelpBox(warning, MessageType.Warning);
+                }
+            }
+
+            if (GUILayout.Button("Fix All Auto-fixable Issues"))
+            {
+                AutoFixIssues(validationResult);
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+    }
+
+    private void AutoFixIssues(ValidationResult result)
+    {
+        SaveState();
+
+        if (currentSkill != null)
+        {
+            // 자동 수정 가능한 문제들 처리
+            if (string.IsNullOrEmpty(currentSkill.metadata.Name))
+                currentSkill.metadata.Name = "New Skill";
+
+            if (currentSkill.metadata.Tier <= 0)
+                currentSkill.metadata.Tier = 1;
+
+            var stats = currentSkill.GetCurrentTypeStat();
+            if (stats is ProjectileSkillStat projectileStats)
+            {
+                if (projectileStats.projectileSpeed <= 0)
+                    projectileStats.projectileSpeed = 10f;
+
+                if (projectileStats.shotInterval <= 0)
+                    projectileStats.shotInterval = 0.5f;
+            }
+
+            EditorUtility.SetDirty(currentSkill);
+        }
     }
 }

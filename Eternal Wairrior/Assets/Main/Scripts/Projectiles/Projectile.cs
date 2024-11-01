@@ -14,6 +14,8 @@ public class Projectile : MonoBehaviour, IPoolable
     [SerializeField] protected bool _isHoming = false;
     [SerializeField] protected int _pierceCount = 1;
     [SerializeField] protected float _maxTravelDistance = 10f;
+    [SerializeField] protected bool _isPersistent = false;
+    [SerializeField] protected float _duration = 1f;
     public ParticleSystem impactParticle;
 
     // Properties
@@ -24,6 +26,8 @@ public class Projectile : MonoBehaviour, IPoolable
     public float maxTravelDistance { get => _maxTravelDistance; set => _maxTravelDistance = value; }
     public float elementalPower { get => _elementalPower; set => _elementalPower = value; }
     public ElementType elementType { get => _elementType; set => _elementType = value; }
+    public bool isPersistent { get => _isPersistent; set => _isPersistent = value; }
+    public float duration { get => _duration; set => _duration = value; }
 
     // Runtime variables
     public Vector2 initialPosition;
@@ -182,7 +186,8 @@ public class Projectile : MonoBehaviour, IPoolable
             if (particle != null)
             {
                 particle.Play();
-                StartCoroutine(ReturnParticleToPool(particle, 0.5f));
+                /*StartCoroutine(ReturnParticleToPool(particle, 2f));*/
+                PoolManager.Instance.Despawn(this, 2f);
             }
         }
 
@@ -193,9 +198,13 @@ public class Projectile : MonoBehaviour, IPoolable
             ElementalEffects.ApplyElementalEffect(elementType, elementalPower, other.gameObject);
         }
 
-        if (isHoming || --pierceCount <= 0)
+        if ((isHoming || --pierceCount <= 0) && !isPersistent)
         {
             PoolManager.Instance.Despawn(this);
+        }
+        if (isPersistent)
+        {
+            PoolManager.Instance.Despawn(this, duration);
         }
     }
 
@@ -207,6 +216,7 @@ public class Projectile : MonoBehaviour, IPoolable
             PoolManager.Instance.Despawn(particle);
         }
     }
+
 
     public virtual void ResetProjectile()
     {

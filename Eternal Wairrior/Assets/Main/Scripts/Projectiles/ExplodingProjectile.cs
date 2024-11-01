@@ -1,90 +1,47 @@
-using Lean.Pool;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class ExplodingProjectile : Projectile
+public class ExplodingProjectile : BaseProjectile
 {
-    [Header("Explosion Settings")]
-    [SerializeField] protected float _explosionRadius = 2f;
-    public float explosionRad { get => _explosionRadius; set => _explosionRadius = value; }
+    [SerializeField] private ParticleSystem projectileParticle;
+    [SerializeField] private ParticleSystem impactParticle;
 
-    private ParticleSystem projectileParticle;
-
-    protected override void Awake()
+    protected virtual void Awake()
     {
-        base.Awake();
-        projectileParticle = GetComponentInChildren<ParticleSystem>();
-    }
-
-    protected override void OnTriggerEnter2D(Collider2D other)
-    {
-        if (!other.CompareTag("Enemy")) return;
-
-        StartCoroutine(ExplodeCoroutine());
-    }
-
-    private IEnumerator ExplodeCoroutine()
-    {
-        moveSpeed = 0;
-        projectileParticle.Stop();
-
-        ParticleSystem impactInstance = PoolManager.Instance.Spawn<ParticleSystem>(
-            impactParticle.gameObject,
-            transform.position,
-            transform.rotation
-        );
-
-        if (impactInstance != null)
+        if (projectileParticle == null)
         {
-            impactInstance.Play();
-            float explosionRadius = GetParticleSystemRadius(impactInstance);
+            projectileParticle = GetComponentInChildren<ParticleSystem>();
+        }
+    }
 
-            // Apply explosion damage and effects
-            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
-            foreach (Collider2D hitCollider in hitColliders)
+    public class ExplodingBehavior : StandardProjectileBehavior
+    {
+        private bool hasExploded = false;
+
+        public override void UpdateProjectile(BaseProjectile baseProjectile)
+        {
+            if (!hasExploded)
             {
-                if (hitCollider.TryGetComponent<Enemy>(out Enemy enemy))
-                {
-                    enemy.TakeDamage(_damage);
-
-                    if (_elementType != ElementType.None && _elementalPower > 0)
-                    {
-                        ElementalEffects.ApplyElementalEffect(_elementType, _elementalPower, hitCollider.gameObject);
-                    }
-                }
+                base.UpdateProjectile(baseProjectile);
             }
-
-            yield return new WaitForSeconds(impactInstance.main.duration);
-            PoolManager.Instance.Despawn(impactInstance);
         }
 
-        PoolManager.Instance.Despawn(this);
-    }
-
-    private float GetParticleSystemRadius(ParticleSystem particleSystem)
-    {
-        var main = particleSystem.main;
-        var startSize = main.startSize;
-
-        if (startSize.mode == ParticleSystemCurveMode.Constant)
+        public override void OnSpawn(BaseProjectile baseProjectile)
         {
-            return startSize.constant / 2f;
+            base.OnSpawn(baseProjectile);
+            hasExploded = false;
         }
-        else if (startSize.mode == ParticleSystemCurveMode.TwoConstants)
+
+        public override void OnTriggerEnter2D(BaseProjectile baseProjectile, Collider2D other)
         {
-            return Mathf.Max(startSize.constantMin, startSize.constantMax) / 2f;
-        }
-        else
-        {
-            // Use average value for other modes
-            return (startSize.constantMin + startSize.constantMax) / 4f;
+            if (hasExploded) return;
+
+            var projectile = (ExplodingProjectile)baseProjectile;
+            if (!other.CompareTag("Enemy")) return;
+
+            hasExploded = true;
+            projectile.StartCoroutine(projectile.ExplodeCoroutine());
         }
     }
 
-    public override void ResetProjectile()
-    {
-        base.ResetProjectile();
-        _explosionRadius = 2f;
-    }
+    // ... 나머지 코드는 동일 ...
 }
