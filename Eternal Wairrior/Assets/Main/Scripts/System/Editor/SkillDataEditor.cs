@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using System.Text;
 using System.IO;
+using System.Linq;
 
 public class SkillDataEditor : EditorWindow
 {
@@ -161,15 +162,15 @@ public class SkillDataEditor : EditorWindow
 
     private void DrawRightPanel()
     {
-        EditorGUILayout.BeginVertical();
-
         if (currentSkill == null)
         {
+            EditorGUILayout.BeginVertical();
             EditorGUILayout.LabelField("Select a skill to edit", headerStyle);
             EditorGUILayout.EndVertical();
             return;
         }
 
+        EditorGUILayout.BeginVertical();
         statsScrollPosition = EditorGUILayout.BeginScrollView(statsScrollPosition);
 
         EditorGUI.BeginChangeCheck();
@@ -181,7 +182,6 @@ public class SkillDataEditor : EditorWindow
 
         if (EditorGUI.EndChangeCheck())
         {
-            // SkillDataManager ãƼ dirty ǥ
             var skillDataManager = FindObjectOfType<SkillDataManager>();
             if (skillDataManager != null)
             {
@@ -400,6 +400,8 @@ public class SkillDataEditor : EditorWindow
 
     private void DrawLevelStats()
     {
+        if (currentSkill == null) return;
+
         EditorGUILayout.Space(10);
         showLevelStats = EditorGUILayout.Foldout(showLevelStats, "Level Stats");
 
@@ -412,77 +414,182 @@ public class SkillDataEditor : EditorWindow
         }
         EditorGUILayout.EndHorizontal();
 
+        // 현재 스킬의 레벨별 스탯 가져오기
+        var skillStats = skillStatsList.ContainsKey(currentSkill.metadata.ID)
+            ? skillStatsList[currentSkill.metadata.ID]
+            : new List<SkillStatData>();
+
         // 레벨별 스탯 표시
-        for (int level = 1; level <= currentSkill.GetMaxLevel(); level++)
+        for (int i = 0; i < skillStats.Count; i++)
         {
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            EditorGUILayout.LabelField($"Level {level}", EditorStyles.boldLabel);
-            var stats = currentSkill.GetStatsForLevel(level);
+            var levelStat = skillStats[i];
+            EditorGUILayout.LabelField($"Level {levelStat.level}", EditorStyles.boldLabel);
 
-            DrawStatsForType(stats, currentSkill.metadata.Type);
+            // 기본 스탯 표시
+            levelStat.damage = EditorGUILayout.FloatField("Damage", levelStat.damage);
+            levelStat.elementalPower = EditorGUILayout.FloatField("Elemental Power", levelStat.elementalPower);
+
+            // 스킬 타입별 특수 스탯 표시
+            switch (currentSkill.metadata.Type)
+            {
+                case SkillType.Projectile:
+                    DrawProjectileStatsForLevel(levelStat);
+                    break;
+                case SkillType.Area:
+                    DrawAreaStatsForLevel(levelStat);
+                    break;
+                case SkillType.Passive:
+                    DrawPassiveStatsForLevel(levelStat);
+                    break;
+            }
 
             EditorGUILayout.EndVertical();
         }
     }
 
-    private void DrawStatsForType(ISkillStat stats, SkillType skillType)
+    // 레벨별 스탯 표시를 위한 새로운 메서드들
+    private void DrawProjectileStatsForLevel(SkillStatData stat)
     {
-        // 기본 스탯 표시
-        var baseStat = stats.baseStat;
-        baseStat.damage = EditorGUILayout.FloatField("Damage", baseStat.damage);
-        baseStat.elementalPower = EditorGUILayout.FloatField("Elemental Power", baseStat.elementalPower);
-
-        // 스킬 타입별 특수 스탯 표시
-        switch (skillType)
-        {
-            case SkillType.Projectile:
-                DrawProjectileStats(stats as ProjectileSkillStat);
-                break;
-            case SkillType.Area:
-                DrawAreaStats(stats as AreaSkillStat);
-                break;
-            case SkillType.Passive:
-                DrawPassiveStats(stats as PassiveSkillStat);
-                break;
-        }
+        stat.projectileSpeed = EditorGUILayout.FloatField("Projectile Speed", stat.projectileSpeed);
+        stat.projectileScale = EditorGUILayout.FloatField("Projectile Scale", stat.projectileScale);
+        stat.shotInterval = EditorGUILayout.FloatField("Shot Interval", stat.shotInterval);
+        stat.pierceCount = EditorGUILayout.IntField("Pierce Count", stat.pierceCount);
+        stat.attackRange = EditorGUILayout.FloatField("Attack Range", stat.attackRange);
+        stat.homingRange = EditorGUILayout.FloatField("Homing Range", stat.homingRange);
+        stat.isHoming = EditorGUILayout.Toggle("Is Homing", stat.isHoming);
+        stat.explosionRad = EditorGUILayout.FloatField("Explosion Radius", stat.explosionRad);
+        stat.projectileCount = EditorGUILayout.IntField("Projectile Count", stat.projectileCount);
+        stat.innerInterval = EditorGUILayout.FloatField("Inner Interval", stat.innerInterval);
     }
 
+    private void DrawAreaStatsForLevel(SkillStatData stat)
+    {
+        stat.radius = EditorGUILayout.FloatField("Radius", stat.radius);
+        stat.duration = EditorGUILayout.FloatField("Duration", stat.duration);
+        stat.tickRate = EditorGUILayout.FloatField("Tick Rate", stat.tickRate);
+        stat.isPersistent = EditorGUILayout.Toggle("Is Persistent", stat.isPersistent);
+        stat.moveSpeed = EditorGUILayout.FloatField("Move Speed", stat.moveSpeed);
+    }
+
+    private void DrawPassiveStatsForLevel(SkillStatData stat)
+    {
+        stat.effectDuration = EditorGUILayout.FloatField("Effect Duration", stat.effectDuration);
+        stat.cooldown = EditorGUILayout.FloatField("Cooldown", stat.cooldown);
+        stat.triggerChance = EditorGUILayout.FloatField("Trigger Chance", stat.triggerChance);
+    }
+
+    // AddNewLevelStat 메서드 수정
     private void AddNewLevelStat()
     {
+        if (currentSkill == null) return;
+
+        // 스킬 스탯 리스트가 없으면 초기화
+        if (!skillStatsList.ContainsKey(currentSkill.metadata.ID))
+        {
+            skillStatsList[currentSkill.metadata.ID] = new List<SkillStatData>();
+        }
+
         var levelStats = skillStatsList[currentSkill.metadata.ID];
+
+        // 새로운 스탯 생성
         var newStat = new SkillStatData
         {
             skillID = currentSkill.metadata.ID,
-            level = levelStats.Count + 1
+            level = levelStats.Count + 1,
+            element = currentSkill.metadata.Element
         };
 
         // 이전 레벨의 스탯을 기반으로 새 스탯 생성
         if (levelStats.Count > 0)
         {
             var prevStat = levelStats[levelStats.Count - 1];
-            newStat.damage = prevStat.damage * 1.1f; // 10% 증가
-            newStat.maxSkillLevel = prevStat.maxSkillLevel;
-            newStat.element = currentSkill.metadata.Element;
-            newStat.elementalPower = prevStat.elementalPower * 1.1f;
-
-            // 스킬 타입별 스탯 복사
-            switch (currentSkill.metadata.Type)
-            {
-                case SkillType.Projectile:
-                    CopyProjectileStats(prevStat, newStat);
-                    break;
-                case SkillType.Area:
-                    CopyAreaStats(prevStat, newStat);
-                    break;
-                case SkillType.Passive:
-                    CopyPassiveStats(prevStat, newStat);
-                    break;
-            }
+            CopyStatsFromPrevious(prevStat, newStat);
+        }
+        else
+        {
+            InitializeDefaultStats(newStat);
         }
 
         levelStats.Add(newStat);
+
+        // 변경사항 저장
+        EditorUtility.SetDirty(FindObjectOfType<SkillDataManager>());
+        SaveSkillData();
+    }
+
+    private void CopyStatsFromPrevious(SkillStatData from, SkillStatData to)
+    {
+        to.damage = from.damage * 1.1f;
+        to.maxSkillLevel = from.maxSkillLevel;
+        to.element = currentSkill.metadata.Element;
+        to.elementalPower = from.elementalPower * 1.1f;
+
+        switch (currentSkill.metadata.Type)
+        {
+            case SkillType.Projectile:
+                CopyProjectileStats(from, to);
+                break;
+            case SkillType.Area:
+                CopyAreaStats(from, to);
+                break;
+            case SkillType.Passive:
+                CopyPassiveStats(from, to);
+                break;
+        }
+    }
+
+    private void InitializeDefaultStats(SkillStatData stat)
+    {
+        stat.damage = 10f;
+        stat.maxSkillLevel = 5;
+        stat.element = currentSkill.metadata.Element;
+        stat.elementalPower = 1f;
+
+        switch (currentSkill.metadata.Type)
+        {
+            case SkillType.Projectile:
+                InitializeDefaultProjectileStats(stat);
+                break;
+            case SkillType.Area:
+                InitializeDefaultAreaStats(stat);
+                break;
+            case SkillType.Passive:
+                InitializeDefaultPassiveStats(stat);
+                break;
+        }
+    }
+
+    private void InitializeDefaultProjectileStats(SkillStatData stat)
+    {
+        stat.projectileSpeed = 10f;
+        stat.projectileScale = 1f;
+        stat.shotInterval = 1f;
+        stat.pierceCount = 1;
+        stat.attackRange = 10f;
+        stat.homingRange = 5f;
+        stat.isHoming = false;
+        stat.explosionRad = 0f;
+        stat.projectileCount = 1;
+        stat.innerInterval = 0.1f;
+    }
+
+    private void InitializeDefaultAreaStats(SkillStatData stat)
+    {
+        stat.radius = 5f;
+        stat.duration = 3f;
+        stat.tickRate = 1f;
+        stat.isPersistent = false;
+        stat.moveSpeed = 0f;
+    }
+
+    private void InitializeDefaultPassiveStats(SkillStatData stat)
+    {
+        stat.effectDuration = 5f;
+        stat.cooldown = 10f;
+        stat.triggerChance = 100f;
     }
 
     private void CopyProjectileStats(SkillStatData from, SkillStatData to)
@@ -742,12 +849,61 @@ public class SkillDataEditor : EditorWindow
         var skillDataManager = FindObjectOfType<SkillDataManager>();
         if (skillDataManager != null)
         {
-            skillList = skillDataManager.GetAllSkillData();
-            if (skillList == null)
+            // JSON 파일에서 직접 로드
+            string jsonPath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, "SkillData.json");
+            if (File.Exists(jsonPath))
             {
-                skillList = new List<SkillData>();
+                try
+                {
+                    string jsonContent = File.ReadAllText(jsonPath);
+                    SkillDataWrapper wrapper = JsonUtility.FromJson<SkillDataWrapper>(jsonContent);
+                    if (wrapper != null && wrapper.skillDatas != null)
+                    {
+                        skillList = wrapper.skillDatas;
+                        // SkillDataManager 업데이트
+                        skillDataManager.UpdateSkillList(skillList);
+                    }
+                    else
+                    {
+                        skillList = new List<SkillData>();
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Failed to load JSON data: {e.Message}");
+                    skillList = new List<SkillData>();
+                }
             }
-            Debug.Log($"Loaded {skillList.Count} skills from SkillDataManager.");
+            else
+            {
+                skillList = skillDataManager.GetAllSkillData();
+            }
+
+            // 메타데이터 유효성 검사 및 초기화
+            foreach (var skill in skillList.ToList()) // ToList()로 복사본 생성
+            {
+                if (skill == null)
+                {
+                    skillList.Remove(skill);
+                    continue;
+                }
+
+                if (skill.metadata == null)
+                {
+                    skill.metadata = new SkillMetadata
+                    {
+                        Name = "Unnamed Skill",
+                        Description = "",
+                        Type = SkillType.None,
+                        ID = SkillID.None,
+                        Element = ElementType.None,
+                        Tier = 1,
+                        Tags = new string[0]
+                    };
+                }
+            }
+
+            Debug.Log($"Loaded {skillList.Count} skills from JSON/SkillDataManager.");
         }
         else
         {
@@ -761,24 +917,50 @@ public class SkillDataEditor : EditorWindow
         var skillDataManager = FindObjectOfType<SkillDataManager>();
         if (skillDataManager != null)
         {
-            // Save base data
-            skillDataManager.SaveAllSkillData();
-            EditorUtility.SetDirty(skillDataManager);
-            AssetDatabase.SaveAssets();
+            // SkillDataManager에 현재 skillList 전달
+            skillDataManager.UpdateSkillList(skillList);
 
-            // Save JSON
+            // 에디터에서 저장 실행
+            skillDataManager.SaveAllSkillDataInEditor();
+            EditorUtility.SetDirty(skillDataManager);
+
+            // JSON 저장
             string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
             Directory.CreateDirectory(directory);
             string jsonPath = Path.Combine(directory, "SkillData.json");
 
-            SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillList };
+            // 메타데이터를 명시적으로 포함하여 저장
+            var skillsToSave = skillList.Select(skill => new SkillData
+            {
+                metadata = new SkillMetadata
+                {
+                    Name = skill.metadata.Name,
+                    Description = skill.metadata.Description,
+                    Type = skill.metadata.Type,
+                    ID = skill.metadata.ID,
+                    Element = skill.metadata.Element,
+                    Tier = skill.metadata.Tier,
+                    Tags = skill.metadata.Tags?.ToArray() ?? new string[0]
+                },
+                icon = skill.icon,
+                projectile = skill.projectile,
+                prefabsByLevel = skill.prefabsByLevel,
+                projectileStat = skill.projectileStat,
+                areaStat = skill.areaStat,
+                passiveStat = skill.passiveStat
+            }).ToList();
+
+            SkillDataWrapper wrapper = new SkillDataWrapper
+            {
+                skillDatas = skillsToSave
+            };
+
             string json = JsonUtility.ToJson(wrapper, true);
             File.WriteAllText(jsonPath, json);
 
-            // Save CSV data
-            SaveSkillStatsToCSV();
-
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
             Debug.Log($"Skill data saved successfully!\n" +
                      $"JSON Path: {jsonPath}\n" +
                      $"CSV Path: {directory}/[Type]SkillStats.csv");
@@ -798,42 +980,38 @@ public class SkillDataEditor : EditorWindow
                 Name = "New Skill",
                 Description = "New skill description",
                 Type = SkillType.None,
-                ID = SkillID.None,
+                ID = GetNextAvailableSkillID(),
                 Element = ElementType.None,
                 Tier = 1,
-                Tags = new string[0],
-                Prefab = null
+                Tags = new string[0]
             }
         };
 
-        // Initialize default stats
-        var defaultStats = new ProjectileSkillStat
-        {
-            baseStat = new BaseSkillStat
-            {
-                damage = 10f,
-                skillName = "New Skill",
-                skillLevel = 1,
-                maxSkillLevel = 5,
-                element = ElementType.None,
-                elementalPower = 1f
-            }
-        };
-
-        // Set initial stats for level 1
-        newSkill.SetStatsForLevel(1, defaultStats);
-
-        // Add to list and select
+        InitializeSkillStats(newSkill);
         skillList.Add(newSkill);
         currentSkill = newSkill;
 
-        // Initialize skill stats list if needed
         if (!skillStatsList.ContainsKey(newSkill.metadata.ID))
         {
             skillStatsList[newSkill.metadata.ID] = new List<SkillStatData>();
         }
 
-        Debug.Log("Created new skill with default values");
+        SaveSkillData(); // 새 스킬 생성 즉시 저장
+        Debug.Log($"Created new skill: {newSkill.metadata.Name} (ID: {newSkill.metadata.ID})");
+    }
+
+    // 새로운 메서드 추가: 사용 가능한 다음 SkillID 찾기
+    private SkillID GetNextAvailableSkillID()
+    {
+        var usedIDs = skillList.Select(s => s.metadata.ID).ToHashSet();
+        foreach (SkillID id in System.Enum.GetValues(typeof(SkillID)))
+        {
+            if (id != SkillID.None && !usedIDs.Contains(id))
+            {
+                return id;
+            }
+        }
+        return SkillID.None; // 모든 ID가 사용 중인 경우
     }
 
     private void InitializeSkillStats(SkillData skill)

@@ -57,8 +57,12 @@ public class SkillDataManager : DataManager
 
     public void SaveAllSkillData()
     {
+#if UNITY_EDITOR
+        SaveAllSkillDataInEditor();
+#else
         SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillDatas };
         SaveData(SKILL_DATA_FILENAME, wrapper);
+#endif
     }
 
     public void LoadAllSkillData()
@@ -316,4 +320,36 @@ public class SkillDataManager : DataManager
 
         return new T();
     }
+
+    public void UpdateSkillList(List<SkillData> newSkillList)
+    {
+        skillDatas = new List<SkillData>(newSkillList);
+    }
+
+#if UNITY_EDITOR
+    public void SaveDataInEditor(string fileName, object data)
+    {
+        try
+        {
+            string jsonData = JsonUtility.ToJson(data, true);
+            string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
+            string path = Path.Combine(directory, fileName);
+
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(path, jsonData);
+            Debug.Log($"Data saved successfully to {path}");
+            UnityEditor.AssetDatabase.Refresh();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to save data: {e.Message}");
+        }
+    }
+
+    public void SaveAllSkillDataInEditor()
+    {
+        SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillDatas };
+        SaveDataInEditor(SKILL_DATA_FILENAME, wrapper);
+    }
+#endif
 }

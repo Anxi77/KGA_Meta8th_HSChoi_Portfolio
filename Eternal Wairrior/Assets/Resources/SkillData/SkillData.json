@@ -1,3 +1,52 @@
 {
-    "skillDatas": []
+    "skillDatas": [
+        {
+            "metadata": {
+                "ID": 100001,
+                "Name": "fsadasdfsfs",
+                "Description": "415dfsafsd",
+                "Type": 1,
+                "Element": 2,
+                "Tier": 5,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 0
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 0
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 0.0,
+                "cooldown": 0.0,
+                "triggerChance": 0.0
+            }
+        }
+    ]
 }

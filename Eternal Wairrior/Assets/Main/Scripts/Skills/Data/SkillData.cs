@@ -4,6 +4,20 @@ using System.Collections.Generic;
 using System.Linq;
 
 [System.Serializable]
+public class SkillMetadata
+{
+    public SkillID ID;
+    public string Name;
+    public string Description;
+    public SkillType Type;
+    public ElementType Element;
+    public int Tier;
+    public string[] Tags;
+    public GameObject Prefab;
+    public Sprite Icon;
+}
+
+[System.Serializable]
 public class SkillData
 {
     public SkillMetadata metadata;
