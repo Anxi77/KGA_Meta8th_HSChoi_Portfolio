@@ -5,9 +5,9 @@ public class Orbit : AreaSkills
     private RotatingOrb orbs;
     private int currentOrbCount = 0;
 
-    private const int ORBS_PER_LEVEL = 2;
+    [SerializeField]private int ORBS_PER_LEVEL = 2;
 
-    private const int BASE_ORB_COUNT = 1;
+    [SerializeField]private int BASE_ORB_COUNT = 1;
 
     protected override void Awake()
     {

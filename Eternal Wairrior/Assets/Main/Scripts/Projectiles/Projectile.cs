@@ -42,7 +42,7 @@ public class Projectile : MonoBehaviour, IPoolable
         Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, false);
     }
 
-    public void OnSpawnFromPool()
+    public virtual void OnSpawnFromPool()
     {
         if (isHoming)
         {

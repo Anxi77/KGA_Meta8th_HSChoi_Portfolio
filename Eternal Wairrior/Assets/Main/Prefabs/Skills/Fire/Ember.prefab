@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2352339031199436596
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3979015316534710461}
+  - component: {fileID: 5237753832514248465}
+  m_Layer: 0
+  m_Name: Ember
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3979015316534710461
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2352339031199436596}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5237753832514248465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2352339031199436596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1985c7fc7235f4345904bd9c5fe10446, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skillData:
+    metadata:
+      ID: 0
+      Name: 
+      Description: 
+      Type: 0
+      Element: 0
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 0}
+      Icon: {fileID: 0}
+    icon: {fileID: 0}
+    projectile: {fileID: 0}
+    prefabsByLevel: []
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 0
+      cooldown: 0
+      triggerChance: 0
+  _damage: 10
+  _radius: 5
+  _duration: 5
+  _tickRate: 0.1
+  _isPersistent: 1
+  _moveSpeed: 180
+  _pathWidth: 0.7
+  _minDistanceBetweenPoints: 2
+  _damageZonePrefab: {fileID: 6549892790824610378, guid: 6eea85fb80d22c94f80f2ae53ee58e39, type: 3}
