@@ -9796,8 +9796,8 @@ ParticleSystemRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 1635404947
+  m_SortingLayer: -1
   m_SortingOrder: 0
   m_RenderMode: 4
   m_MeshDistribution: 0
@@ -14793,18 +14793,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5778e7e01a6fb249a0bf64edadf6df3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 12
-  moveSpeed: 27
-  isHoming: 0
-  pierceCount: 0
-  maxTravelDistance: 0
+  _damage: 10
+  _moveSpeed: 10
+  _elementalPower: 1
+  _elementType: 0
+  _isHoming: 0
+  _pierceCount: 1
+  _maxTravelDistance: 10
+  impactParticle: {fileID: 1570490977758113565, guid: e2acde1fd9e05b44aa48ceceb52aad21, type: 3}
   initialPosition: {x: 0, y: 0}
   direction: {x: 0, y: 0}
   targetEnemy: {fileID: 0}
-  impactParticle: {fileID: 9124031203973931939, guid: 607177bf2d876e24cb7d5fef385e378c, type: 3}
-  elementalPower: 0
-  elementType: 0
-  explosionRad: 20
+  _explosionRadius: 2
 --- !u!58 &4563583421547249055
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -14839,7 +14839,7 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.19
 --- !u!1 &6134004265801797875
 GameObject:
   m_ObjectHideFlags: 0

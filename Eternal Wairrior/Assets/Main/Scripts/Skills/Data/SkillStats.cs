@@ -47,6 +47,8 @@ public class ProjectileSkillStat : ISkillStat
     public float explosionRad;
     public int projectileCount;
     public float innerInterval;
+    public bool projectilePersistent;
+    public float projectileDuration;
 }
 
 [System.Serializable]
@@ -63,8 +65,9 @@ public class AreaSkillStat : ISkillStat
     public float radius;
     public float duration;
     public float tickRate;
-    public bool isPersistent;
+    public bool areaPersistent;
     public float moveSpeed;
+    public float areaDuration;
 }
 
 [System.Serializable]
@@ -82,3 +85,5 @@ public class PassiveSkillStat : ISkillStat
     public float cooldown;
     public float triggerChance;
 }
+
+

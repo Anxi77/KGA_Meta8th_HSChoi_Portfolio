@@ -1,25 +1,54 @@
 using UnityEngine;
-using System.Collections.Generic;
-using System.IO;
-using UnityEditor;
 
 public class SkillDataManager : DataManager
 {
-    private static new SkillDataManager instance;
+    private const int CURRENT_DATA_VERSION = 2;
+    private const string VERSION_KEY = "SkillDataVersion";
 
-    public static new SkillDataManager Instance
+    private void MigrateDataIfNeeded()
     {
-        get
+        int savedVersion = PlayerPrefs.GetInt(VERSION_KEY, 1);
+        if (savedVersion < CURRENT_DATA_VERSION)
         {
-            if (instance == null)
+            try
             {
-                instance = FindObjectOfType<SkillDataManager>();
-                if (instance == null)
-                {
-                    GameObject go = new GameObject("SkillDataManager");
-                    instance = go.AddComponent<SkillDataManager>();
-                }
+                MigrateData(savedVersion);
+                PlayerPrefs.SetInt(VERSION_KEY, CURRENT_DATA_VERSION);
+                PlayerPrefs.Save();
             }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Data migration failed: {e.Message}");
+                BackupAndResetData();
+            }
+        }
+    }
+
+    private void MigrateData(int fromVersion)
+    {
+        switch (fromVersion)
+        {
+            case 1:
+                MigrateFromVersion1To2();
+                break;
+                // 추가 버전 마이그레이션...
+        }
+    }
+
+    private void MigrateFromVersion1To2()
+    {
+        foreach (var skillData in skillDatas)
+        {
+            if (skillData.GetStatsForLevel(1) is ProjectileSkillStat projectileStats)
+            {
+                projectileStats.persistenceData = new ProjectilePersistenceData
+                {
+                    isPersistent = false,
+                    duration = 0f,
+                    effectInterval = 0.5f
+                };
+            }
+<<<<<<< HEAD
             return instance;
         }
     }
@@ -112,44 +141,27 @@ public class SkillDataManager : DataManager
         if (skillStatsByLevel.TryGetValue(skillID, out var levelStats))
         {
             if (levelStats.TryGetValue(1, out var statData))
+=======
+            else if (skillData.GetStatsForLevel(1) is AreaSkillStat areaStats)
+>>>>>>> 636e55d9921dee25edf69b9286cacd4495ea6e5a
             {
-                ISkillStat skillStat = statData.CreateSkillStat(skillData.metadata.Type);
-                skillData.SetStatsForLevel(1, skillStat);
+                areaStats.persistenceData = new AreaPersistenceData
+                {
+                    isPersistent = true,
+                    duration = 0f,
+                    effectInterval = 0f
+                };
             }
         }
-
-        return skillData;
     }
 
-    private void LoadSkillStatsFromCSV()
+    private void BackupAndResetData()
     {
-        TextAsset csvFile = Resources.Load<TextAsset>($"{RESOURCE_PATH}/ProjectileSkillStats");
-        if (csvFile == null)
-        {
-            Debug.LogError("스킬 CSV 로드 실패!");
-            return;
-        }
-
-        string[] lines = csvFile.text.Split('\n');
-        string[] headers = lines[0].Trim().Split(',');
-
-        for (int i = 1; i < lines.Length; i++)
-        {
-            string line = lines[i].Trim();
-            if (string.IsNullOrEmpty(line)) continue;
-
-            string[] values = line.Split(',');
-
-            SkillStatData statData = ParseSkillStatLine(headers, values);
-
-            if (!skillStatsByLevel.ContainsKey(statData.skillID))
-            {
-                skillStatsByLevel[statData.skillID] = new Dictionary<int, SkillStatData>();
-            }
-
-            skillStatsByLevel[statData.skillID][statData.level] = statData;
-        }
+        BackupCSVFiles();
+        ClearAllData();
+        LoadAllData();
     }
+<<<<<<< HEAD
 
     private SkillStatData ParseSkillStatLine(string[] headers, string[] values)
     {
@@ -353,3 +365,6 @@ public class SkillDataManager : DataManager
     }
 #endif
 }
+=======
+}
+>>>>>>> 636e55d9921dee25edf69b9286cacd4495ea6e5a
