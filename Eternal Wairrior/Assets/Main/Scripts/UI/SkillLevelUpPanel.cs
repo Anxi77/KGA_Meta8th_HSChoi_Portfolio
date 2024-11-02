@@ -13,7 +13,6 @@ public class SkillLevelUpPanel : MonoBehaviour
         gameObject.SetActive(true);
         Time.timeScale = 0f;
 
-        // Get random skills using SkillManager
         var selectedSkills = SkillManager.Instance.GetRandomSkills(SKILL_CHOICES);
 
         if (selectedSkills.Count == 0)

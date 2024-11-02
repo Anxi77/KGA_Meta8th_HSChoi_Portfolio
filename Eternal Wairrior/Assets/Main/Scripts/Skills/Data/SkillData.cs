@@ -23,7 +23,6 @@ public class SkillData
     public SkillMetadata metadata;
     private Dictionary<int, ISkillStat> statsByLevel;
 
-    // Editor and runtime references
     public Image icon;
     public GameObject projectile;
     public GameObject[] prefabsByLevel;

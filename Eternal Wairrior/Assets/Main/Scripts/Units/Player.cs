@@ -45,8 +45,21 @@ public class Player : MonoBehaviour
     private Vector2 velocity;
 
     [Header("Experience Collection")]
-    public float expCollectionRadius = 3f;
-    public float baseExpCollectionRadius = 3f;
+    public float expCollectionRadius = 3f; // 경험치 습득 범위
+    public float baseExpCollectionRadius = 3f; // 기본 경험치 습득 범위
+
+    public float defense = 2f;  // 본 방어력
+    public float baseDefense = 2f;  // 기초 방어력 값
+    public float defenseIncreasePerLevel = 0.5f;  // 레벨당 증가하는 방어력
+
+    public float attackSpeed = 1f;  // 초당 공격 횟수
+    public float attackRange = 2f;  // 공격 범위
+    public float attackAngle = 120f;  // 공격 각도
+    private float nextAttackTime = 0f;  // 다음 공격 가능 시간
+
+
+
+
 
     #endregion
 
@@ -69,6 +82,7 @@ public class Player : MonoBehaviour
     {
         0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700
     };
+
     public List<float> _expList { get { return expList; } }
 
     public float hpIncreasePerLevel = 20f;
@@ -102,6 +116,7 @@ public class Player : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+
     }
 
     private void Start()
@@ -121,7 +136,7 @@ public class Player : MonoBehaviour
     {
         GetMoveInput();
         Die();
-
+        AutoAttack();  // 자동 공격 실행
     }
 
     #endregion
@@ -154,9 +169,20 @@ public class Player : MonoBehaviour
 
         rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime);
 
-        characterControl.PlayAnimation(PlayerState.MOVE, 0);
+        if (velocity != Vector2.zero)
+        {
+            if (x > 0)
+            {
+                characterControl.transform.localScale = new Vector3(1, 1, 1);
+            }
+            else if (x < 0)
+            {
+                characterControl.transform.localScale = new Vector3(-1, 1, 1);
+            }
 
-        if (velocity == Vector2.zero)
+            characterControl.PlayAnimation(PlayerState.MOVE, 0);
+        }
+        else
         {
             characterControl.PlayAnimation(PlayerState.IDLE, 0);
         }
@@ -168,71 +194,9 @@ public class Player : MonoBehaviour
         y = Input.GetAxisRaw("Vertical");
     }
 
-    #region FireOnPlayer
-    //private IEnumerator FireCoroutine()
-    //{
-    //    while (true)
-    //    {
-    //        yield return new WaitForSeconds(fireInterval);
-    //        if (GameManager.Instance.enemies != null)
-    //        {
-    //            HomingProjectile();
-    //        }
-    //        else
-    //        {
-    //            regularFire();
-    //        }
-
-    //    }
-    //}
-
-    //private void HomingProjectile()
-    //{
-    //    Enemy targetEnemy = null;
-    //    float targetDistance = float.MaxValue; 
-
-    //    foreach (Enemy enemy in GameManager.Instance.enemies)
-    //    {
-    //        float distance = Vector3.Distance(enemy.transform.position, transform.position);
-    //        if (distance < targetDistance)
-    //        {
-    //            targetDistance = distance;
-    //            targetEnemy = enemy;
-    //        }
-    //    }
-
-    //    Vector2 fireDir = Vector2.zero;
-
-    //    if (targetEnemy != null)
-    //    {
-    //        fireDir = targetEnemy.transform.position - transform.position;
-    //        isFiring = true;
-    //    }
-
-    //    Fire(fireDir);
-    //}
-
-    //public void regularFire()
-    //{
-    //    Vector2 fireDir = Vector2.zero;
-    //    Vector2 mousePos = Input.mousePosition;
-    //    Vector2 mouseScreenPos = Camera.main.ScreenToWorldPoint(mousePos);
-    //    fireDir = mouseScreenPos - (Vector2)transform.position;
-    //    Fire(fireDir);
-    //}
-
-    //public void Fire(Vector2 fireDir)
-    //{
-    //    LaserProjectile projectile = Instantiate(projectilePrefab, transform.position, Quaternion.identity);
-    //    projectile.transform.up = fireDir;
-    //    projectile.damage = damage;
-    //}
-    #endregion
-
     #endregion
 
     #region Level & EXP
-
     public float GetExpForNextLevel()
     {
         if (level >= expList.Count)
@@ -248,10 +212,10 @@ public class Player : MonoBehaviour
         {
             exp += amount;
         }
-        //while (exp >= GetExpForNextLevel() && level < expList.Count)
-        //{
-        //    LevelUp();
-        //}
+        while (exp >= GetExpForNextLevel() && level < expList.Count)
+        {
+            LevelUp();
+        }
     }
 
     private void LevelUp()
@@ -261,15 +225,7 @@ public class Player : MonoBehaviour
         hp = maxHp;
         damage += damageIncreasePerLevel;
         moveSpeed += speedIncreasePerLevel;
-    }
-    public void IncreaseExpCollectionRadius(float amount)
-    {
-        expCollectionRadius += amount;
-    }
-
-    public void ResetExpCollectionRadius()
-    {
-        expCollectionRadius = baseExpCollectionRadius;
+        defense += defenseIncreasePerLevel;  // 레벨업 시 방어력 증가
     }
     #endregion
 
@@ -310,7 +266,8 @@ public class Player : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        hp -= damage;
+        float actualDamage = Mathf.Max(1, damage - defense);  // 방어력을 적용한 실제 데미지 계산 (최소 1의 데미지는 보장)
+        hp -= actualDamage;
 
         if (hp <= 0)
         {
@@ -328,5 +285,103 @@ public class Player : MonoBehaviour
 
     #endregion
 
+    public void IncreaseExpCollectionRadius(float amount)
+    {
+        expCollectionRadius += amount;
+    }
 
+    public void ResetExpCollectionRadius()
+    {
+        expCollectionRadius = baseExpCollectionRadius;
+    }
+
+    public void ResetDefense()
+    {
+        defense = baseDefense;
+    }
+
+    #region Combat
+    private void AutoAttack()
+    {
+        if (Time.time >= nextAttackTime)
+        {
+            Enemy nearestEnemy = FindNearestEnemy();
+            if (nearestEnemy != null)
+            {
+                PerformAttack(nearestEnemy);
+                nextAttackTime = Time.time + (1f / attackSpeed);
+            }
+        }
+    }
+
+    private Enemy FindNearestEnemy()
+    {
+        Enemy nearestEnemy = null;
+        float nearestDistance = float.MaxValue;
+
+        if (GameManager.Instance.enemies != null)
+        {
+            foreach (Enemy enemy in GameManager.Instance.enemies)
+            {
+                if (enemy != null)
+                {
+                    float distance = Vector2.Distance(transform.position, enemy.transform.position);
+                    if (distance < nearestDistance)
+                    {
+                        nearestDistance = distance;
+                        nearestEnemy = enemy;
+                    }
+                }
+            }
+        }
+
+        return nearestEnemy;
+    }
+
+    private void PerformAttack(Enemy targetEnemy)
+    {
+        Vector2 directionToTarget = (targetEnemy.transform.position - transform.position).normalized;
+
+        if (directionToTarget.x > 0)
+        {
+            characterControl.transform.localScale = new Vector3(1, 1, 1);
+        }
+        else if (directionToTarget.x < 0)
+        {
+            characterControl.transform.localScale = new Vector3(-1, 1, 1);
+        }
+
+        if (GameManager.Instance.enemies != null)
+        {
+            foreach (Enemy enemy in GameManager.Instance.enemies)
+            {
+                if (enemy != null)
+                {
+                    Vector2 directionToEnemy = (enemy.transform.position - transform.position);
+                    float distanceToEnemy = directionToEnemy.magnitude;
+
+                    if (distanceToEnemy <= attackRange)
+                    {
+                        float angle = Vector2.Angle(directionToTarget, directionToEnemy);
+                        if (angle <= attackAngle / 2f)
+                        {
+                            enemy.TakeDamage(damage);
+                            characterControl.PlayAnimation(PlayerState.ATTACK, 0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void IncreaseAttackSpeed(float amount)
+    {
+        attackSpeed += amount;
+    }
+
+    public void IncreaseAttackRange(float amount)
+    {
+        attackRange += amount;
+    }
+    #endregion
 }

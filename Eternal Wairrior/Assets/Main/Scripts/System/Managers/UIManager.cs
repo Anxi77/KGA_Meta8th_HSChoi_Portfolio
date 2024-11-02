@@ -10,8 +10,9 @@ public class UIManager : SingletonManager<UIManager>
     public Canvas mainCanvas;
     public GameObject pausePanel;
     public SkillLevelUpPanel levelupPanel;
-    //public TextMeshProUGUI currentKillCountText;
-    //public TextMeshProUGUI totalKillCountText;
+    public PlayerSkillList skillList;
+    public TextMeshProUGUI playerDefText;
+    public TextMeshProUGUI playerAtkText;
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI expText;
     public TextMeshProUGUI hpText;
@@ -62,8 +63,9 @@ public class UIManager : SingletonManager<UIManager>
             Player player = GameManager.Instance.player;
             //currentKillCountText.text = player.killCount.ToString();
             //totalKillCountText.text = player.totalKillCount.ToString();
-            levelText.text = player.level.ToString();
-            expText.text = player.exp.ToString();
+            playerAtkText.text = $"ATK : {player.damage}";
+            playerDefText.text = $"DEF : {player.defense}";
+            levelText.text = $"LEVEL : {player.level}";
             hpText.text = $"{player.hp.ToString()} / {player.maxHp.ToString()}";
             hpBarImage.fillAmount = player.hp / player.maxHp;
             if (player.level >= player._expList.Count)

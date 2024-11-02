@@ -74,6 +74,7 @@ public class SkillManager : SingletonManager<SkillManager>
                 activeSkills.Add(newSkill);
             }
         }
+        UIManager.instance.skillList.skillListUpdate();
     }
 
     public void RemoveSkill(SkillID skillID)
