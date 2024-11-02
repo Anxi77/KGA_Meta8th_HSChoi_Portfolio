@@ -12,41 +12,41 @@ using static GameManager;
 public class Player : MonoBehaviour
 {
     #region Members
-    
+
     #region Stats
     public enum Status
     {
         Alive = 1,
         Dead
     }
-    
+
     private Status _playerStatus;
-    
+
     public Status playerStatus { get { return _playerStatus; } set { _playerStatus = value; } }
-    
+
     public float maxHp;
-    
+
     public float hp = 100f;
-    
+
     public float damage = 5f;
-    
+
     public float moveSpeed = 5f;
-    
+
     public float exp = 0f;
-    
+
     public int totalKillCount = 0;
 
     public int killCount = 0;
-    
+
     public float fireInterval;
-    
+
     public bool isFiring;
 
     private Vector2 velocity;
 
-
-
-
+    [Header("Experience Collection")]
+    public float expCollectionRadius = 3f;
+    public float baseExpCollectionRadius = 3f;
 
     #endregion
 
@@ -61,25 +61,24 @@ public class Player : MonoBehaviour
     #region EXP & Level
 
     [Header("Level Related")]
-    
+
     [SerializeField]
     public int level = 1;
-    
+
     private List<float> expList = new List<float>
     {
         0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700
     };
-
     public List<float> _expList { get { return expList; } }
-    
+
     public float hpIncreasePerLevel = 20f;
-    
+
     public float damageIncreasePerLevel = 2f;
-    
+
     public float speedIncreasePerLevel = 0.5f;
-    
-    public float HpAmount { get => hp / maxHp; }    
-    
+
+    public float HpAmount { get => hp / maxHp; }
+
     public float ExpAmount { get => (CurrentExp() / (GetExpForNextLevel() - expList[level - 1])); }
 
     #endregion
@@ -103,7 +102,6 @@ public class Player : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-
     }
 
     private void Start()
@@ -114,8 +112,6 @@ public class Player : MonoBehaviour
         isFiring = false;
     }
 
-
-
     private void FixedUpdate()
     {
         Move();
@@ -125,7 +121,7 @@ public class Player : MonoBehaviour
     {
         GetMoveInput();
         Die();
-        
+
     }
 
     #endregion
@@ -134,10 +130,10 @@ public class Player : MonoBehaviour
 
     #region UI
 
-    public float CurrentExp() 
+    public float CurrentExp()
     {
         float currentExp = 0;
-        if(level == 1) 
+        if (level == 1)
         {
             currentExp = exp;
         }
@@ -160,7 +156,7 @@ public class Player : MonoBehaviour
 
         characterControl.PlayAnimation(PlayerState.MOVE, 0);
 
-        if(velocity == Vector2.zero) 
+        if (velocity == Vector2.zero)
         {
             characterControl.PlayAnimation(PlayerState.IDLE, 0);
         }
@@ -236,6 +232,7 @@ public class Player : MonoBehaviour
     #endregion
 
     #region Level & EXP
+
     public float GetExpForNextLevel()
     {
         if (level >= expList.Count)
@@ -251,10 +248,10 @@ public class Player : MonoBehaviour
         {
             exp += amount;
         }
-        while (exp >= GetExpForNextLevel() && level < expList.Count)
-        {
-            LevelUp();
-        }
+        //while (exp >= GetExpForNextLevel() && level < expList.Count)
+        //{
+        //    LevelUp();
+        //}
     }
 
     private void LevelUp()
@@ -264,6 +261,15 @@ public class Player : MonoBehaviour
         hp = maxHp;
         damage += damageIncreasePerLevel;
         moveSpeed += speedIncreasePerLevel;
+    }
+    public void IncreaseExpCollectionRadius(float amount)
+    {
+        expCollectionRadius += amount;
+    }
+
+    public void ResetExpCollectionRadius()
+    {
+        expCollectionRadius = baseExpCollectionRadius;
     }
     #endregion
 
@@ -293,7 +299,7 @@ public class Player : MonoBehaviour
     }
 
 
-    public void TakeHeal(float heal) 
+    public void TakeHeal(float heal)
     {
         hp += heal;
         if (hp > maxHp)
@@ -315,10 +321,12 @@ public class Player : MonoBehaviour
 
     public void Die()
     {
-        playerStatus = Status.Dead;        
+        playerStatus = Status.Dead;
     }
 
     #endregion
 
     #endregion
+
+
 }

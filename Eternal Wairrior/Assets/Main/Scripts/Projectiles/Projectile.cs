@@ -182,7 +182,7 @@ public class Projectile : MonoBehaviour, IPoolable
             if (particle != null)
             {
                 particle.Play();
-                StartCoroutine(ReturnParticleToPool(particle, 0.5f));
+                PoolManager.Instance.Despawn<ParticleSystem>(particle,0.5f);
             }
         }
 
