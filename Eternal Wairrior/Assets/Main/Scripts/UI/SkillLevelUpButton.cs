@@ -13,34 +13,29 @@ public class SkillLevelUpButton : MonoBehaviour
 
     public void SetSkillSelectButton(SkillData skillData, Action onClick)
     {
-        // Set skill icon
         if (skillIcon != null)
         {
             skillIcon.sprite = skillData.icon?.sprite;
             skillIcon.gameObject.SetActive(skillData.icon != null);
         }
 
-        // Set skill name
         if (skillNameText != null)
         {
             skillNameText.text = skillData.metadata.Name;
         }
 
-        // Set skill description
         if (descriptionText != null)
         {
             string elementDesc = GetElementalDescription(skillData.metadata.Element);
             descriptionText.text = $"{skillData.metadata.Description}\n{elementDesc}";
         }
 
-        // Set element icon
         if (elementIcon != null)
         {
             elementIcon.sprite = GetElementSprite(skillData.metadata.Element);
             elementIcon.gameObject.SetActive(skillData.metadata.Element != ElementType.None);
         }
 
-        // Set button click event
         if (button != null)
         {
             button.onClick.RemoveAllListeners();
