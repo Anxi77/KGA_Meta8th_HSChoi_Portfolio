@@ -706,8 +706,7 @@ public class Enemy : MonoBehaviour
     {
         if (!gameObject.activeInHierarchy) return;
 
-        // 방어력 계산
-        float damageReduction = currentDefense / (currentDefense + 100f); // 방어력 공식
+        float damageReduction = currentDefense / (currentDefense + 100f);
         float finalDamage = damage * (1f - damageReduction) * (1f + defenseDebuffAmount);
 
         hp -= finalDamage;
@@ -766,7 +765,7 @@ public class Enemy : MonoBehaviour
 
             GameManager.Instance.player.TakeDamage(damage);
             preDamageTime = Time.time;
-            GameManager.Instance.player.characterControl.PlayAnimation(PlayerState.DAMAGED, 0);
+            //GameManager.Instance.player.characterControl.PlayAnimation(PlayerState.DAMAGED, 0);
         }
     }
 
@@ -782,7 +781,6 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator DefenseDebuffCoroutine(float amount, float duration)
     {
-        // 방어력 감소량 제한
         float actualReduction = Mathf.Min(
             amount,
             maxDefenseReduction - defenseDebuffAmount

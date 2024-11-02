@@ -308,9 +308,18 @@ public class Player : MonoBehaviour
             Enemy nearestEnemy = FindNearestEnemy();
             if (nearestEnemy != null)
             {
+                characterControl.PlayAnimation(PlayerState.ATTACK, 0);
                 PerformAttack(nearestEnemy);
                 nextAttackTime = Time.time + (1f / attackSpeed);
             }
+        }
+        else if (velocity != Vector2.zero)
+        {
+            characterControl.PlayAnimation(PlayerState.MOVE, 0);
+        }
+        else
+        {
+            characterControl.PlayAnimation(PlayerState.IDLE, 0);
         }
     }
 
@@ -342,11 +351,11 @@ public class Player : MonoBehaviour
     {
         Vector2 directionToTarget = (targetEnemy.transform.position - transform.position).normalized;
 
-        if (directionToTarget.x > 0)
+        if (directionToTarget.x < 0)
         {
             characterControl.transform.localScale = new Vector3(1, 1, 1);
         }
-        else if (directionToTarget.x < 0)
+        else if (directionToTarget.x > 0)
         {
             characterControl.transform.localScale = new Vector3(-1, 1, 1);
         }
@@ -366,7 +375,6 @@ public class Player : MonoBehaviour
                         if (angle <= attackAngle / 2f)
                         {
                             enemy.TakeDamage(damage);
-                            characterControl.PlayAnimation(PlayerState.ATTACK, 0);
                         }
                     }
                 }

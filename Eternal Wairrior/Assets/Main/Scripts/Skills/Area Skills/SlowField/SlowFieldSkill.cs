@@ -79,7 +79,7 @@ public class SlowFieldSkill : AreaSkills
             SlowField field = fieldObj.GetComponent<SlowField>();
             if (field != null)
             {
-                field.Initialize(Damage, Radius, duration);
+                field.Initialize(Damage, Radius, duration, TickRate);
                 activeFields.Add(field);
             }
         }

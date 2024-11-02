@@ -28,7 +28,6 @@ public class SkillManager : SingletonManager<SkillManager>
         if (!filteredSkills.Any())
             return selectedSkills;
 
-        // 특정 원소 타입이 지정되지 않은 경우 랜덤하게 선택
         if (elementType == null)
         {
             var availableElements = filteredSkills
@@ -40,7 +39,6 @@ public class SkillManager : SingletonManager<SkillManager>
             filteredSkills = filteredSkills.Where(s => s.metadata.Element == elementType).ToList();
         }
 
-        // 선택된 원소 타입의 스킬들 중에서 랜덤하게 선택
         while (selectedSkills.Count < count && filteredSkills.Any())
         {
             int index = Random.Range(0, filteredSkills.Count);

@@ -42,6 +42,7 @@ public abstract class AreaSkills : Skill
         }
     }
 
+    [Header("Inspector Controls")]
     [SerializeField] protected float _damage = 10f;
     [SerializeField] protected float _radius = 5f;
     [SerializeField] protected float _duration = 5f;
