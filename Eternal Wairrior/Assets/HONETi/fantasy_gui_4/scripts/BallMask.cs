@@ -14,7 +14,7 @@ public class BallMask : MonoBehaviour {
 	float ballFillX;
 
 	void Start () {
-		ballFill = mask.fillAmount;
+		ballFill = GameManager.Instance.player.HpAmount;
 		ballFillTopTransform = fillEnding.GetComponent<Image> ().rectTransform;
 	}
 		

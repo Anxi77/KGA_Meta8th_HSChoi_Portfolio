@@ -10,8 +10,8 @@ public class UIManager : SingletonManager<UIManager>
     public Canvas mainCanvas;
     public GameObject pausePanel;
     public SkillLevelUpPanel levelupPanel;
-    public TextMeshProUGUI currentKillCountText;
-    public TextMeshProUGUI totalKillCountText;
+    //public TextMeshProUGUI currentKillCountText;
+    //public TextMeshProUGUI totalKillCountText;
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI expText;
     public TextMeshProUGUI hpText;
@@ -60,8 +60,8 @@ public class UIManager : SingletonManager<UIManager>
         {
             yield return new WaitForEndOfFrame();
             Player player = GameManager.Instance.player;
-            currentKillCountText.text = player.killCount.ToString();
-            totalKillCountText.text = player.totalKillCount.ToString();
+            //currentKillCountText.text = player.killCount.ToString();
+            //totalKillCountText.text = player.totalKillCount.ToString();
             levelText.text = player.level.ToString();
             expText.text = player.exp.ToString();
             hpText.text = $"{player.hp.ToString()} / {player.maxHp.ToString()}";
