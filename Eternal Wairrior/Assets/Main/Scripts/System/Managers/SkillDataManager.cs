@@ -4,8 +4,6 @@ using System.IO;
 using UnityEditor;
 using Unity.VisualScripting;
 using System.Text;
-using System.Linq;
-using System;
 
 public class SkillDataManager : DataManager
 {
@@ -169,67 +167,66 @@ public class SkillDataManager : DataManager
 
     private void ProcessCSVFile(TextAsset csvFile, string fileName, Dictionary<SkillID, Dictionary<int, SkillStatData>> tempStats)
     {
-        string[] lines = csvFile.text.Split('\n');
-        string[] headers = lines[0].Trim().Split(',');
-
-        for (int i = 1; i < lines.Length; i++)
+        if (csvFile == null)
         {
-            string line = lines[i].Trim();
-            if (string.IsNullOrEmpty(line)) continue;
+            Debug.LogError($"CSV file is null: {fileName}");
+            return;
+        }
 
-            try
+        try
+        {
+            string[] lines = csvFile.text.Split('\n');
+            if (lines.Length <= 1)
             {
-                string[] values = line.Split(',');
-                SkillStatData statData = ParseSkillStatLine(headers, values);
+                Debug.LogError($"CSV file is empty or contains only headers: {fileName}");
+                return;
+            }
 
-                if (statData.skillID == SkillID.None)
+            string[] headers = lines[0].Trim().Split(',');
+            Debug.Log($"Processing {fileName} with headers: {string.Join(", ", headers)}");
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+
+                string[] values = line.Split(',');
+                if (values.Length != headers.Length)
                 {
-                    Debug.LogWarning($"Invalid SkillID in {fileName} at line {i}");
+                    Debug.LogWarning($"Line {i} has incorrect number of values. Expected {headers.Length}, got {values.Length}");
                     continue;
                 }
 
+                SkillStatData statData = ParseSkillStatLine(headers, values);
+                if (statData == null || statData.skillID == SkillID.None)
+                {
+                    Debug.LogError($"Failed to parse line {i}: {line}");
+                    continue;
+                }
+
+                // 스킬 타입 확인
+                var skillType = GetSkillType(statData.skillID);
+                if (skillType == SkillType.Passive)
+                {
+                    Debug.Log($"Loading passive skill stats from CSV - ID: {statData.skillID}, Level: {statData.level}\n" +
+                             $"moveSpeed: {statData.moveSpeedIncrease}\n" +
+                             $"attackSpeed: {statData.attackSpeedIncrease}\n" +
+                             $"attackRange: {statData.attackRangeIncrease}\n" +
+                             $"hpRegen: {statData.hpRegenIncrease}");
+                }
+
+                // Dictionary에 저장
                 if (!tempStats.ContainsKey(statData.skillID))
                 {
                     tempStats[statData.skillID] = new Dictionary<int, SkillStatData>();
                 }
 
-                if (ValidateSkillStat(statData))
-                {
-                    tempStats[statData.skillID][statData.level] = statData;
-
-                    // 스프라이트 경로도 CSV에 포함시키고 로드
-                    if (headers.Contains("iconPath"))
-                    {
-                        string iconPath = values[Array.IndexOf(headers, "iconPath")];
-                        if (!string.IsNullOrEmpty(iconPath))
-                        {
-                            // Resources 폴더에서 스프라이트 로드
-                            Sprite icon = Resources.Load<Sprite>(iconPath);
-                            if (icon == null)
-                            {
-                                Debug.LogWarning($"Could not load sprite at path: {iconPath}");
-                            }
-                            else
-                            {
-                                // 해당 스킬의 SkillData 찾기
-                                var skillData = skillDatas.Find(s => s.metadata.ID == statData.skillID);
-                                if (skillData != null)
-                                {
-                                    skillData.icon = icon;
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.LogError($"Invalid stat data in {fileName} at line {i}");
-                }
+                tempStats[statData.skillID][statData.level] = statData;
             }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"Error processing line {i} in {fileName}: {e.Message}");
-            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error processing CSV file {fileName}: {e.Message}");
         }
     }
 
@@ -237,159 +234,206 @@ public class SkillDataManager : DataManager
     {
         SkillStatData statData = new SkillStatData();
 
-        for (int i = 0; i < headers.Length && i < values.Length; i++)
+        try
         {
-            string value = values[i].Trim();
-            switch (headers[i].Trim().ToLower())
+            for (int i = 0; i < headers.Length && i < values.Length; i++)
             {
-                // 기본 스킬
-                case "skillid":
-                    if (System.Enum.TryParse(value, out SkillID skillID))
-                        statData.skillID = skillID;
-                    break;
-                case "level":
-                    if (int.TryParse(value, out int level))
-                        statData.level = level;
-                    break;
-                case "damage":
-                    if (float.TryParse(value, out float damage))
-                        statData.damage = damage;
-                    break;
-                case "maxskilllevel":
-                    if (int.TryParse(value, out int maxLevel))
-                        statData.maxSkillLevel = maxLevel;
-                    break;
-                case "element":
-                    if (System.Enum.TryParse(value, out ElementType element))
-                        statData.element = element;
-                    break;
-                case "elementalpower":
-                    if (float.TryParse(value, out float elementalPower))
-                        statData.elementalPower = elementalPower;
-                    break;
+                string header = headers[i].Trim().ToLower();
+                string value = values[i].Trim();
 
-                // 투사 스킬
-                case "projectilespeed":
-                    if (float.TryParse(value, out float speed))
-                        statData.projectileSpeed = speed;
-                    break;
-                case "projectilescale":
-                    if (float.TryParse(value, out float scale))
-                        statData.projectileScale = scale;
-                    break;
-                case "shotinterval":
-                    if (float.TryParse(value, out float interval))
-                        statData.shotInterval = interval;
-                    break;
-                case "piercecount":
-                    if (int.TryParse(value, out int pierce))
-                        statData.pierceCount = pierce;
-                    break;
-                case "attackrange":
-                    if (float.TryParse(value, out float attackRange))
-                        statData.attackRange = attackRange;
-                    break;
-                case "homingrange":
-                    if (float.TryParse(value, out float homingRange))
-                        statData.homingRange = homingRange;
-                    break;
-                case "ishoming":
-                    if (bool.TryParse(value, out bool isHoming))
-                        statData.isHoming = isHoming;
-                    break;
-                case "explosionrad":
-                    if (float.TryParse(value, out float explosionRad))
-                        statData.explosionRad = explosionRad;
-                    break;
-                case "projectilecount":
-                    if (int.TryParse(value, out int count))
-                        statData.projectileCount = count;
-                    break;
-                case "innerinterval":
-                    if (float.TryParse(value, out float innerInterval))
-                        statData.innerInterval = innerInterval;
-                    break;
+                if (string.IsNullOrEmpty(value)) continue;
 
-                // 범위 스킬
-                case "radius":
-                    if (float.TryParse(value, out float radius))
-                        statData.radius = radius;
-                    break;
-                case "duration":
-                    if (float.TryParse(value, out float duration))
-                        statData.duration = duration;
-                    break;
-                case "tickrate":
-                    if (float.TryParse(value, out float tickRate))
-                        statData.tickRate = tickRate;
-                    break;
-                case "ispersistent":
-                    if (bool.TryParse(value, out bool isPersistent))
-                        statData.isPersistent = isPersistent;
-                    break;
-                case "movespeed":
-                    if (float.TryParse(value, out float moveSpeed))
-                        statData.moveSpeed = moveSpeed;
-                    break;
+                switch (header)
+                {
+                    case "skillid":
+                        if (System.Enum.TryParse<SkillID>(value, true, out SkillID skillID))
+                        {
+                            statData.skillID = skillID;
+                        }
+                        else
+                        {
+                            Debug.LogError($"Invalid SkillID value: {value}. Must match SkillID enum values.");
+                            return null;
+                        }
+                        break;
+                    case "level":
+                        if (int.TryParse(value, out int level))
+                            statData.level = level;
+                        break;
+                    case "damage":
+                        if (float.TryParse(value, out float damage))
+                            statData.damage = damage;
+                        break;
+                    case "maxskilllevel":
+                        if (int.TryParse(value, out int maxLevel))
+                            statData.maxSkillLevel = maxLevel;
+                        break;
+                    case "element":
+                        if (System.Enum.TryParse<ElementType>(value, true, out ElementType element))
+                        {
+                            statData.element = element;
+                        }
+                        else
+                        {
+                            Debug.LogError($"Invalid ElementType value: {value}. Must match ElementType enum values.");
+                            return null;
+                        }
+                        break;
+                    case "elementalpower":
+                        if (float.TryParse(value, out float elementalPower))
+                            statData.elementalPower = elementalPower;
+                        break;
 
-                // 효과 스킬
-                case "effectduration":
-                    if (float.TryParse(value, out float effectDuration))
-                        statData.effectDuration = effectDuration;
-                    break;
-                case "cooldown":
-                    if (float.TryParse(value, out float cooldown))
-                        statData.cooldown = cooldown;
-                    break;
-                case "triggerchance":
-                    if (float.TryParse(value, out float triggerChance))
-                        statData.triggerChance = triggerChance;
-                    break;
+                    case "projectilespeed":
+                        if (float.TryParse(value, out float speed))
+                            statData.projectileSpeed = speed;
+                        break;
+                    case "projectilescale":
+                        if (float.TryParse(value, out float scale))
+                            statData.projectileScale = scale;
+                        break;
+                    case "shotinterval":
+                        if (float.TryParse(value, out float interval))
+                            statData.shotInterval = interval;
+                        break;
+                    case "piercecount":
+                        if (int.TryParse(value, out int pierce))
+                            statData.pierceCount = pierce;
+                        break;
+                    case "attackrange":
+                        if (float.TryParse(value, out float attackRange))
+                            statData.attackRange = attackRange;
+                        break;
+                    case "homingrange":
+                        if (float.TryParse(value, out float homingRange))
+                            statData.homingRange = homingRange;
+                        break;
+                    case "ishoming":
+                        if (bool.TryParse(value, out bool isHoming))
+                            statData.isHoming = isHoming;
+                        break;
+                    case "explosionrad":
+                        if (float.TryParse(value, out float explosionRad))
+                            statData.explosionRad = explosionRad;
+                        break;
+                    case "projectilecount":
+                        if (int.TryParse(value, out int count))
+                            statData.projectileCount = count;
+                        break;
+                    case "innerinterval":
+                        if (float.TryParse(value, out float innerInterval))
+                            statData.innerInterval = innerInterval;
+                        break;
 
-                // 패시브 스킬 누락된 스탯 추가
-                case "damageincrease":
-                    if (float.TryParse(value, out float damageIncrease))
-                        statData.damageIncrease = damageIncrease;
-                    break;
-                case "defenseincrease":
-                    if (float.TryParse(value, out float defenseIncrease))
-                        statData.defenseIncrease = defenseIncrease;
-                    break;
-                case "expareaincrease":
-                    if (float.TryParse(value, out float expAreaIncrease))
-                        statData.expAreaIncrease = expAreaIncrease;
-                    break;
-                case "homingactivate":
-                    if (bool.TryParse(value, out bool homingActivate))
-                        statData.homingActivate = homingActivate;
-                    break;
-                case "hpincrease":
-                    if (float.TryParse(value, out float hpIncrease))
-                        statData.hpIncrease = hpIncrease;
-                    break;
-                case "movespeedincrease":
-                    if (float.TryParse(value, out float moveSpeedInc))
-                        statData.moveSpeedIncrease = moveSpeedInc;
-                    break;
-                case "attackspeedincrease":
-                    if (float.TryParse(value, out float attackSpeedInc))
-                        statData.attackSpeedIncrease = attackSpeedInc;
-                    break;
-                case "attackrangeincrease":
-                    if (float.TryParse(value, out float attackRangeInc))
-                        statData.attackRangeIncrease = attackRangeInc;
-                    break;
-                case "hpregenincrease":
-                    if (float.TryParse(value, out float hpRegenInc))
-                        statData.hpRegenIncrease = hpRegenInc;
-                    break;
-                default:
-                    Debug.LogWarning($"Unknown header: {headers[i]}");
-                    break;
+                    case "radius":
+                        if (float.TryParse(value, out float radius))
+                            statData.radius = radius;
+                        break;
+                    case "duration":
+                        if (float.TryParse(value, out float duration))
+                            statData.duration = duration;
+                        break;
+                    case "tickrate":
+                        if (float.TryParse(value, out float tickRate))
+                            statData.tickRate = tickRate;
+                        break;
+                    case "ispersistent":
+                        if (bool.TryParse(value, out bool isPersistent))
+                            statData.isPersistent = isPersistent;
+                        break;
+                    case "movespeed":
+                        if (float.TryParse(value, out float moveSpeed))
+                            statData.moveSpeed = moveSpeed;
+                        break;
+
+                    case "effectduration":
+                        if (float.TryParse(value, out float effectDuration))
+                            statData.effectDuration = effectDuration;
+                        break;
+                    case "cooldown":
+                        if (float.TryParse(value, out float cooldown))
+                            statData.cooldown = cooldown;
+                        break;
+                    case "triggerchance":
+                        if (float.TryParse(value, out float triggerChance))
+                            statData.triggerChance = triggerChance;
+                        break;
+
+                    case "damageincrease":
+                        if (float.TryParse(value, out float damageIncrease))
+                            statData.damageIncrease = damageIncrease;
+                        break;
+                    case "defenseincrease":
+                        if (float.TryParse(value, out float defenseIncrease))
+                            statData.defenseIncrease = defenseIncrease;
+                        break;
+                    case "expareaincrease":
+                        if (float.TryParse(value, out float expAreaIncrease))
+                            statData.expAreaIncrease = expAreaIncrease;
+                        break;
+                    case "homingactivate":
+                        if (bool.TryParse(value, out bool homingActivate))
+                            statData.homingActivate = homingActivate;
+                        break;
+                    case "hpincrease":
+                        if (float.TryParse(value, out float hpIncrease))
+                            statData.hpIncrease = hpIncrease;
+                        break;
+                    case "movespeedincrease":
+                    case "move speed increase":
+                        if (float.TryParse(value, out float moveSpeedInc))
+                        {
+                            statData.moveSpeedIncrease = moveSpeedInc;
+                            Debug.Log($"Parsed moveSpeedIncrease: {moveSpeedInc} for skill {statData.skillID}");
+                        }
+                        break;
+
+                    case "attackspeedincrease":
+                    case "attack speed increase":
+                        if (float.TryParse(value, out float attackSpeedInc))
+                        {
+                            statData.attackSpeedIncrease = attackSpeedInc;
+                            Debug.Log($"Parsed attackSpeedIncrease: {attackSpeedInc} for skill {statData.skillID}");
+                        }
+                        break;
+
+                    case "attackrangeincrease":
+                    case "attack range increase":
+                        if (float.TryParse(value, out float attackRangeInc))
+                        {
+                            statData.attackRangeIncrease = attackRangeInc;
+                            Debug.Log($"Parsed attackRangeIncrease: {attackRangeInc} for skill {statData.skillID}");
+                        }
+                        break;
+
+                    case "hpregenincrease":
+                    case "hp regen increase":
+                        if (float.TryParse(value, out float hpRegenInc))
+                        {
+                            statData.hpRegenIncrease = hpRegenInc;
+                            Debug.Log($"Parsed hpRegenIncrease: {hpRegenInc} for skill {statData.skillID}");
+                        }
+                        break;
+                }
             }
-        }
 
-        return statData;
+            // 패시브 스킬인 경우 값이 제대로 설정되었는지 확인
+            if (GetSkillType(statData.skillID) == SkillType.Passive)
+            {
+                Debug.Log($"Final passive skill stats - ID: {statData.skillID}, Level: {statData.level}\n" +
+                         $"moveSpeed: {statData.moveSpeedIncrease}\n" +
+                         $"attackSpeed: {statData.attackSpeedIncrease}\n" +
+                         $"attackRange: {statData.attackRangeIncrease}\n" +
+                         $"hpRegen: {statData.hpRegenIncrease}");
+            }
+
+            return statData;
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error parsing skill stat line: {e.Message}");
+            return null;
+        }
     }
 
     public ISkillStat GetSkillStatsForLevel(SkillID skillID, int level, SkillType skillType)
@@ -531,31 +575,91 @@ public class SkillDataManager : DataManager
 
     public void UpdateSkillStatsData(Dictionary<SkillID, List<SkillStatData>> editorStats)
     {
-        var backup = new Dictionary<SkillID, Dictionary<int, SkillStatData>>(skillStatsByLevel);
+        if (editorStats == null)
+        {
+            Debug.LogError("Editor stats is null");
+            return;
+        }
+
         try
         {
-            skillStatsByLevel.Clear();
+            // skillStatsByLevel이 null이면 초기화
+            if (skillStatsByLevel == null)
+            {
+                skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
+            }
+
+            // 새로운 Dictionary 생성
+            var newStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
+
             foreach (var pair in editorStats)
             {
-                skillStatsByLevel[pair.Key] = new Dictionary<int, SkillStatData>();
+                if (pair.Key == SkillID.None || pair.Value == null)
+                {
+                    Debug.LogWarning($"Skipping invalid stats entry: SkillID={pair.Key}");
+                    continue;
+                }
+
+                newStatsByLevel[pair.Key] = new Dictionary<int, SkillStatData>();
+
                 foreach (var stat in pair.Value)
                 {
-                    if (ValidateSkillStat(stat))
+                    if (stat == null)
                     {
-                        skillStatsByLevel[pair.Key][stat.level] = stat;
+                        Debug.LogWarning($"Skipping null stat for SkillID: {pair.Key}");
+                        continue;
                     }
-                    else
+
+                    // stat의 skillID가 None이면 pair.Key로 설정
+                    if (stat.skillID == SkillID.None)
                     {
-                        throw new System.Exception($"Invalid stat data for skill {pair.Key} level {stat.level}");
+                        stat.skillID = pair.Key;
+                    }
+
+                    try
+                    {
+                        if (ValidateSkillStat(stat))
+                        {
+                            newStatsByLevel[pair.Key][stat.level] = stat;
+
+                            if (GetSkillType(stat.skillID) == SkillType.Passive)
+                            {
+                                Debug.Log($"Updating passive skill stats - ID: {stat.skillID}, Level: {stat.level}\n" +
+                                        $"moveSpeed: {stat.moveSpeedIncrease}\n" +
+                                        $"attackSpeed: {stat.attackSpeedIncrease}\n" +
+                                        $"attackRange: {stat.attackRangeIncrease}\n" +
+                                        $"hpRegen: {stat.hpRegenIncrease}");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"Failed to validate stat for SkillID: {stat.skillID}, Level: {stat.level}");
+                        }
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError($"Error processing stat for SkillID: {stat.skillID}, Level: {stat.level}\nError: {e.Message}");
                     }
                 }
             }
-            Debug.Log("Successfully updated skill stats data");
+
+            // 기존 데이터 백업
+            var backupStats = new Dictionary<SkillID, Dictionary<int, SkillStatData>>(skillStatsByLevel);
+
+            try
+            {
+                skillStatsByLevel = newStatsByLevel;
+                Debug.Log($"Successfully updated skill stats data with {newStatsByLevel.Count} skills");
+            }
+            catch (System.Exception e)
+            {
+                skillStatsByLevel = backupStats;
+                throw new System.Exception($"Failed to update skillStatsByLevel: {e.Message}", e);
+            }
         }
         catch (System.Exception e)
         {
-            skillStatsByLevel = backup;
-            Debug.LogError($"Failed to update skill stats: {e.Message}. Reverting to previous data.");
+            Debug.LogError($"Failed to update skill stats: {e.Message}\nStack trace: {e.StackTrace}");
         }
     }
 
@@ -623,23 +727,28 @@ public class SkillDataManager : DataManager
         string path = Path.Combine(directory, "PassiveSkillStats.csv");
         StringBuilder csv = new StringBuilder();
 
+        // 헤더 작성 - 정확한 헤더 이름 사용
         csv.AppendLine("skillid,level,damage,maxskilllevel,element,elementalpower," +
                       "effectduration,cooldown,triggerchance,damageincrease,defenseincrease," +
-                      "expareaincrease,homingactivate,hpincrease," +
-                      "movespeedincrease,attackspeedincrease,attackrangeincrease,hpregenincrease");
+                      "expareaincrease,homingactivate,hpincrease,movespeedincrease," +
+                      "attackspeedincrease,attackrangeincrease,hpregenincrease");
 
         foreach (var skillStats in skillStatsList.Values)
         {
             foreach (var stat in skillStats)
             {
-                if (GetSkillType(stat.skillID) == SkillType.Passive)
+                var skill = skillDatas.Find(s => s.metadata.ID == stat.skillID);
+                if (skill?.metadata.Type == SkillType.Passive)
                 {
-                    csv.AppendLine($"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
+                    string line = $"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
                                  $"{stat.element},{stat.elementalPower},{stat.effectDuration}," +
                                  $"{stat.cooldown},{stat.triggerChance},{stat.damageIncrease}," +
                                  $"{stat.defenseIncrease},{stat.expAreaIncrease},{stat.homingActivate}," +
                                  $"{stat.hpIncrease},{stat.moveSpeedIncrease},{stat.attackSpeedIncrease}," +
-                                 $"{stat.attackRangeIncrease},{stat.hpRegenIncrease}");
+                                 $"{stat.attackRangeIncrease},{stat.hpRegenIncrease}";
+
+                    csv.AppendLine(line);
+                    Debug.Log($"Saving passive skill stats: {line}");
                 }
             }
         }
@@ -664,37 +773,41 @@ public class SkillDataManager : DataManager
                 string[] values = line.Split(',');
                 SkillStatData statData = ParseSkillStatLine(headers, values);
 
-                if (statData.skillID == SkillID.None)
+                if (statData != null)
                 {
-                    Debug.LogWarning($"Invalid SkillID in {fileName} at line {i}");
-                    continue;
-                }
+                    if (!skillStatsList.ContainsKey(statData.skillID))
+                    {
+                        skillStatsList[statData.skillID] = new List<SkillStatData>();
+                    }
 
-                if (!skillStatsList.ContainsKey(statData.skillID))
-                {
-                    skillStatsList[statData.skillID] = new List<SkillStatData>();
-                }
+                    // 기존 레벨 스탯이 있다면 업데이트, 없다면 추가
+                    var existingStat = skillStatsList[statData.skillID].Find(s => s.level == statData.level);
+                    if (existingStat != null)
+                    {
+                        int index = skillStatsList[statData.skillID].IndexOf(existingStat);
+                        skillStatsList[statData.skillID][index] = statData;
+                    }
+                    else
+                    {
+                        skillStatsList[statData.skillID].Add(statData);
+                    }
 
-                var existingStat = skillStatsList[statData.skillID].Find(s => s.level == statData.level);
-                if (existingStat != null)
-                {
-                    int index = skillStatsList[statData.skillID].IndexOf(existingStat);
-                    skillStatsList[statData.skillID][index] = statData;
+                    // 패시브 스킬인 경우 추가 로그
+                    var skill = skillDatas.Find(s => s.metadata.ID == statData.skillID);
+                    if (skill?.metadata.Type == SkillType.Passive)
+                    {
+                        Debug.Log($"Loaded passive skill stats for {statData.skillID} level {statData.level}:\n" +
+                                $"moveSpeed: {statData.moveSpeedIncrease}\n" +
+                                $"attackSpeed: {statData.attackSpeedIncrease}\n" +
+                                $"attackRange: {statData.attackRangeIncrease}\n" +
+                                $"hpRegen: {statData.hpRegenIncrease}");
+                    }
                 }
-                else
-                {
-                    skillStatsList[statData.skillID].Add(statData);
-                }
-
-                Debug.Log($"Loaded stats for skill {statData.skillID} level {statData.level}");
             }
-        }
-        else
-        {
-            Debug.LogWarning($"Could not find CSV file: {fileName}");
         }
     }
 
+    // 스킬 데이터 검증 메서드 추가
     public bool ValidateSkillData(SkillData skillData)
     {
         if (skillData == null || skillData.metadata == null)

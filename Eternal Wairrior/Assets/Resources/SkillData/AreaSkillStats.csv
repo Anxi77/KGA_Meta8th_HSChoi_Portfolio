@@ -1,1 +1,6 @@
 skillid,level,damage,maxskilllevel,element,elementalpower,radius,duration,tickrate,ispersistent,movespeed
+ShadowWaltz,1,10,5,None,1,5,3,1,False,0
+ShadowWaltz,2,10,5,None,1,5,3,1,False,0
+ShadowWaltz,3,10,5,None,1,5,3,1,False,0
+ShadowWaltz,4,10,5,None,1,5,3,1,False,0
+ShadowWaltz,5,10,5,None,1,5,3,1,False,0

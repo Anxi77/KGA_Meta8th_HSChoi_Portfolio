@@ -2,15 +2,15 @@
     "skillDatas": [
         {
             "metadata": {
-                "ID": 100001,
-                "Name": "New Skill",
-                "Description": "New skill description",
-                "Type": 0,
-                "Element": 0,
+                "ID": 100009,
+                "Name": "Abyssal Expansion",
+                "Description": "Expands Player's Exp Collecting Area , Attack Range",
+                "Type": 3,
+                "Element": 1,
                 "Tier": 1,
                 "Tags": [],
                 "Prefab": {
-                    "instanceID": 0
+                    "instanceID": 128718
                 },
                 "Icon": {
                     "instanceID": 0
@@ -22,7 +22,11 @@
             "projectile": {
                 "instanceID": 0
             },
-            "prefabsByLevel": [],
+            "prefabsByLevel": [
+                {
+                    "instanceID": 128718
+                }
+            ],
             "projectileStat": {
                 "projectileSpeed": 0.0,
                 "projectileScale": 0.0,
@@ -43,14 +47,197 @@
                 "moveSpeed": 0.0
             },
             "passiveStat": {
-                "hpIncrease": 0.0,
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
                 "damageIncrease": 0.0,
                 "defenseIncrease": 0.0,
                 "expAreaIncrease": 0.0,
                 "homingActivate": false,
-                "effectDuration": 0.0,
-                "cooldown": 0.0,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 10.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100008,
+                "Name": "Event Horizon",
+                "Description": "Fires Gravity Orb which Pulls Enemy Nearby",
+                "Type": 1,
+                "Element": 1,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 94850
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 0
+            },
+            "projectile": {
+                "instanceID": 94730
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 94850
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 10.0,
+                "projectileScale": 1.0,
+                "shotInterval": 1.0,
+                "pierceCount": 1,
+                "attackRange": 10.0,
+                "homingRange": 5.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 1,
+                "innerInterval": 0.10000000149011612
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
                 "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100007,
+                "Name": "Shadow Waltz",
+                "Description": "Summons Shadow Orb Rotates Around Player",
+                "Type": 2,
+                "Element": 1,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 94856
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 0
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 94856
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 5.0,
+                "duration": 3.0,
+                "tickRate": 1.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100002,
+                "Name": "EarthRift",
+                "Description": "Shoots Earth Shard Damages Area",
+                "Type": 1,
+                "Element": 4,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 94844
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 0
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 94844
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 10.0,
+                "projectileScale": 1.0,
+                "shotInterval": 1.0,
+                "pierceCount": 1,
+                "attackRange": 10.0,
+                "homingRange": 5.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 1,
+                "innerInterval": 0.10000000149011612
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
                 "moveSpeedIncrease": 0.0,
                 "attackSpeedIncrease": 0.0,
                 "attackRangeIncrease": 0.0,

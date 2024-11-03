@@ -33,18 +33,105 @@ public class SkillStatData
     public float moveSpeed;
 
     // Passive Stats
-    public float effectDuration;
-    public float cooldown;
-    public float triggerChance;
-    public float damageIncrease;
-    public float defenseIncrease;
-    public float expAreaIncrease;
-    public bool homingActivate;
-    public float hpIncrease;
-    public float moveSpeedIncrease;
-    public float attackSpeedIncrease;
-    public float attackRangeIncrease;
-    public float hpRegenIncrease;
+    public float effectDuration = 5f;
+    public float cooldown = 10f;
+    public float triggerChance = 100f;
+    public float damageIncrease = 0f;
+    public float defenseIncrease = 0f;
+    public float expAreaIncrease = 0f;
+    public bool homingActivate = false;
+    public float hpIncrease = 0f;
+    public float moveSpeedIncrease = 0f;
+    public float attackSpeedIncrease = 0f;
+    public float attackRangeIncrease = 0f;
+    public float hpRegenIncrease = 0f;
+
+    public SkillStatData()
+    {
+        // 기본값 초기화
+        skillID = SkillID.None;
+        level = 1;
+        damage = 10f;
+        maxSkillLevel = 5;
+        element = ElementType.None;
+        elementalPower = 1f;
+
+        // Projectile 기본값
+        projectileSpeed = 10f;
+        projectileScale = 1f;
+        shotInterval = 1f;
+        pierceCount = 1;
+        attackRange = 10f;
+        homingRange = 5f;
+        isHoming = false;
+        explosionRad = 0f;
+        projectileCount = 1;
+        innerInterval = 0.1f;
+
+        // Area 기본값
+        radius = 5f;
+        duration = 3f;
+        tickRate = 1f;
+        isPersistent = false;
+        moveSpeed = 0f;
+
+        // Passive 기본값
+        effectDuration = 5f;
+        cooldown = 10f;
+        triggerChance = 100f;
+        damageIncrease = 0f;
+        defenseIncrease = 0f;
+        expAreaIncrease = 0f;
+        homingActivate = false;
+        hpIncrease = 0f;
+        moveSpeedIncrease = 0f;
+        attackSpeedIncrease = 0f;
+        attackRangeIncrease = 0f;
+        hpRegenIncrease = 0f;
+    }
+
+    public SkillStatData Clone()
+    {
+        return new SkillStatData
+        {
+            skillID = this.skillID,
+            level = this.level,
+            damage = this.damage,
+            maxSkillLevel = this.maxSkillLevel,
+            element = this.element,
+            elementalPower = this.elementalPower,
+
+            projectileSpeed = this.projectileSpeed,
+            projectileScale = this.projectileScale,
+            shotInterval = this.shotInterval,
+            pierceCount = this.pierceCount,
+            attackRange = this.attackRange,
+            homingRange = this.homingRange,
+            isHoming = this.isHoming,
+            explosionRad = this.explosionRad,
+            projectileCount = this.projectileCount,
+            innerInterval = this.innerInterval,
+
+            radius = this.radius,
+            duration = this.duration,
+            tickRate = this.tickRate,
+            isPersistent = this.isPersistent,
+            moveSpeed = this.moveSpeed,
+
+            effectDuration = this.effectDuration,
+            cooldown = this.cooldown,
+            triggerChance = this.triggerChance,
+            damageIncrease = this.damageIncrease,
+            defenseIncrease = this.defenseIncrease,
+            expAreaIncrease = this.expAreaIncrease,
+            homingActivate = this.homingActivate,
+            hpIncrease = this.hpIncrease,
+            moveSpeedIncrease = this.moveSpeedIncrease,
+            attackSpeedIncrease = this.attackSpeedIncrease,
+            attackRangeIncrease = this.attackRangeIncrease,
+            hpRegenIncrease = this.hpRegenIncrease
+        };
+    }
 
     public ISkillStat CreateSkillStat(SkillType skillType)
     {

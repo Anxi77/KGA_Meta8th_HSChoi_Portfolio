@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Lean.Pool;
 using System.Collections;
 using UnityEngine.EventSystems;
@@ -44,10 +44,7 @@ public class GravityProjectileSkill : ProjectileSkills
 
         Vector3 spawnPosition = transform.position + transform.forward * 1f;
 
-        Vector2 enemyPosition = nearestEnemy.transform.position;
-        Vector2 myPosition = spawnPosition;
-        Vector2 directionToEnemy = (enemyPosition - myPosition).normalized;
-
+        fireDir = ((Vector2)(nearestEnemy.transform.position - spawnPosition)).normalized;
 
         var proj = PoolManager.Instance.Spawn<GravityProjectile>(gravityProjectilePrefab.gameObject,
             spawnPosition, Quaternion.identity);
@@ -55,7 +52,7 @@ public class GravityProjectileSkill : ProjectileSkills
         if (proj != null)
         {
             InitializeProjectile(proj);
-            proj.SetDirection(directionToEnemy);
+            proj.SetDirection(fireDir);
 
             if (_isHoming)
             {

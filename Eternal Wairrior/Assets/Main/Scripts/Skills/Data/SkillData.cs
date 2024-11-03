@@ -35,6 +35,26 @@ public class SkillData
         metadata = new SkillMetadata();
         statsByLevel = new Dictionary<int, ISkillStat>();
         prefabsByLevel = new GameObject[0];
+
+        // 기본 스탯 초기화
+        projectileStat = new ProjectileSkillStat
+        {
+            baseStat = new BaseSkillStat()
+        };
+
+        areaStat = new AreaSkillStat
+        {
+            baseStat = new BaseSkillStat()
+        };
+
+        passiveStat = new PassiveSkillStat
+        {
+            baseStat = new BaseSkillStat(),
+            moveSpeedIncrease = 0f,
+            attackSpeedIncrease = 0f,
+            attackRangeIncrease = 0f,
+            hpRegenIncrease = 0f
+        };
     }
 
     public ISkillStat GetStatsForLevel(int level)
@@ -112,11 +132,59 @@ public class SkillData
         switch (metadata.Type)
         {
             case SkillType.Projectile:
+                if (projectileStat == null)
+                {
+                    projectileStat = new ProjectileSkillStat
+                    {
+                        baseStat = new BaseSkillStat
+                        {
+                            damage = 10f,
+                            skillName = metadata.Name,
+                            skillLevel = 1,
+                            maxSkillLevel = 5,
+                            element = metadata.Element,
+                            elementalPower = 1f
+                        }
+                    };
+                }
                 return projectileStat;
+
             case SkillType.Area:
+                if (areaStat == null)
+                {
+                    areaStat = new AreaSkillStat
+                    {
+                        baseStat = new BaseSkillStat
+                        {
+                            damage = 10f,
+                            skillName = metadata.Name,
+                            skillLevel = 1,
+                            maxSkillLevel = 5,
+                            element = metadata.Element,
+                            elementalPower = 1f
+                        }
+                    };
+                }
                 return areaStat;
+
             case SkillType.Passive:
+                if (passiveStat == null)
+                {
+                    passiveStat = new PassiveSkillStat
+                    {
+                        baseStat = new BaseSkillStat
+                        {
+                            damage = 10f,
+                            skillName = metadata.Name,
+                            skillLevel = 1,
+                            maxSkillLevel = 5,
+                            element = metadata.Element,
+                            elementalPower = 1f
+                        },
+                    };
+                }
                 return passiveStat;
+
             default:
                 return null;
         }
