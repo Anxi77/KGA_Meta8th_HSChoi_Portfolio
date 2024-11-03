@@ -15,11 +15,22 @@ public enum SkillType
 public enum SkillID
 {
     None = 100000,
-    EarthRift,   // Earth element area attack
-    FrostHunt,   // Water element projectile attack
-    Vine,        // Earth element binding skill
-    ShadowWaltz, // Dark element area attack
-    // Add new skills here...
+    //Earth
+    Vine,        // Area
+    EarthRift,   // Projectile
+    GaiasGrace,  // Passive
+    //Water
+    ForstTide,   // Area
+    FrostHunt,   // Projectile
+    TidalEssence,// Passive
+    //Dark
+    ShadowWaltz, // Area
+    EventHorizon, // Projectile
+    AbyssalExpansion, // Passive
+    //Fire
+    Flame, // Projectile
+    FireRing, // Area
+    ThermalElevation // Passive
 }
 
 /// <summary>

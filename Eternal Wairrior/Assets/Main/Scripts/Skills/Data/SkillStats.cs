@@ -78,7 +78,23 @@ public class PassiveSkillStat : ISkillStat
     }
     public SkillType skillType => SkillType.Passive;
 
+    public float hpIncrease;
+    public float damageIncrease;
+    public float defenseIncrease;
+    public float expAreaIncrease;
+    public bool homingActivate;
     public float effectDuration;
     public float cooldown;
     public float triggerChance;
+    public float moveSpeedIncrease;
+    public float attackSpeedIncrease;
+    public float attackRangeIncrease;
+    public float hpRegenIncrease;
+
+    public PassiveSkillStat()
+    {
+        effectDuration = 0f;
+        cooldown = 0f;
+        triggerChance = 100f;
+    }
 }

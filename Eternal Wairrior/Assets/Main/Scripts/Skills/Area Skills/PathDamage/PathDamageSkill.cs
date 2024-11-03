@@ -86,6 +86,24 @@ public class PathDamageSkill : AreaSkills
             PoolManager.Instance.Despawn<DamageZone>(obj.GetComponent<DamageZone>());
         }
     }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = "Creates a damaging path behind the player";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage: {Damage:F1}" +
+                       $"\nPath Width: {_pathWidth:F1}" +
+                       $"\nDuration: {Duration:F1}s" +
+                       $"\nDamage Interval: {TickRate:F1}s";
+        }
+        return baseDesc;
+    }
+
+    protected override string GetDefaultSkillName() => "Path Damage";
+    protected override string GetDefaultDescription() => "Creates a damaging path behind the player";
+    protected override SkillType GetSkillType() => SkillType.Area;
 }
 
 

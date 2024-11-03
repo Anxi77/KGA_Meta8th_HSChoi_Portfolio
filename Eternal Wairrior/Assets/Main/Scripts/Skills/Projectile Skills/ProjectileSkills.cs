@@ -1,10 +1,7 @@
-﻿using Lean.Pool;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 using UnityEditor.PackageManager.Requests;
-using Unity.VisualScripting;
 
 public abstract class ProjectileSkills : Skill
 {
@@ -52,7 +49,6 @@ public abstract class ProjectileSkills : Skill
         }
     }
 
-    // Inspector-editable fields
     [Header("Base Stats")]
     [SerializeField] protected float _damage = 10f;
     [SerializeField] protected float _elementalPower = 1f;
@@ -69,7 +65,6 @@ public abstract class ProjectileSkills : Skill
     [SerializeField] protected int _projectileCount = 1;
     [SerializeField] protected float _innerInterval = 0.1f;
 
-    // Properties using inspector values
     public override float Damage => _damage;
     public float ProjectileSpeed => _projectileSpeed;
     public float ProjectileScale => _projectileScale;
@@ -233,4 +228,54 @@ public abstract class ProjectileSkills : Skill
         }
     }
     #endregion
+
+    public virtual void UpdateHomingState(bool activate)
+    {
+        _isHoming = activate;
+
+        if (!activate)
+        {
+            _homingRange = 0f;
+        }
+        else
+        {
+            _homingRange = TypedStats.homingRange;
+        }
+
+        Debug.Log($"Homing state updated for {skillData.metadata.Name}: {activate}");
+    }
+
+    protected override void UpdateSkillTypeStats(ISkillStat newStats)
+    {
+        if (newStats is ProjectileSkillStat projectileStats)
+        {
+            UpdateInspectorValues(projectileStats);
+        }
+    }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = skillData?.metadata?.Description ?? "Projectile skill description";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage: {Damage:F1}" +
+                       $"\nProjectile Speed: {ProjectileSpeed:F1}" +
+                       $"\nShot Interval: {ShotInterval:F1}s" +
+                       $"\nPierce Count: {PierceCount}" +
+                       $"\nAttack Range: {AttackRange:F1}" +
+                       $"\nProjectile Count: {ProjectileCount}";
+
+            if (IsHoming)
+            {
+                baseDesc += $"\nHoming Range: {HomingRange:F1}";
+            }
+
+            if (ExplosionRadius > 0)
+            {
+                baseDesc += $"\nExplosion Radius: {ExplosionRadius:F1}";
+            }
+        }
+        return baseDesc;
+    }
 }

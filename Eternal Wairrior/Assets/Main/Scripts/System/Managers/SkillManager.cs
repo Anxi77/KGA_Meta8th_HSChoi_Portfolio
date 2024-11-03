@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,17 +11,52 @@ public class SkillManager : SingletonManager<SkillManager>
     protected override void Awake()
     {
         base.Awake();
+        StartCoroutine(InitializeAfterSkillDataManager());
+    }
+
+    private IEnumerator InitializeAfterSkillDataManager()
+    {
+        while (SkillDataManager.Instance == null)
+        {
+            yield return null;
+        }
+
+        yield return new WaitForEndOfFrame();
+
         Initialize();
     }
 
     private void Initialize()
     {
         availableSkills = SkillDataManager.Instance.GetAllSkillData();
+        if (availableSkills == null || availableSkills.Count == 0)
+        {
+            Debug.LogError("Failed to load skill data!");
+            return;
+        }
+
+        availableSkills = availableSkills.Where(skill =>
+        {
+            bool isValid = SkillDataManager.Instance.ValidateSkillData(skill);
+            if (!isValid)
+            {
+                Debug.LogError($"Invalid skill data found for {skill.metadata?.Name ?? "Unknown Skill"}");
+            }
+            return isValid;
+        }).ToList();
+
+        Debug.Log($"Successfully loaded and validated {availableSkills.Count} skills");
         activeSkills = new List<Skill>();
     }
 
     public List<SkillData> GetRandomSkills(int count = 3, ElementType? elementType = null)
     {
+        if (availableSkills == null || availableSkills.Count == 0)
+        {
+            Debug.LogError("No skills available in SkillManager");
+            return new List<SkillData>();
+        }
+
         var selectedSkills = new List<SkillData>();
         var filteredSkills = availableSkills.Where(skill =>
             elementType == null || skill.metadata.Element == elementType).ToList();

@@ -1,1 +1,1 @@
-SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower,ProjectileSpeed,ProjectileScale,ShotInterval,PierceCount,AttackRange,HomingRange,IsHoming,ExplosionRad,ProjectileCount,InnerInterval
+skillid,level,damage,maxskilllevel,element,elementalpower,projectilespeed,projectilescale,shotinterval,piercecount,attackrange,homingrange,ishoming,explosionrad,projectilecount,innerinterval

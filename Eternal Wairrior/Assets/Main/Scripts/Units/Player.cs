@@ -1,6 +1,7 @@
-using JetBrains.Annotations;
+ï»¿using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using TMPro;
 using Unity.VisualScripting;
@@ -13,68 +14,65 @@ public class Player : MonoBehaviour
 {
     #region Members
 
-    #region Stats
+    #region Status
     public enum Status
     {
         Alive = 1,
-        Dead
+        Dead,
+        Attacking
     }
-
     private Status _playerStatus;
-
     public Status playerStatus { get { return _playerStatus; } set { _playerStatus = value; } }
+    #endregion
 
+    #region Base Stats
     public float maxHp;
-
     public float hp = 100f;
-
     public float damage = 5f;
-
     public float moveSpeed = 5f;
-
     public float exp = 0f;
-
     public int totalKillCount = 0;
-
     public int killCount = 0;
-
     public float fireInterval;
-
     public bool isFiring;
-
     private Vector2 velocity;
+    #endregion
 
+    #region Combat Stats
+    public float defense = 2f;  //  ë°©ì–´ë ¥
+    public float baseDefense = 2f;  // ê¸°ì´ˆ ë°©ì–´ë ¥ ê°’
+    public float defenseIncreasePerLevel = 0.5f;  // ë ˆë²¨ë‹¹ ì¦ê°€í•˜ëŠ” ë°©ì–´ë ¥
+
+    public float attackSpeed = 1f;  // ì´ˆë‹¹ ê³µê²© íšŸìˆ˜
+    public float attackRange = 2f;  // ê³µê²© ë²”ìœ„
+    public float attackAngle = 120f;  // ê³µê²© ê°ë„
+    private float nextAttackTime = 0f;  // ë‹¤ìŒ ê³µê²© ê°€ëŠ¥ ì‹œê°„
+    #endregion
+
+    #region Collection & Regeneration
     [Header("Experience Collection")]
-    public float expCollectionRadius = 3f; // °æÇèÄ¡ ½Àµæ ¹üÀ§
-    public float baseExpCollectionRadius = 3f; // ±âº» °æÇèÄ¡ ½Àµæ ¹üÀ§
+    public float expCollectionRadius = 3f; // ê²½í—˜ì¹˜ ìŠµë“ ë²”ìœ„
+    public float baseExpCollectionRadius = 3f; // ê¸°ë³¸ ê²½í—˜ì¹˜ ìŠµë“ ë²”ìœ„
 
-    public float defense = 2f;  // º» ¹æ¾î·Â
-    public float baseDefense = 2f;  // ±âÃÊ ¹æ¾î·Â °ª
-    public float defenseIncreasePerLevel = 0.5f;  // ·¹º§´ç Áõ°¡ÇÏ´Â ¹æ¾î·Â
-
-    public float attackSpeed = 1f;  // ÃÊ´ç °ø°İ È½¼ö
-    public float attackRange = 2f;  // °ø°İ ¹üÀ§
-    public float attackAngle = 120f;  // °ø°İ °¢µµ
-    private float nextAttackTime = 0f;  // ´ÙÀ½ °ø°İ °¡´É ½Ã°£
-
-
-
-
-
+    [Header("Health Regeneration")]
+    public float baseHpRegenRate = 1f;  // ê¸°ë³¸ ì´ˆë‹¹ ì²´ë ¥ íšŒë³µëŸ‰
+    public float hpRegenMultiplier { get; private set; } = 1f;  // ì²´ë ¥ íšŒë³µ ì¦ê°€ ë°°ìˆ˜
+    private float lastRegenTime;
+    private const float REGEN_TICK_RATE = 1f;  // íšŒë³µ ì£¼ê¸° (1ì´ˆ)
     #endregion
 
-    #region References
-
-    private Rigidbody2D rb;
-    private float x = 0;
-    private float y = 0;
-
+    #region Passive Effect Multipliers
+    private float damageMultiplier = 1f;
+    private float defenseMultiplier = 1f;
+    private float expAreaMultiplier = 1f;
+    private float maxHpMultiplier = 1f;
+    private float moveSpeedMultiplier = 1f;
+    private bool isHomingActivated = false;
+    private float attackSpeedMultiplier = 1f;  // ì¶”ê°€: ê³µê²© ì†ë„ ë°°ìˆ˜
     #endregion
 
-    #region EXP & Level
-
+    #region Level & Experience
     [Header("Level Related")]
-
     [SerializeField]
     public int level = 1;
 
@@ -82,31 +80,22 @@ public class Player : MonoBehaviour
     {
         0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700
     };
-
     public List<float> _expList { get { return expList; } }
 
     public float hpIncreasePerLevel = 20f;
-
     public float damageIncreasePerLevel = 2f;
-
     public float speedIncreasePerLevel = 0.5f;
 
     public float HpAmount { get => hp / maxHp; }
-
     public float ExpAmount { get => (CurrentExp() / (GetExpForNextLevel() - expList[level - 1])); }
-
     #endregion
 
-    #region Character
-
+    #region References
+    private Rigidbody2D rb;
+    private float x = 0;
+    private float y = 0;
     public SPUM_Prefabs characterControl;
-
-    #endregion
-
-    #region Skills
-
     public List<Skill> skills;
-
     #endregion
 
     #endregion
@@ -125,6 +114,7 @@ public class Player : MonoBehaviour
         maxHp = hp;
         this.playerStatus = Status.Alive;
         isFiring = false;
+        lastRegenTime = Time.time;
     }
 
     private void FixedUpdate()
@@ -136,7 +126,8 @@ public class Player : MonoBehaviour
     {
         GetMoveInput();
         Die();
-        AutoAttack();  // ÀÚµ¿ °ø°İ ½ÇÇà
+        AutoAttack();  // ìë™ ê³µê²© ì‹¤í–‰
+        UpdateHealthRegeneration();
     }
 
     #endregion
@@ -169,22 +160,25 @@ public class Player : MonoBehaviour
 
         rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime);
 
-        if (velocity != Vector2.zero)
+        if (playerStatus != Status.Attacking)
         {
-            if (x > 0)
+            if (velocity != Vector2.zero)
             {
-                characterControl.transform.localScale = new Vector3(1, 1, 1);
-            }
-            else if (x < 0)
-            {
-                characterControl.transform.localScale = new Vector3(-1, 1, 1);
-            }
+                if (x > 0)
+                {
+                    characterControl.transform.localScale = new Vector3(1, 1, 1);
+                }
+                else if (x < 0)
+                {
+                    characterControl.transform.localScale = new Vector3(-1, 1, 1);
+                }
 
-            characterControl.PlayAnimation(PlayerState.MOVE, 0);
-        }
-        else
-        {
-            characterControl.PlayAnimation(PlayerState.IDLE, 0);
+                characterControl.PlayAnimation(PlayerState.MOVE, 0);
+            }
+            else
+            {
+                characterControl.PlayAnimation(PlayerState.IDLE, 0);
+            }
         }
     }
 
@@ -221,11 +215,15 @@ public class Player : MonoBehaviour
     private void LevelUp()
     {
         level++;
-        maxHp += hpIncreasePerLevel;
-        hp = maxHp;
-        damage += damageIncreasePerLevel;
+
+        // ê¸°ë³¸ ìŠ¤íƒ¯ ì¦ê°€
+        UpdateMaxHP();  // ë ˆë²¨ì—… ì‹œ HP ì¦ê°€ ì²˜ë¦¬ê°€ í¬í•¨ë¨
+        UpdateDamage();
         moveSpeed += speedIncreasePerLevel;
-        defense += defenseIncreasePerLevel;  // ·¹º§¾÷ ½Ã ¹æ¾î·Â Áõ°¡
+        UpdateDefense();  // ë ˆë²¨ì—… ì‹œ ë°©ì–´ë ¥ ì¦ê°€ ì²˜ë¦¬ê°€ í¬í•¨ë¨
+
+        // ë ˆë²¨ì—… ì‹œ ì²´ë ¥ íšŒë³µ
+        hp = maxHp;
     }
     #endregion
 
@@ -266,7 +264,7 @@ public class Player : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        float actualDamage = Mathf.Max(1, damage - defense);  // ¹æ¾î·ÂÀ» Àû¿ëÇÑ ½ÇÁ¦ µ¥¹ÌÁö °è»ê (ÃÖ¼Ò 1ÀÇ µ¥¹ÌÁö´Â º¸Àå)
+        float actualDamage = Mathf.Max(1, damage - defense);  // ë°©ì–´ë ¥ì„ ì ìš©í•œ ì‹¤ì œ ë°ë¯¸ì§€ ê³„ì‚° (ìµœì†Œ 1ì˜ ë°ë¯¸ì§€ëŠ” ë³´ì¥)
         hp -= actualDamage;
 
         if (hp <= 0)
@@ -303,24 +301,68 @@ public class Player : MonoBehaviour
     #region Combat
     private void AutoAttack()
     {
-        if (Time.time >= nextAttackTime)
+        if (velocity == Vector2.zero && Time.time >= nextAttackTime)
         {
             Enemy nearestEnemy = FindNearestEnemy();
             if (nearestEnemy != null)
             {
+                Vector2 directionToTarget = (nearestEnemy.transform.position - transform.position).normalized;
+
+                if (directionToTarget.x > 0)
+                {
+                    characterControl.transform.localScale = new Vector3(-1, 1, 1);
+                }
+                else if (directionToTarget.x < 0)
+                {
+                    characterControl.transform.localScale = new Vector3(1, 1, 1);
+                }
+
+                playerStatus = Status.Attacking;
                 characterControl.PlayAnimation(PlayerState.ATTACK, 0);
-                PerformAttack(nearestEnemy);
+
+                StartCoroutine(ApplyDamageAfterDelay(nearestEnemy, directionToTarget));
                 nextAttackTime = Time.time + (1f / attackSpeed);
             }
+            else
+            {
+                playerStatus = Status.Alive;
+                characterControl.PlayAnimation(PlayerState.IDLE, 0);
+            }
         }
-        else if (velocity != Vector2.zero)
+    }
+
+    private IEnumerator ApplyDamageAfterDelay(Enemy targetEnemy, Vector2 directionToTarget)
+    {
+        yield return new WaitForSeconds(0.2f);
+
+        // ê³µê²© ë²”ìœ„ ë‚´ì˜ ì ë“¤ ì°¾ê¸°
+        List<Enemy> enemiesInRange = new List<Enemy>();
+        foreach (Enemy enemy in GameManager.Instance.enemies.ToList())
         {
-            characterControl.PlayAnimation(PlayerState.MOVE, 0);
+            if (enemy != null)
+            {
+                Vector2 directionToEnemy = (enemy.transform.position - transform.position);
+                float distanceToEnemy = directionToEnemy.magnitude;
+
+                if (distanceToEnemy <= attackRange)
+                {
+                    float angle = Vector2.Angle(directionToTarget, directionToEnemy);
+                    if (angle <= attackAngle / 2f)
+                    {
+                        enemiesInRange.Add(enemy);
+                    }
+                }
+            }
         }
-        else
+
+        // ë°ë¯¸ì§€ ì ìš©
+        foreach (Enemy enemy in enemiesInRange)
         {
-            characterControl.PlayAnimation(PlayerState.IDLE, 0);
+            enemy.TakeDamage(damage);
         }
+
+        // ê³µê²© ì• ë‹ˆë©”ì´ì…˜ì´ ëë‚˜ë©´ ìƒíƒœ ë¦¬ì…‹
+        playerStatus = Status.Alive;
     }
 
     private Enemy FindNearestEnemy()
@@ -347,49 +389,233 @@ public class Player : MonoBehaviour
         return nearestEnemy;
     }
 
-    private void PerformAttack(Enemy targetEnemy)
+    // ê³µê²© ì†ë„ ì¦ê°€ ë©”ì„œë“œ
+    public void IncreaseAttackSpeed(float percentage)
     {
-        Vector2 directionToTarget = (targetEnemy.transform.position - transform.position).normalized;
-
-        if (directionToTarget.x < 0)
-        {
-            characterControl.transform.localScale = new Vector3(1, 1, 1);
-        }
-        else if (directionToTarget.x > 0)
-        {
-            characterControl.transform.localScale = new Vector3(-1, 1, 1);
-        }
-
-        if (GameManager.Instance.enemies != null)
-        {
-            foreach (Enemy enemy in GameManager.Instance.enemies)
-            {
-                if (enemy != null)
-                {
-                    Vector2 directionToEnemy = (enemy.transform.position - transform.position);
-                    float distanceToEnemy = directionToEnemy.magnitude;
-
-                    if (distanceToEnemy <= attackRange)
-                    {
-                        float angle = Vector2.Angle(directionToTarget, directionToEnemy);
-                        if (angle <= attackAngle / 2f)
-                        {
-                            enemy.TakeDamage(damage);
-                        }
-                    }
-                }
-            }
-        }
+        // í¼ì„¼íŠ¸ë¥¼ ì†Œìˆ˜ì ìœ¼ë¡œ ë³€í™˜ (ì˜ˆ: 100% -> 1.0)
+        float multiplierIncrease = percentage / 100f;
+        attackSpeedMultiplier += multiplierIncrease;
+        UpdateAttackSpeed();
+        Debug.Log($"Attack speed multiplier increased by {percentage}% (total multiplier: {attackSpeedMultiplier:F2})");
     }
 
-    public void IncreaseAttackSpeed(float amount)
-    {
-        attackSpeed += amount;
-    }
-
+    // ê³µê²© ë²”ìœ„ ì¦ê°€ ë©”ì„œë“œ
     public void IncreaseAttackRange(float amount)
     {
         attackRange += amount;
     }
     #endregion
+
+    #region Passive Skill Effects
+    public void IncreaseDamage(float amount)
+    {
+        damageMultiplier += amount / 100f;  // percentage to multiplier
+        UpdateDamage();
+        Debug.Log($"Damage multiplier: {damageMultiplier}, Current damage: {damage}");
+    }
+
+    public void IncreaseDefense(float amount)
+    {
+        defenseMultiplier += amount / 100f;  // percentage to multiplier
+        UpdateDefense();
+    }
+
+    public void IncreaseExpArea(float amount)
+    {
+        expAreaMultiplier += amount / 100f;  // percentage to multiplier
+        UpdateExpCollectionRadius();
+    }
+
+    public void ActivateHoming(bool activate)
+    {
+        isHomingActivated = activate;
+
+        if (skills == null) return;
+
+        foreach (var skill in skills)
+        {
+            // ìŠ¤í‚¬ì´ ProjectileSkills íƒ€ì…ì¸ì§€ í™•ì¸
+            if (skill is ProjectileSkills projectileSkill)
+            {
+                // ìŠ¤í‚¬ì˜ ë©”íƒ€ë°ì´í„° í™•ì¸
+                var skillData = projectileSkill.GetSkillData();
+                if (skillData != null && skillData.metadata.Type == SkillType.Projectile)
+                {
+                    projectileSkill.UpdateHomingState(activate);
+                    Debug.Log($"Homing {(activate ? "activated" : "deactivated")} for {skillData.metadata.Name}");
+                }
+            }
+        }
+
+        if (activate)
+        {
+            Debug.Log("Homing effect activated for all projectile skills");
+        }
+        else
+        {
+            Debug.Log("Homing effect deactivated for all projectile skills");
+        }
+    }
+
+    public void IncreaseMaxHP(float amount)
+    {
+        maxHpMultiplier += amount / 100f;  // percentage to multiplier
+        UpdateMaxHP();
+    }
+
+    public void IncreaseMoveSpeed(float percentage)
+    {
+        // í¼ì„¼íŠ¸ë¥¼ ì†Œìˆ˜ì ìœ¼ë¡œ ë³€í™˜ (ì˜ˆ: 100% -> 1.0)
+        float multiplierIncrease = percentage / 100f;
+        moveSpeedMultiplier += multiplierIncrease;
+        UpdateMoveSpeed();
+        Debug.Log($"Move speed multiplier increased by {percentage}% (total multiplier: {moveSpeedMultiplier:F2})");
+    }
+
+    private void UpdateMoveSpeed()
+    {
+        float baseSpeed = 5f + (level - 1) * speedIncreasePerLevel;  // ê¸°ë³¸ ì†ë„ + ë ˆë²¨ì—…ìœ¼ë¡œ ì¸í•œ ì¦ê°€
+        moveSpeed = baseSpeed * moveSpeedMultiplier;
+        Debug.Log($"Updated move speed: base={baseSpeed}, multiplier={moveSpeedMultiplier}, final={moveSpeed}");
+    }
+
+    private void UpdateDamage()
+    {
+        float baseDamage = 5f;  // ê¸°ë³¸ ë°ë¯¸ì§€ ê°’ ì¶”ê°€
+        float levelBaseDamage = baseDamage + (level - 1) * damageIncreasePerLevel;
+        damage = levelBaseDamage * damageMultiplier;
+    }
+
+    private void UpdateDefense()
+    {
+        float baseDefenseValue = baseDefense * (1 + (level - 1) * defenseIncreasePerLevel);
+        defense = baseDefenseValue * defenseMultiplier;
+    }
+
+    private void UpdateExpCollectionRadius()
+    {
+        expCollectionRadius = baseExpCollectionRadius * expAreaMultiplier;
+    }
+
+    private void UpdateMaxHP()
+    {
+        float baseMaxHp = 100f + (level - 1) * hpIncreasePerLevel;  // ê¸°ë³¸ HP + ë ˆë²¨ì—…ìœ¼ë¡œ ì¸í•œ ì¦ê°€
+        float newMaxHp = baseMaxHp * maxHpMultiplier;
+
+        // HP ë¹„ìœ¨ ìœ ì§€í•˜ë©´ì„œ ìµœëŒ€ HP ë³€ê²½
+        float hpRatio = hp / maxHp;
+        maxHp = newMaxHp;
+        hp = maxHp * hpRatio;
+    }
+
+    // ëª¨ë“  íŒ¨ì‹œë¸Œ íš¨ê³¼ ì´ˆê¸°í™”
+    public void ResetPassiveEffects()
+    {
+        damageMultiplier = 1f;
+        defenseMultiplier = 1f;
+        expAreaMultiplier = 1f;
+        isHomingActivated = false;
+        maxHpMultiplier = 1f;
+        moveSpeedMultiplier = 1f;
+        attackSpeedMultiplier = 1f;
+        hpRegenMultiplier = 1f;
+
+        UpdateDamage();
+        UpdateDefense();
+        UpdateExpCollectionRadius();
+        UpdateMaxHP();
+        UpdateMoveSpeed();
+        UpdateAttackSpeed();
+        ActivateHoming(false);
+    }
+    #endregion
+
+    public void ResetAllStats()
+    {
+        ResetPassiveEffects();
+    }
+
+    public bool AddOrUpgradeSkill(SkillData skillData)
+    {
+        if (skillData == null) return false;
+
+        var existingSkill = skills.Find(s => s.SkillID == skillData.metadata.ID);
+
+        if (existingSkill != null)
+        {
+            if (existingSkill.SkillLevel >= existingSkill.MaxSkillLevel)
+            {
+                Debug.LogWarning($"Skill {skillData.metadata.Name} is already at max level");
+                return false;
+            }
+
+            return existingSkill.SkillLevelUpdate(existingSkill.SkillLevel + 1);
+        }
+        else
+        {
+            try
+            {
+                GameObject skillObj = Instantiate(skillData.metadata.Prefab, transform);
+                if (skillObj.TryGetComponent<Skill>(out Skill newSkill))
+                {
+                    newSkill.SetSkillData(skillData);
+                    skills.Add(newSkill);
+                    return true;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error adding new skill: {e.Message}");
+            }
+        }
+
+        return false;
+    }
+
+    public void RemoveSkill(SkillID skillID)
+    {
+        var skillToRemove = skills.Find(s => s.SkillID == skillID);
+        if (skillToRemove != null)
+        {
+            skills.Remove(skillToRemove);
+            Destroy(skillToRemove.gameObject);
+        }
+    }
+
+    private void UpdateHealthRegeneration()
+    {
+        if (Time.time >= lastRegenTime + REGEN_TICK_RATE)
+        {
+            float regenAmount = baseHpRegenRate * hpRegenMultiplier;
+            TakeHeal(regenAmount);
+            lastRegenTime = Time.time;
+        }
+    }
+
+    public void IncreaseHPRegenRate(float percentage)
+    {
+        hpRegenMultiplier += percentage / 100f;
+        Debug.Log($"HP Regen multiplier increased to: {hpRegenMultiplier}");
+    }
+    private void UpdateAttackSpeed()
+    {
+        float baseAttackSpeed = 1f;  // ê¸°ë³¸ ì´ˆë‹¹ ê³µê²© íšŸìˆ˜
+        attackSpeed = baseAttackSpeed * attackSpeedMultiplier;
+        Debug.Log($"Updated attack speed: base={baseAttackSpeed}, multiplier={attackSpeedMultiplier}, final={attackSpeed}");
+    }
+
+    public float CurrentDamage => damage;
+    public float CurrentDefense => defense;
+    public float CurrentMoveSpeed => moveSpeed;
+    public float CurrentAttackSpeed => attackSpeed;
+    public float CurrentAttackRange => attackRange;
+    public float CurrentExpCollectionRadius => expCollectionRadius;
+
+    private bool IsPlayingAttackAnimation()
+    {
+        return playerStatus == Status.Attacking;
+    }
+
+
+
 }

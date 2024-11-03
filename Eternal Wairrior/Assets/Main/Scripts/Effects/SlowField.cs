@@ -7,16 +7,18 @@ public class SlowField : MonoBehaviour
     private float damage;
     private float radius;
     private float duration;
-    public float tickRate;
+    private float tickRate;
     private float remainingTime;
+    private float nextTickTime;
 
-    public void Initialize(float damage, float radius, float duration,float tickRate)
+    public void Initialize(float damage, float radius, float duration, float tickRate)
     {
         this.damage = damage;
         this.radius = radius;
         this.duration = duration;
         this.remainingTime = duration;
         this.tickRate = tickRate;
+        this.nextTickTime = 0f;
         transform.localScale = Vector3.one * radius;
     }
 
@@ -29,7 +31,11 @@ public class SlowField : MonoBehaviour
             return;
         }
 
-        ApplyEffects();
+        if (Time.time >= nextTickTime)
+        {
+            ApplyEffects();
+            nextTickTime = Time.time + tickRate;
+        }
     }
 
     private void ApplyEffects()
@@ -40,7 +46,7 @@ public class SlowField : MonoBehaviour
         {
             if (collider.TryGetComponent<Enemy>(out Enemy enemy))
             {
-                enemy.ApplyDotDamage(damage,tickRate,duration);
+                enemy.TakeDamage(damage);
                 enemy.ApplySlowEffect(slowAmount, tickRate * 2f);
             }
         }

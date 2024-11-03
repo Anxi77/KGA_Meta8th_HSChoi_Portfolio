@@ -2,11 +2,11 @@
     "skillDatas": [
         {
             "metadata": {
-                "ID": 100003,
+                "ID": 100001,
                 "Name": "New Skill",
                 "Description": "New skill description",
-                "Type": 1,
-                "Element": 3,
+                "Type": 0,
+                "Element": 0,
                 "Tier": 1,
                 "Tags": [],
                 "Prefab": {
@@ -43,9 +43,18 @@
                 "moveSpeed": 0.0
             },
             "passiveStat": {
+                "hpIncrease": 0.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
                 "effectDuration": 0.0,
                 "cooldown": 0.0,
-                "triggerChance": 0.0
+                "triggerChance": 100.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
             }
         }
     ]

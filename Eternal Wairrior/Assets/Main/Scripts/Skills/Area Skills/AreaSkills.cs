@@ -86,4 +86,27 @@ public abstract class AreaSkills : Skill
         }
     }
     #endregion
+
+    protected override void UpdateSkillTypeStats(ISkillStat newStats)
+    {
+        if (newStats is AreaSkillStat areaStats)
+        {
+            UpdateInspectorValues(areaStats);
+        }
+    }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = skillData?.metadata?.Description ?? "Area skill description";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage: {Damage:F1}" +
+                       $"\nRadius: {Radius:F1}" +
+                       $"\nDuration: {Duration:F1}s" +
+                       $"\nTick Rate: {TickRate:F1}s" +
+                       $"\nMove Speed: {MoveSpeed:F1}";
+        }
+        return baseDesc;
+    }
 }

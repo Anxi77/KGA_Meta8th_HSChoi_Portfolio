@@ -8,6 +8,10 @@ public class Bind : AreaSkills
     private List<BindEffect> spawnedBindEffects = new List<BindEffect>();
     private Transform playerTransform;
 
+    protected override string GetDefaultSkillName() => "Bind";
+    protected override string GetDefaultDescription() => "Creates a binding area that restricts enemy movement";
+    protected override SkillType GetSkillType() => SkillType.Area;
+
     protected override void Awake()
     {
         base.Awake();

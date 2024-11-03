@@ -4,8 +4,8 @@ public class Orbit : AreaSkills
 {
     private RotatingOrb orbs;
     private int currentOrbCount = 0;
-    [SerializeField]private int ORBS_PER_LEVEL = 2;
-    [SerializeField]private int BASE_ORB_COUNT = 1;
+    [SerializeField] private int ORBS_PER_LEVEL = 2;
+    [SerializeField] private int BASE_ORB_COUNT = 1;
 
     protected override void Awake()
     {
@@ -88,5 +88,24 @@ public class Orbit : AreaSkills
 
         return success;
     }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = "Rotating orbs that damage enemies";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            int orbCount = BASE_ORB_COUNT + (SkillLevel - 1) * ORBS_PER_LEVEL;
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage per Orb: {Damage:F1}" +
+                       $"\nOrb Count: {orbCount}" +
+                       $"\nOrbit Radius: {Radius:F1}" +
+                       $"\nRotation Speed: {MoveSpeed:F1}";
+        }
+        return baseDesc;
+    }
+
+    protected override SkillType GetSkillType() => SkillType.Area;
+    protected override string GetDefaultSkillName() => "Orbit";
+    protected override string GetDefaultDescription() => "Rotating orbs that damage enemies";
 }
 

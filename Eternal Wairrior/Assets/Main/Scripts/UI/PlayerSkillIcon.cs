@@ -6,18 +6,37 @@ using TMPro;
 
 public class PlayerSkillIcon : MonoBehaviour
 {
-    public Image skillIcon;
-    public TextMeshProUGUI skillTierText;
-    public void SetSkillIcon(SkillData skillData,Skill skill)
+    [SerializeField] private Image iconImage;
+    private Skill skill;
+
+    public void SetSkillIcon(Sprite iconSprite, Skill skill)
     {
-        if (skillIcon != null)
+        if (iconImage != null)
         {
-            skillIcon.sprite = skillData.icon?.sprite;
-            skillIcon.gameObject.SetActive(skillData.icon != null);
-        }        
-        if(skillTierText != null) 
+            if (iconSprite == null)
+            {
+                iconSprite = Resources.Load<Sprite>("DefaultSkillIcon");
+                Debug.LogWarning($"Using default icon for skill: {skill?.GetType().Name}");
+            }
+            iconImage.sprite = iconSprite;
+            iconImage.gameObject.SetActive(iconSprite != null);
+        }
+        else
         {
-            skillTierText.text = skill.SkillLevel.ToString(); 
+            Debug.LogError("Icon Image component is missing!");
+        }
+        this.skill = skill;
+    }
+
+    private void OnValidate()
+    {
+        if (iconImage == null)
+        {
+            iconImage = GetComponent<Image>();
+            if (iconImage == null)
+            {
+                Debug.LogError("PlayerSkillIcon requires an Image component!");
+            }
         }
     }
 }

@@ -23,7 +23,7 @@ public class SkillData
     public SkillMetadata metadata;
     private Dictionary<int, ISkillStat> statsByLevel;
 
-    public Image icon;
+    public Sprite icon;
     public GameObject projectile;
     public GameObject[] prefabsByLevel;
     public ProjectileSkillStat projectileStat;
@@ -47,7 +47,64 @@ public class SkillData
 
     public void SetStatsForLevel(int level, ISkillStat stats)
     {
+        // 기본 유효성 검사
+        if (stats == null)
+        {
+            Debug.LogError($"Attempting to set null stats for level {level}");
+            return;
+        }
+
+        if (level <= 0)
+        {
+            Debug.LogError($"Invalid level: {level}");
+            return;
+        }
+
+        // 스킬 타입 검증
+        bool isValidType = stats switch
+        {
+            ProjectileSkillStat _ when metadata.Type == SkillType.Projectile => true,
+            AreaSkillStat _ when metadata.Type == SkillType.Area => true,
+            PassiveSkillStat _ when metadata.Type == SkillType.Passive => true,
+            _ => false
+        };
+
+        if (!isValidType)
+        {
+            Debug.LogError($"Stat type mismatch. Expected {metadata.Type} but got {stats.GetType().Name}");
+            return;
+        }
+
+        // 레벨 순서 검증
+        if (level > 1 && !statsByLevel.ContainsKey(level - 1))
+        {
+            Debug.LogWarning($"Setting stats for level {level} but level {level - 1} doesn't exist");
+        }
+
+        // 스탯 업데이트
+        if (statsByLevel.ContainsKey(level))
+        {
+            Debug.Log($"Overwriting existing stats for level {level}");
+        }
+
+        // 스킬 타입별 참조 업데이트
+        switch (stats)
+        {
+            case ProjectileSkillStat projectileStats:
+                projectileStat = projectileStats;
+                break;
+            case AreaSkillStat areaStats:
+                areaStat = areaStats;
+                break;
+            case PassiveSkillStat passiveStats:
+                passiveStat = passiveStats;
+                break;
+        }
+
+        // Dictionary에 저장
         statsByLevel[level] = stats;
+
+        Debug.Log($"Successfully set stats for {metadata.Name} level {level}");
     }
 
     public ISkillStat GetCurrentTypeStat()

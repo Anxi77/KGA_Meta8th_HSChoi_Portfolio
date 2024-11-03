@@ -52,4 +52,28 @@ public class ExplodingShot : ProjectileSkills
             skillData.SetStatsForLevel(1, stats);
         }
     }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = "Fires explosive projectiles that create area damage";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDirect Damage: {Damage:F1}" +
+                       $"\nExplosion Radius: {ExplosionRadius:F1}" +
+                       $"\nFire Rate: {1 / ShotInterval:F1} shots/s" +
+                       $"\nRange: {AttackRange:F1}";
+
+            if (IsHoming)
+            {
+                baseDesc += $"\nHoming Range: {HomingRange:F1}";
+            }
+        }
+        return baseDesc;
+    }
+
+    protected override string GetDefaultSkillName() => "Exploding Shot";
+    protected override string GetDefaultDescription() => "Fires explosive projectiles that create area damage";
+
+    protected override SkillType GetSkillType() => SkillType.Projectile;
 }

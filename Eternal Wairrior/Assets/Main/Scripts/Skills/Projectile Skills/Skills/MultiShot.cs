@@ -11,7 +11,7 @@ public class MultiShot : ProjectileSkills
         InitializeSkillStats();
     }
 
-    private void InitializeSkillData()
+    protected override void InitializeSkillData()
     {
         if (skillData == null)
         {
@@ -74,5 +74,30 @@ public class MultiShot : ProjectileSkills
             skillData.SetStatsForLevel(1, stats);
         }
     }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = "Fires multiple projectiles simultaneously";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage per Shot: {Damage:F1}" +
+                       $"\nNumber of Shots: {shotPoints.Length}" +
+                       $"\nFire Rate: {1 / ShotInterval:F1} volleys/s" +
+                       $"\nRange: {AttackRange:F1}" +
+                       $"\nPierce: {PierceCount}";
+
+            if (IsHoming)
+            {
+                baseDesc += $"\nHoming Range: {HomingRange:F1}";
+            }
+        }
+        return baseDesc;
+    }
+
+    protected override string GetDefaultSkillName() => "Multi Shot";
+    protected override string GetDefaultDescription() => "Fires multiple projectiles simultaneously";
+
+    protected override SkillType GetSkillType() => SkillType.Projectile;
 }
 

@@ -1,14 +1,13 @@
 using UnityEngine;
 using Lean.Pool;
 
-public class ExpParticle : MonoBehaviour,IContactable
+public class ExpParticle : MonoBehaviour, IContactable
 {
     public float expValue = 1f;
     public float moveSpeed = 5f;
     public float spreadSpeed = 2f;
-    [SerializeField]private float MAX_SPREAD_TIME = 0.5f;
+    [SerializeField] private float MAX_SPREAD_TIME = 0.5f;
 
-    private bool isAttracting = false;
     private Player player;
     private Vector2 velocity;
     private float spreadTime = 0f;
@@ -42,7 +41,6 @@ public class ExpParticle : MonoBehaviour,IContactable
         }
         else if (distanceToPlayer <= player.expCollectionRadius)
         {
-            isAttracting = true;
             Vector2 direction = ((Vector2)player.transform.position - (Vector2)transform.position).normalized;
 
             float distanceRatio = distanceToPlayer / player.expCollectionRadius;
@@ -54,7 +52,7 @@ public class ExpParticle : MonoBehaviour,IContactable
         }
     }
 
-    public void Contact() 
+    public void Contact()
     {
         player.GainExperience(expValue);
         PoolManager.Instance.Despawn<ExpParticle>(this);

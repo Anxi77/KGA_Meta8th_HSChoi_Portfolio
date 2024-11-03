@@ -1,1 +1,1 @@
-SkillID,Level,Damage,MaxSkillLevel,Element,ElementalPower,EffectDuration,Cooldown,TriggerChance
+skillid,level,damage,maxskilllevel,element,elementalpower,effectduration,cooldown,triggerchance,damageincrease,defenseincrease,expareaincrease,homingactivate,hpincrease,movespeedincrease,attackspeedincrease,attackrangeincrease,hpregenincrease

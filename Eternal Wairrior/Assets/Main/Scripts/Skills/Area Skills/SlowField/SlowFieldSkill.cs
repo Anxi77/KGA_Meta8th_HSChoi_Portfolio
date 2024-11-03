@@ -6,11 +6,10 @@ public class SlowFieldSkill : AreaSkills
 {
     [Header("Spawn Settings")]
     [SerializeField] private float cooldown = 8f;
-    [SerializeField] private float duration = 3f;
     [SerializeField] private float spawnRadius = 5f;
-    [SerializeField] private GameObject slowFieldPrefab;
     [SerializeField] private int baseFieldCount = 1;
     [SerializeField] private int additionalFieldPerLevel = 1;
+    [SerializeField] private GameObject slowFieldPrefab;
 
     private List<SlowField> activeFields = new List<SlowField>();
 
@@ -64,9 +63,9 @@ public class SlowFieldSkill : AreaSkills
         while (true)
         {
             SpawnFields();
-            yield return new WaitForSeconds(duration);
+            yield return new WaitForSeconds(Duration);
             DestroyFields();
-            yield return new WaitForSeconds(cooldown - duration);
+            yield return new WaitForSeconds(cooldown - Duration);
         }
     }
 
@@ -79,7 +78,7 @@ public class SlowFieldSkill : AreaSkills
             SlowField field = fieldObj.GetComponent<SlowField>();
             if (field != null)
             {
-                field.Initialize(Damage, Radius, duration, TickRate);
+                field.Initialize(Damage, Radius, Duration, TickRate);
                 activeFields.Add(field);
             }
         }
@@ -112,4 +111,24 @@ public class SlowFieldSkill : AreaSkills
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, spawnRadius);
     }
+
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = "Creates slowing fields that damage and slow enemies";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            int totalFields = baseFieldCount + (additionalFieldPerLevel * (SkillLevel - 1));
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage: {Damage:F1}" +
+                       $"\nField Count: {totalFields}" +
+                       $"\nField Radius: {Radius:F1}" +
+                       $"\nDuration: {Duration:F1}s" +
+                       $"\nCooldown: {cooldown:F1}s";
+        }
+        return baseDesc;
+    }
+
+    protected override string GetDefaultSkillName() => "Slow Field";
+    protected override string GetDefaultDescription() => "Creates slowing fields that damage and slow enemies";
+    protected override SkillType GetSkillType() => SkillType.Area;
 }

@@ -157,4 +157,32 @@ public class GravityProjectileSkill : ProjectileSkills
         _endSize *= levelMultiplier;
     }
 
+    public override string GetDetailedDescription()
+    {
+        string baseDesc = "Creates gravity wells that pull and damage enemies";
+        if (skillData?.GetCurrentTypeStat() != null)
+        {
+            baseDesc += $"\n\nCurrent Effects:" +
+                       $"\nDamage per Tick: {Damage:F1}" +
+                       $"\nGravity Force: {_gravityForce:F1}" +
+                       $"\nDamage Interval: {_gravityDamageInterval:F1}s" +
+                       $"\nInitial Size: {_startSize:F1}" +
+                       $"\nFinal Size: {_endSize:F1}" +
+                       $"\nGrowth Duration: {_growthDuration:F1}s" +
+                       $"\nRange: {AttackRange:F1}";
+
+            if (IsHoming)
+            {
+                baseDesc += $"\nHoming Range: {HomingRange:F1}";
+            }
+
+            baseDesc += $"\n\nPress {homingTriggerKey} to toggle homing mode";
+        }
+        return baseDesc;
+    }
+
+    protected override string GetDefaultSkillName() => "Gravity Shot";
+    protected override string GetDefaultDescription() => "Creates gravity wells that pull and damage enemies";
+    protected override SkillType GetSkillType() => SkillType.Projectile;
+
 }

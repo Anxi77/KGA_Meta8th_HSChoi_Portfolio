@@ -1,7 +1,11 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using Unity.VisualScripting;
+using System.Text;
+using System.Linq;
+using System;
 
 public class SkillDataManager : DataManager
 {
@@ -29,6 +33,7 @@ public class SkillDataManager : DataManager
     private const string SKILL_DATA_FILENAME = "SkillData.json";
 
     private Dictionary<SkillID, Dictionary<int, SkillStatData>> skillStatsByLevel;
+    private Dictionary<SkillID, List<SkillStatData>> skillStatsList = new Dictionary<SkillID, List<SkillStatData>>();
 
     protected override void Awake()
     {
@@ -81,7 +86,6 @@ public class SkillDataManager : DataManager
 
     private void CreateDefaultSkillData()
     {
-        // ±‚∫ª Ω∫≈≥ µ•¿Ã≈Õ ª˝º∫ ∑Œ¡˜
     }
 
     public void UpdateSkillData(SkillData updatedSkill)
@@ -121,15 +125,50 @@ public class SkillDataManager : DataManager
         return skillData;
     }
 
-    private void LoadSkillStatsFromCSV()
+    public void LoadSkillStatsFromCSV()
     {
-        TextAsset csvFile = Resources.Load<TextAsset>($"{RESOURCE_PATH}/ProjectileSkillStats");
-        if (csvFile == null)
+        try
         {
-            Debug.LogError("Ω∫≈≥ CSV ∑ŒµÂ Ω«∆–!");
-            return;
-        }
+            string[] fileNames = {
+                "ProjectileSkillStats",
+                "AreaSkillStats",
+                "PassiveSkillStats"
+            };
 
+            bool anyFileLoaded = false;
+            var tempStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
+
+            foreach (var fileName in fileNames)
+            {
+                TextAsset csvFile = Resources.Load<TextAsset>($"{RESOURCE_PATH}/{fileName}");
+                if (csvFile == null)
+                {
+                    Debug.LogWarning($"Failed to load {fileName}.csv");
+                    continue;
+                }
+
+                anyFileLoaded = true;
+                ProcessCSVFile(csvFile, fileName, tempStatsByLevel);
+            }
+
+            if (anyFileLoaded)
+            {
+                skillStatsByLevel = tempStatsByLevel;
+                Debug.Log("Successfully loaded skill stats from CSV files");
+            }
+            else
+            {
+                Debug.LogError("No skill stat CSV files were loaded!");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error loading skill stats: {e.Message}");
+        }
+    }
+
+    private void ProcessCSVFile(TextAsset csvFile, string fileName, Dictionary<SkillID, Dictionary<int, SkillStatData>> tempStats)
+    {
         string[] lines = csvFile.text.Split('\n');
         string[] headers = lines[0].Trim().Split(',');
 
@@ -138,16 +177,59 @@ public class SkillDataManager : DataManager
             string line = lines[i].Trim();
             if (string.IsNullOrEmpty(line)) continue;
 
-            string[] values = line.Split(',');
-
-            SkillStatData statData = ParseSkillStatLine(headers, values);
-
-            if (!skillStatsByLevel.ContainsKey(statData.skillID))
+            try
             {
-                skillStatsByLevel[statData.skillID] = new Dictionary<int, SkillStatData>();
-            }
+                string[] values = line.Split(',');
+                SkillStatData statData = ParseSkillStatLine(headers, values);
 
-            skillStatsByLevel[statData.skillID][statData.level] = statData;
+                if (statData.skillID == SkillID.None)
+                {
+                    Debug.LogWarning($"Invalid SkillID in {fileName} at line {i}");
+                    continue;
+                }
+
+                if (!tempStats.ContainsKey(statData.skillID))
+                {
+                    tempStats[statData.skillID] = new Dictionary<int, SkillStatData>();
+                }
+
+                if (ValidateSkillStat(statData))
+                {
+                    tempStats[statData.skillID][statData.level] = statData;
+
+                    // Ïä§ÌîÑÎùºÏù¥Ìä∏ Í≤ΩÎ°úÎèÑ CSVÏóê Ìè¨Ìï®ÏãúÌÇ§Í≥† Î°úÎìú
+                    if (headers.Contains("iconPath"))
+                    {
+                        string iconPath = values[Array.IndexOf(headers, "iconPath")];
+                        if (!string.IsNullOrEmpty(iconPath))
+                        {
+                            // Resources Ìè¥ÎçîÏóêÏÑú Ïä§ÌîÑÎùºÏù¥Ìä∏ Î°úÎìú
+                            Sprite icon = Resources.Load<Sprite>(iconPath);
+                            if (icon == null)
+                            {
+                                Debug.LogWarning($"Could not load sprite at path: {iconPath}");
+                            }
+                            else
+                            {
+                                // Ìï¥Îãπ Ïä§ÌÇ¨Ïùò SkillData Ï∞æÍ∏∞
+                                var skillData = skillDatas.Find(s => s.metadata.ID == statData.skillID);
+                                if (skillData != null)
+                                {
+                                    skillData.icon = icon;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"Invalid stat data in {fileName} at line {i}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error processing line {i} in {fileName}: {e.Message}");
+            }
         }
     }
 
@@ -160,7 +242,7 @@ public class SkillDataManager : DataManager
             string value = values[i].Trim();
             switch (headers[i].Trim().ToLower())
             {
-                // ±‚∫ª Ω∫≈≥
+                // Í∏∞Î≥∏ Ïä§ÌÇ¨
                 case "skillid":
                     if (System.Enum.TryParse(value, out SkillID skillID))
                         statData.skillID = skillID;
@@ -186,7 +268,7 @@ public class SkillDataManager : DataManager
                         statData.elementalPower = elementalPower;
                     break;
 
-                // ≈ıªÁ Ω∫≈≥
+                // Ìà¨ÏÇ¨ Ïä§ÌÇ¨
                 case "projectilespeed":
                     if (float.TryParse(value, out float speed))
                         statData.projectileSpeed = speed;
@@ -228,7 +310,7 @@ public class SkillDataManager : DataManager
                         statData.innerInterval = innerInterval;
                     break;
 
-                // π¸¿ß Ω∫≈≥
+                // Î≤îÏúÑ Ïä§ÌÇ¨
                 case "radius":
                     if (float.TryParse(value, out float radius))
                         statData.radius = radius;
@@ -250,7 +332,7 @@ public class SkillDataManager : DataManager
                         statData.moveSpeed = moveSpeed;
                     break;
 
-                // »ø∞˙ Ω∫≈≥
+                // Ìö®Í≥º Ïä§ÌÇ¨
                 case "effectduration":
                     if (float.TryParse(value, out float effectDuration))
                         statData.effectDuration = effectDuration;
@@ -264,6 +346,43 @@ public class SkillDataManager : DataManager
                         statData.triggerChance = triggerChance;
                     break;
 
+                // Ìå®ÏãúÎ∏å Ïä§ÌÇ¨ ÎàÑÎùΩÎêú Ïä§ÌÉØ Ï∂îÍ∞Ä
+                case "damageincrease":
+                    if (float.TryParse(value, out float damageIncrease))
+                        statData.damageIncrease = damageIncrease;
+                    break;
+                case "defenseincrease":
+                    if (float.TryParse(value, out float defenseIncrease))
+                        statData.defenseIncrease = defenseIncrease;
+                    break;
+                case "expareaincrease":
+                    if (float.TryParse(value, out float expAreaIncrease))
+                        statData.expAreaIncrease = expAreaIncrease;
+                    break;
+                case "homingactivate":
+                    if (bool.TryParse(value, out bool homingActivate))
+                        statData.homingActivate = homingActivate;
+                    break;
+                case "hpincrease":
+                    if (float.TryParse(value, out float hpIncrease))
+                        statData.hpIncrease = hpIncrease;
+                    break;
+                case "movespeedincrease":
+                    if (float.TryParse(value, out float moveSpeedInc))
+                        statData.moveSpeedIncrease = moveSpeedInc;
+                    break;
+                case "attackspeedincrease":
+                    if (float.TryParse(value, out float attackSpeedInc))
+                        statData.attackSpeedIncrease = attackSpeedInc;
+                    break;
+                case "attackrangeincrease":
+                    if (float.TryParse(value, out float attackRangeInc))
+                        statData.attackRangeIncrease = attackRangeInc;
+                    break;
+                case "hpregenincrease":
+                    if (float.TryParse(value, out float hpRegenInc))
+                        statData.hpRegenIncrease = hpRegenInc;
+                    break;
                 default:
                     Debug.LogWarning($"Unknown header: {headers[i]}");
                     break;
@@ -275,13 +394,70 @@ public class SkillDataManager : DataManager
 
     public ISkillStat GetSkillStatsForLevel(SkillID skillID, int level, SkillType skillType)
     {
-        if (skillStatsByLevel.TryGetValue(skillID, out var levelStats) &&
-            levelStats.TryGetValue(level, out var statData))
+        if (!ValidateSkillRequest(skillID, level, skillType, out string errorMessage))
         {
-            return statData.CreateSkillStat(skillType);
+            Debug.LogError(errorMessage);
+            return null;
         }
 
-        return null;
+        try
+        {
+            if (skillStatsByLevel.TryGetValue(skillID, out var levelStats))
+            {
+                if (levelStats.TryGetValue(level, out var statData))
+                {
+                    if (statData.ValidateStats())
+                    {
+                        var skillStat = statData.CreateSkillStat(skillType);
+                        if (skillStat != null)
+                        {
+                            return skillStat;
+                        }
+                        throw new System.Exception("Failed to create skill stat");
+                    }
+                    throw new System.Exception($"Invalid stat values for skill {skillID} level {level}");
+                }
+                throw new System.Exception($"Stats for level {level} not found");
+            }
+            throw new System.Exception($"No stats found for skill {skillID}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error getting skill stats: {e.Message}");
+            return null;
+        }
+    }
+
+    private bool ValidateSkillRequest(SkillID skillID, int level, SkillType skillType, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+
+        if (skillID == SkillID.None)
+        {
+            errorMessage = "Invalid SkillID: None";
+            return false;
+        }
+
+        if (level <= 0)
+        {
+            errorMessage = $"Invalid level requested for {skillID}: {level}";
+            return false;
+        }
+
+        var skillData = GetSkillData(skillID);
+        if (skillData == null)
+        {
+            errorMessage = $"Skill data not found for {skillID}";
+            return false;
+        }
+
+        if (skillData.metadata.Type != skillType)
+        {
+            errorMessage = $"Skill type mismatch. Expected {skillType} but got {skillData.metadata.Type}";
+            return false;
+        }
+
+        return true;
     }
 
     protected override void SaveData<T>(string fileName, T data)
@@ -352,4 +528,204 @@ public class SkillDataManager : DataManager
         SaveDataInEditor(SKILL_DATA_FILENAME, wrapper);
     }
 #endif
+
+    public void UpdateSkillStatsData(Dictionary<SkillID, List<SkillStatData>> editorStats)
+    {
+        var backup = new Dictionary<SkillID, Dictionary<int, SkillStatData>>(skillStatsByLevel);
+        try
+        {
+            skillStatsByLevel.Clear();
+            foreach (var pair in editorStats)
+            {
+                skillStatsByLevel[pair.Key] = new Dictionary<int, SkillStatData>();
+                foreach (var stat in pair.Value)
+                {
+                    if (ValidateSkillStat(stat))
+                    {
+                        skillStatsByLevel[pair.Key][stat.level] = stat;
+                    }
+                    else
+                    {
+                        throw new System.Exception($"Invalid stat data for skill {pair.Key} level {stat.level}");
+                    }
+                }
+            }
+            Debug.Log("Successfully updated skill stats data");
+        }
+        catch (System.Exception e)
+        {
+            skillStatsByLevel = backup;
+            Debug.LogError($"Failed to update skill stats: {e.Message}. Reverting to previous data.");
+        }
+    }
+
+    private bool ValidateSkillStat(SkillStatData stat)
+    {
+        if (stat == null) return false;
+        if (stat.skillID == SkillID.None) return false;
+        if (stat.level <= 0) return false;
+        if (stat.maxSkillLevel <= 0) return false;
+        if (stat.damage < 0) return false;
+
+        var skillData = GetSkillData(stat.skillID);
+        if (skillData == null) return false;
+
+        switch (skillData.metadata.Type)
+        {
+            case SkillType.Projectile:
+                return ValidateProjectileStats(stat);
+            case SkillType.Area:
+                return ValidateAreaStats(stat);
+            case SkillType.Passive:
+                return ValidatePassiveStats(stat);
+            default:
+                return false;
+        }
+    }
+
+    private bool ValidateProjectileStats(SkillStatData stat)
+    {
+        if (stat.projectileSpeed <= 0) return false;
+        if (stat.projectileScale <= 0) return false;
+        if (stat.shotInterval <= 0) return false;
+        if (stat.pierceCount < 0) return false;
+        if (stat.attackRange <= 0) return false;
+        if (stat.projectileCount <= 0) return false;
+        return true;
+    }
+
+    private bool ValidateAreaStats(SkillStatData stat)
+    {
+        if (stat.radius <= 0) return false;
+        if (stat.duration <= 0) return false;
+        if (stat.tickRate <= 0) return false;
+        return true;
+    }
+
+    private bool ValidatePassiveStats(SkillStatData stat)
+    {
+        if (stat.effectDuration < 0) return false;
+        if (stat.cooldown < 0) return false;
+        if (stat.triggerChance < 0 || stat.triggerChance > 100) return false;
+        if (stat.damageIncrease < 0) return false;
+        if (stat.defenseIncrease < 0) return false;
+        if (stat.expAreaIncrease < 0) return false;
+        if (stat.hpIncrease < 0) return false;
+        if (stat.moveSpeedIncrease < 0) return false;
+        if (stat.attackSpeedIncrease < 0) return false;
+        if (stat.attackRangeIncrease < 0) return false;
+        if (stat.hpRegenIncrease < 0) return false;
+        return true;
+    }
+
+    public void SavePassiveSkillStats(string directory)
+    {
+        string path = Path.Combine(directory, "PassiveSkillStats.csv");
+        StringBuilder csv = new StringBuilder();
+
+        csv.AppendLine("skillid,level,damage,maxskilllevel,element,elementalpower," +
+                      "effectduration,cooldown,triggerchance,damageincrease,defenseincrease," +
+                      "expareaincrease,homingactivate,hpincrease," +
+                      "movespeedincrease,attackspeedincrease,attackrangeincrease,hpregenincrease");
+
+        foreach (var skillStats in skillStatsList.Values)
+        {
+            foreach (var stat in skillStats)
+            {
+                if (GetSkillType(stat.skillID) == SkillType.Passive)
+                {
+                    csv.AppendLine($"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
+                                 $"{stat.element},{stat.elementalPower},{stat.effectDuration}," +
+                                 $"{stat.cooldown},{stat.triggerChance},{stat.damageIncrease}," +
+                                 $"{stat.defenseIncrease},{stat.expAreaIncrease},{stat.homingActivate}," +
+                                 $"{stat.hpIncrease},{stat.moveSpeedIncrease},{stat.attackSpeedIncrease}," +
+                                 $"{stat.attackRangeIncrease},{stat.hpRegenIncrease}");
+                }
+            }
+        }
+
+        File.WriteAllText(path, csv.ToString());
+        Debug.Log($"Saved passive skill stats to: {path}");
+    }
+
+    private void LoadSkillStatsFromCSV(string fileName)
+    {
+        TextAsset csvFile = Resources.Load<TextAsset>(fileName);
+        if (csvFile != null)
+        {
+            string[] lines = csvFile.text.Split('\n');
+            string[] headers = lines[0].Trim().Split(',');
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+
+                string[] values = line.Split(',');
+                SkillStatData statData = ParseSkillStatLine(headers, values);
+
+                if (statData.skillID == SkillID.None)
+                {
+                    Debug.LogWarning($"Invalid SkillID in {fileName} at line {i}");
+                    continue;
+                }
+
+                if (!skillStatsList.ContainsKey(statData.skillID))
+                {
+                    skillStatsList[statData.skillID] = new List<SkillStatData>();
+                }
+
+                var existingStat = skillStatsList[statData.skillID].Find(s => s.level == statData.level);
+                if (existingStat != null)
+                {
+                    int index = skillStatsList[statData.skillID].IndexOf(existingStat);
+                    skillStatsList[statData.skillID][index] = statData;
+                }
+                else
+                {
+                    skillStatsList[statData.skillID].Add(statData);
+                }
+
+                Debug.Log($"Loaded stats for skill {statData.skillID} level {statData.level}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Could not find CSV file: {fileName}");
+        }
+    }
+
+    public bool ValidateSkillData(SkillData skillData)
+    {
+        if (skillData == null || skillData.metadata == null)
+        {
+            Debug.LogError("Invalid skill data: null reference");
+            return false;
+        }
+
+        var stats = GetSkillStatsForLevel(skillData.metadata.ID, 1, skillData.metadata.Type);
+        if (stats == null)
+        {
+            Debug.LogError($"No stats found for skill {skillData.metadata.Name}");
+            return false;
+        }
+
+        if (skillData.metadata.Type == SkillType.Passive)
+        {
+            var passiveStats = stats as PassiveSkillStat;
+            if (passiveStats == null)
+            {
+                Debug.LogError($"Invalid passive stats for skill {skillData.metadata.Name}");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private SkillType GetSkillType(SkillID skillID)
+    {
+        var skillData = skillDatas.Find(x => x.metadata.ID == skillID);
+        return skillData?.metadata.Type ?? SkillType.None;
+    }
 }
