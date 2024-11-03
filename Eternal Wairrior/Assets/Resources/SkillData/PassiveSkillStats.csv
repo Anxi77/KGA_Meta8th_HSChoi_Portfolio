@@ -1,5 +1,5 @@
 skillid,level,damage,maxskilllevel,element,elementalpower,effectduration,cooldown,triggerchance,damageincrease,defenseincrease,expareaincrease,homingactivate,hpincrease,movespeedincrease,attackspeedincrease,attackrangeincrease,hpregenincrease
-AbyssalExpansion,1,10,5,None,1,5,10,100,0,0,0,False,0,0,0,10,0
+AbyssalExpansion,1,10,5,None,2,5,10,100,0,0,0,False,0,0,0,10,0
 AbyssalExpansion,2,10,5,None,1,5,10,100,0,0,0,False,0,0,0,10,0
 AbyssalExpansion,3,10,5,None,1,5,10,100,0,0,0,False,0,0,0,10,0
 AbyssalExpansion,4,10,5,None,1,5,10,100,0,0,0,False,0,0,0,10,0
