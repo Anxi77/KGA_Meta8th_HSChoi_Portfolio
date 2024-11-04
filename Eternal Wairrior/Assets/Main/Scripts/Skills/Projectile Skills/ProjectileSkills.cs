@@ -228,10 +228,8 @@ public abstract class ProjectileSkills : Skill
 
         Debug.Log($"[ProjectileSkills] Before Update - Level: {_skillLevel}");
 
-        // 레벨 업데이트
-        _skillLevel = stats.baseStat.skillLevel;  // 인스펙터 값만 업데이트
+        _skillLevel = stats.baseStat.skillLevel;
 
-        // 나머지 스탯 업데이트
         _damage = stats.baseStat.damage;
         _elementalPower = stats.baseStat.elementalPower;
         _projectileSpeed = stats.projectileSpeed;

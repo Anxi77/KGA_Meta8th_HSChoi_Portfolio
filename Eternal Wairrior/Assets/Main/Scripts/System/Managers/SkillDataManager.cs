@@ -5,6 +5,7 @@ using UnityEditor;
 using Unity.VisualScripting;
 using System.Text;
 using System.Linq;
+using System.Collections;
 
 public class SkillDataManager : DataManager
 {
@@ -29,10 +30,15 @@ public class SkillDataManager : DataManager
 
     private List<SkillData> skillDatas = new List<SkillData>();
     private const string RESOURCE_PATH = "SkillData";
+    private const string PREFAB_PATH = "SkillData/Prefabs";
+    private const string ICON_PATH = "SkillData/Icons";
     private const string SKILL_DATA_FILENAME = "SkillData.json";
 
     private Dictionary<SkillID, Dictionary<int, SkillStatData>> skillStatsByLevel;
     private Dictionary<SkillID, List<SkillStatData>> skillStatsList = new Dictionary<SkillID, List<SkillStatData>>();
+
+    private bool isInitialized = false;
+    public bool IsInitialized => isInitialized;
 
     protected override void Awake()
     {
@@ -48,10 +54,23 @@ public class SkillDataManager : DataManager
         }
 
         base.Awake();
+        StartCoroutine(Initialize());
+    }
 
+    private IEnumerator Initialize()
+    {
         skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
         LoadSkillStatsFromCSV();
         LoadAllSkillData();
+
+        // 모든 데이터가 로드될 때까지 대기
+        while (skillDatas == null || !skillStatsByLevel.Any())
+        {
+            yield return null;
+        }
+
+        isInitialized = true;
+        Debug.Log("SkillDataManager initialization completed");
     }
 
     public List<SkillData> GetAllSkillData()
@@ -62,7 +81,113 @@ public class SkillDataManager : DataManager
     public void SaveAllSkillData()
     {
 #if UNITY_EDITOR
-        SaveAllSkillDataInEditor();
+        try
+        {
+            foreach (var skill in skillDatas)
+            {
+                if (skill.metadata.ID == SkillID.None) continue;
+
+                // 아이콘 참조 업데이트
+                string iconPath = $"{ICON_PATH}/{skill.metadata.ID}_Icon";
+                Sprite icon = Resources.Load<Sprite>(iconPath);
+                if (icon != null)
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(icon);
+                    Sprite iconAsset = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+                    // SkillData의 icon 필드와 metadata의 Icon 필드 모두 설정
+                    skill.icon = iconAsset;
+                    skill.metadata.Icon = iconAsset;
+                    Debug.Log($"Updated icon reference: {assetPath} (InstanceID: {iconAsset.GetInstanceID()})");
+                }
+
+                // 메타데이터 프리팹 참조 업데이트
+                string metadataPrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Metadata";
+                GameObject metadataPrefab = Resources.Load<GameObject>(metadataPrefabPath);
+                if (metadataPrefab != null)
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(metadataPrefab);
+                    GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+                    skill.metadata.Prefab = prefabAsset;
+                    Debug.Log($"Updated metadata prefab reference: {assetPath} (InstanceID: {prefabAsset.GetInstanceID()})");
+                }
+
+                // 프로젝타일 프리팹 참조 업데이트
+                if (skill.metadata.Type == SkillType.Projectile)
+                {
+                    string projectilePrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Projectile";
+                    GameObject projectilePrefab = Resources.Load<GameObject>(projectilePrefabPath);
+                    if (projectilePrefab != null)
+                    {
+                        string assetPath = AssetDatabase.GetAssetPath(projectilePrefab);
+                        GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+                        skill.projectile = prefabAsset;
+                        Debug.Log($"Updated projectile prefab reference: {assetPath} (InstanceID: {prefabAsset.GetInstanceID()})");
+                    }
+                }
+
+                // 레벨별 프리팹 참조 업데이트
+                if (skill.prefabsByLevel != null)
+                {
+                    for (int i = 0; i < skill.prefabsByLevel.Length; i++)
+                    {
+                        string levelPrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Level_{i + 1}";
+                        GameObject levelPrefab = Resources.Load<GameObject>(levelPrefabPath);
+                        if (levelPrefab != null)
+                        {
+                            string assetPath = AssetDatabase.GetAssetPath(levelPrefab);
+                            GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+                            skill.prefabsByLevel[i] = prefabAsset;
+                            Debug.Log($"Updated level {i + 1} prefab reference: {assetPath} (InstanceID: {prefabAsset.GetInstanceID()})");
+                        }
+                    }
+                }
+            }
+
+            // 저장 전 검증
+            foreach (var skill in skillDatas)
+            {
+                if (skill.icon != null && skill.metadata.Icon == null)
+                {
+                    Debug.LogError($"Icon mismatch for skill {skill.metadata.Name}: icon is set but metadata.Icon is null");
+                    skill.metadata.Icon = skill.icon;
+                }
+            }
+
+            // JSON으로 저장
+            SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillDatas };
+            string jsonData = JsonUtility.ToJson(wrapper, true);
+            string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
+            string path = Path.Combine(directory, SKILL_DATA_FILENAME);
+
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(path, jsonData);
+
+            // 저장된 JSON 파일 검증
+            string savedJson = File.ReadAllText(path);
+            SkillDataWrapper savedWrapper = JsonUtility.FromJson<SkillDataWrapper>(savedJson);
+            foreach (var skill in savedWrapper.skillDatas)
+            {
+                if (skill.metadata.Prefab != null)
+                {
+                    Debug.Log($"Verified metadata prefab for {skill.metadata.Name} - InstanceID: {skill.metadata.Prefab.GetInstanceID()}");
+                }
+                if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
+                {
+                    Debug.Log($"Verified projectile prefab for {skill.metadata.Name} - InstanceID: {skill.projectile.GetInstanceID()}");
+                }
+                if (skill.icon != null)
+                {
+                    Debug.Log($"Verified icon for {skill.metadata.Name} - InstanceID: {skill.icon.GetInstanceID()}");
+                }
+            }
+
+            Debug.Log($"Successfully saved skill data to {path}");
+            AssetDatabase.Refresh();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to save skill data: {e.Message}\n{e.StackTrace}");
+        }
 #else
         SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillDatas };
         SaveData(SKILL_DATA_FILENAME, wrapper);
@@ -490,10 +615,22 @@ public class SkillDataManager : DataManager
                         var skillStat = statData.CreateSkillStat(skillType);
                         if (skillStat != null)
                         {
-                            skillStat.baseStat.skillLevel = level;
+                            // Base Stats 설정 확인
+                            Debug.Log($"Base Stats for {skillID} level {level}:");
+                            Debug.Log($"Damage: {statData.damage}");
+                            Debug.Log($"Element: {statData.element}");
+                            Debug.Log($"Elemental Power: {statData.elementalPower}");
 
-                            Debug.Log($"Created skill stat for level {level}");
-                            Debug.Log($"Actual level in stat: {skillStat.baseStat.skillLevel}");
+                            // Base Stats 명시적 설정
+                            skillStat.baseStat = new BaseSkillStat
+                            {
+                                damage = statData.damage,
+                                skillLevel = level,
+                                maxSkillLevel = statData.maxSkillLevel,
+                                element = statData.element,
+                                elementalPower = statData.elementalPower,
+                                skillName = GetSkillData(skillID)?.metadata.Name ?? "Unknown"
+                            };
 
                             return skillStat;
                         }
@@ -840,7 +977,7 @@ public class SkillDataManager : DataManager
                         skillStatsList[statData.skillID] = new List<SkillStatData>();
                     }
 
-                    // 기존 레벨 스탯이 있다면 업데이트, 없다면 추가
+                    // 기존 레벨 탯이 있다면 업데이트, 없다면 추가
                     var existingStat = skillStatsList[statData.skillID].Find(s => s.level == statData.level);
                     if (existingStat != null)
                     {
@@ -900,5 +1037,30 @@ public class SkillDataManager : DataManager
     {
         var skillData = skillDatas.Find(x => x.metadata.ID == skillID);
         return skillData?.metadata.Type ?? SkillType.None;
+    }
+
+    public static string ResourcePath => RESOURCE_PATH;
+    public static string PrefabPath => PREFAB_PATH;
+    public static string IconPath => ICON_PATH;
+
+    public Sprite LoadSkillIcon(SkillID skillId)
+    {
+        string iconPath = $"{ICON_PATH}/{skillId}_Icon";
+        return Resources.Load<Sprite>(iconPath);
+    }
+
+    public GameObject LoadSkillPrefab(SkillID skillId, string suffix)
+    {
+        string prefabPath = $"{PREFAB_PATH}/{skillId}_{suffix}";
+        return Resources.Load<GameObject>(prefabPath);
+    }
+
+    public List<SkillStatData> GetSkillStatsListForID(SkillID skillID)
+    {
+        if (skillStatsByLevel.TryGetValue(skillID, out var levelStats))
+        {
+            return levelStats.Values.ToList();
+        }
+        return null;
     }
 }

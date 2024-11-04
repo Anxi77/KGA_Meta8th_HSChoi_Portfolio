@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 [System.Serializable]
 public class SkillStatData
@@ -48,7 +48,7 @@ public class SkillStatData
 
     public SkillStatData()
     {
-        // ±âº»°ª ÃÊ±âÈ­
+        // âº» Ê±È­
         skillID = SkillID.None;
         level = 1;
         damage = 10f;
@@ -56,7 +56,7 @@ public class SkillStatData
         element = ElementType.None;
         elementalPower = 1f;
 
-        // Projectile ±âº»°ª
+        // Projectile âº»
         projectileSpeed = 10f;
         projectileScale = 1f;
         shotInterval = 1f;
@@ -68,14 +68,14 @@ public class SkillStatData
         projectileCount = 1;
         innerInterval = 0.1f;
 
-        // Area ±âº»°ª
+        // Area âº»
         radius = 5f;
         duration = 3f;
         tickRate = 1f;
         isPersistent = false;
         moveSpeed = 0f;
 
-        // Passive ±âº»°ª
+        // Passive âº»
         effectDuration = 5f;
         cooldown = 10f;
         triggerChance = 100f;
@@ -135,19 +135,21 @@ public class SkillStatData
 
     public ISkillStat CreateSkillStat(SkillType skillType)
     {
+        var baseStats = new BaseSkillStat
+        {
+            damage = this.damage,
+            maxSkillLevel = this.maxSkillLevel,
+            skillLevel = this.level,
+            element = this.element,
+            elementalPower = this.elementalPower
+        };
+
         switch (skillType)
         {
             case SkillType.Projectile:
                 return new ProjectileSkillStat
                 {
-                    baseStat = new BaseSkillStat
-                    {
-                        damage = damage,
-                        maxSkillLevel = maxSkillLevel,
-                        skillLevel = level,
-                        element = element,
-                        elementalPower = elementalPower
-                    },
+                    baseStat = baseStats,
                     projectileSpeed = projectileSpeed,
                     projectileScale = projectileScale,
                     shotInterval = shotInterval,
@@ -163,14 +165,7 @@ public class SkillStatData
             case SkillType.Area:
                 return new AreaSkillStat
                 {
-                    baseStat = new BaseSkillStat
-                    {
-                        damage = damage,
-                        maxSkillLevel = maxSkillLevel,
-                        skillLevel = level,
-                        element = element,
-                        elementalPower = elementalPower
-                    },
+                    baseStat = baseStats,
                     radius = radius,
                     duration = duration,
                     tickRate = tickRate,
@@ -181,14 +176,7 @@ public class SkillStatData
             case SkillType.Passive:
                 return new PassiveSkillStat
                 {
-                    baseStat = new BaseSkillStat
-                    {
-                        damage = damage,
-                        maxSkillLevel = maxSkillLevel,
-                        skillLevel = level,
-                        element = element,
-                        elementalPower = elementalPower
-                    },
+                    baseStat = baseStats,
                     effectDuration = effectDuration,
                     cooldown = cooldown,
                     triggerChance = triggerChance,
@@ -210,7 +198,7 @@ public class SkillStatData
 
     public bool ValidateStats()
     {
-        // ±âº» ½ºÅÈ °ËÁõ
+        // âº» 
         if (level <= 0)
         {
             Debug.LogError($"Invalid level value for skill {skillID}: {level}");
@@ -227,7 +215,7 @@ public class SkillStatData
             return false;
         }
 
-        // ½ºÅ³ Å¸ÀÔº° °ËÁõ
+        // Å¸Ôº
         var skillData = SkillDataManager.Instance.GetSkillData(skillID);
         if (skillData == null)
         {
