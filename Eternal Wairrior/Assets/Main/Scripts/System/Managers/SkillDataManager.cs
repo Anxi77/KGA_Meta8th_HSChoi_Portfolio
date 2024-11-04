@@ -4,6 +4,7 @@ using System.IO;
 using UnityEditor;
 using Unity.VisualScripting;
 using System.Text;
+using System.Linq;
 
 public class SkillDataManager : DataManager
 {
@@ -146,7 +147,36 @@ public class SkillDataManager : DataManager
                 }
 
                 anyFileLoaded = true;
+                string[] lines = csvFile.text.Split('\n');
+
+                // CSV 파일 내용 출력
+                Debug.Log($"Loading {fileName}.csv contents:");
+                foreach (var line in lines)
+                {
+                    Debug.Log(line);
+                }
+
                 ProcessCSVFile(csvFile, fileName, tempStatsByLevel);
+
+                // 로드된 스탯 데이터 검증
+                foreach (var skillStats in tempStatsByLevel)
+                {
+                    Debug.Log($"Loaded stats for skill {skillStats.Key}:");
+                    var levels = skillStats.Value.Keys.OrderBy(k => k).ToList();
+                    foreach (var level in levels)
+                    {
+                        Debug.Log($"Level {level} stats found");
+                    }
+
+                    // 레벨 연속성 검사
+                    for (int i = 1; i < levels.Count; i++)
+                    {
+                        if (levels[i] != levels[i - 1] + 1)
+                        {
+                            Debug.LogError($"Missing level data for skill {skillStats.Key} between levels {levels[i - 1]} and {levels[i]}");
+                        }
+                    }
+                }
             }
 
             if (anyFileLoaded)
@@ -161,7 +191,7 @@ public class SkillDataManager : DataManager
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error loading skill stats: {e.Message}");
+            Debug.LogError($"Error loading skill stats: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -175,7 +205,8 @@ public class SkillDataManager : DataManager
 
         try
         {
-            string[] lines = csvFile.text.Split('\n');
+            // 줄바꿈 문자 통일
+            string[] lines = csvFile.text.Replace("\r\n", "\n").Split('\n');
             if (lines.Length <= 1)
             {
                 Debug.LogError($"CSV file is empty or contains only headers: {fileName}");
@@ -193,40 +224,36 @@ public class SkillDataManager : DataManager
                 string[] values = line.Split(',');
                 if (values.Length != headers.Length)
                 {
-                    Debug.LogWarning($"Line {i} has incorrect number of values. Expected {headers.Length}, got {values.Length}");
+                    Debug.LogWarning($"Line {i} has incorrect number of values in {fileName}. Expected {headers.Length}, got {values.Length}");
+                    Debug.LogWarning($"Line content: {line}");
                     continue;
                 }
+
+                // 빈 값이나 공백만 있는 값 필터링
+                if (values.All(v => string.IsNullOrWhiteSpace(v))) continue;
 
                 SkillStatData statData = ParseSkillStatLine(headers, values);
-                if (statData == null || statData.skillID == SkillID.None)
+                if (statData != null && statData.skillID != SkillID.None)
                 {
-                    Debug.LogError($"Failed to parse line {i}: {line}");
-                    continue;
-                }
+                    if (statData.level < 1)
+                    {
+                        Debug.LogError($"Invalid level in CSV: {statData.level}. Levels should start from 1");
+                        continue;
+                    }
 
-                // 스킬 타입 확인
-                var skillType = GetSkillType(statData.skillID);
-                if (skillType == SkillType.Passive)
-                {
-                    Debug.Log($"Loading passive skill stats from CSV - ID: {statData.skillID}, Level: {statData.level}\n" +
-                             $"moveSpeed: {statData.moveSpeedIncrease}\n" +
-                             $"attackSpeed: {statData.attackSpeedIncrease}\n" +
-                             $"attackRange: {statData.attackRangeIncrease}\n" +
-                             $"hpRegen: {statData.hpRegenIncrease}");
-                }
+                    if (!tempStats.ContainsKey(statData.skillID))
+                    {
+                        tempStats[statData.skillID] = new Dictionary<int, SkillStatData>();
+                    }
 
-                // Dictionary에 저장
-                if (!tempStats.ContainsKey(statData.skillID))
-                {
-                    tempStats[statData.skillID] = new Dictionary<int, SkillStatData>();
+                    tempStats[statData.skillID][statData.level] = statData;
+                    Debug.Log($"Added stats for skill {statData.skillID} level {statData.level}");
                 }
-
-                tempStats[statData.skillID][statData.level] = statData;
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error processing CSV file {fileName}: {e.Message}");
+            Debug.LogError($"Error processing CSV file {fileName}: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -450,20 +477,35 @@ public class SkillDataManager : DataManager
             {
                 if (levelStats.TryGetValue(level, out var statData))
                 {
+                    Debug.Log($"Getting stats for {skillID} level {level}");
+
+                    if (level > 1 && !levelStats.ContainsKey(level - 1))
+                    {
+                        Debug.LogError($"Missing previous level ({level - 1}) data for skill {skillID}");
+                        return null;
+                    }
+
                     if (statData.ValidateStats())
                     {
                         var skillStat = statData.CreateSkillStat(skillType);
                         if (skillStat != null)
                         {
+                            skillStat.baseStat.skillLevel = level;
+
+                            Debug.Log($"Created skill stat for level {level}");
+                            Debug.Log($"Actual level in stat: {skillStat.baseStat.skillLevel}");
+
                             return skillStat;
                         }
-                        throw new System.Exception("Failed to create skill stat");
                     }
-                    throw new System.Exception($"Invalid stat values for skill {skillID} level {level}");
                 }
-                throw new System.Exception($"Stats for level {level} not found");
+                else
+                {
+                    var availableLevels = string.Join(", ", levelStats.Keys.OrderBy(k => k));
+                    Debug.LogError($"Stats for level {level} not found. Available levels: {availableLevels}");
+                }
             }
-            throw new System.Exception($"No stats found for skill {skillID}");
+            return null;
         }
         catch (System.Exception e)
         {
@@ -488,6 +530,7 @@ public class SkillDataManager : DataManager
             return false;
         }
 
+        // 스킬 데이터 검증
         var skillData = GetSkillData(skillID);
         if (skillData == null)
         {
@@ -495,9 +538,26 @@ public class SkillDataManager : DataManager
             return false;
         }
 
+        // 스킬 타입 검증
         if (skillData.metadata.Type != skillType)
         {
-            errorMessage = $"Skill type mismatch. Expected {skillType} but got {skillData.metadata.Type}";
+            errorMessage = $"Skill type mismatch for {skillID}. Expected {skillType} but got {skillData.metadata.Type}";
+            return false;
+        }
+
+        // 레벨 데이터 존재 여부 확인
+        if (skillStatsByLevel.TryGetValue(skillID, out var levelStats))
+        {
+            if (!levelStats.ContainsKey(level))
+            {
+                var availableLevels = string.Join(", ", levelStats.Keys.OrderBy(k => k));
+                errorMessage = $"Level {level} not found for skill {skillID}. Available levels: {availableLevels}";
+                return false;
+            }
+        }
+        else
+        {
+            errorMessage = $"No level data found for skill {skillID}";
             return false;
         }
 
@@ -807,7 +867,7 @@ public class SkillDataManager : DataManager
         }
     }
 
-    // 스킬 데이터 검증 메서드 추가
+
     public bool ValidateSkillData(SkillData skillData)
     {
         if (skillData == null || skillData.metadata == null)

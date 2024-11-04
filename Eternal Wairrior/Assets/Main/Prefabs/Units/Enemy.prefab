@@ -263,15 +263,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hp: 100
   damage: 0
-  moveSpeed: 5
-  mobEXP: 15
+  moveSpeed: 1
+  mobEXP: 0
   damageInterval: 0.5
   attackRange: 0.9
   preferredDistance: 1
   elementType: 0
+  baseDefense: 5
+  maxDefenseReduction: 0.9
+  expParticlePrefab: {fileID: 5334211976707995158, guid: 8156f81e49faef04a8c59f5abb3f3cd6, type: 3}
+  minExpParticles: 3
+  maxExpParticles: 6
   hpBar: {fileID: 3705600860709169156}
   attackParticle: {fileID: 7242367112545350938, guid: b59d613d3271c084b9b225b91e4756df, type: 3}
-  expParticlePrefab: {fileID: 5334211976707995158, guid: 8156f81e49faef04a8c59f5abb3f3cd6, type: 3}
 --- !u!1 &5897277061234933057
 GameObject:
   m_ObjectHideFlags: 0

@@ -78,7 +78,7 @@ public class Player : MonoBehaviour
 
     private List<float> expList = new List<float>
     {
-        0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700
+        100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3300  // 0 제거, 각 레벨에 필요한 총 경험치
     };
     public List<float> _expList { get { return expList; } }
 
@@ -115,6 +115,8 @@ public class Player : MonoBehaviour
         this.playerStatus = Status.Alive;
         isFiring = false;
         lastRegenTime = Time.time;
+        exp = 0;
+        level = 1;
     }
 
     private void FixedUpdate()
@@ -138,16 +140,21 @@ public class Player : MonoBehaviour
 
     public float CurrentExp()
     {
-        float currentExp = 0;
+        // 최대 레벨 체크
+        if (level >= expList.Count)
+        {
+            return 0;
+        }
+
+        // 현재 레벨에서의 경험치 반환
         if (level == 1)
         {
-            currentExp = exp;
+            return exp;  // 1레벨일 때는 현재 경험치 그대로 반환
         }
         else
         {
-            currentExp = exp - expList[level - 1];
+            return exp - expList[level - 2];  // 현재 레벨에서의 경험치 계산
         }
-        return currentExp;
     }
 
     #endregion
@@ -193,20 +200,31 @@ public class Player : MonoBehaviour
     #region Level & EXP
     public float GetExpForNextLevel()
     {
+        // 최대 레벨 체크
         if (level >= expList.Count)
         {
             return 99999f;
         }
-        return expList[level];
+
+        // 다음 레벨까지 필요한 경험치 계산
+        if (level == 1)
+        {
+            return expList[0];  // 1레벨에서는 첫 번째 경험치 요구량 반환
+        }
+        else
+        {
+            return expList[level - 1] - expList[level - 2];  // 현재 레벨의 요구량
+        }
     }
 
     public void GainExperience(float amount)
     {
-        if (level < expList.Count)
-        {
-            exp += amount;
-        }
-        while (exp >= GetExpForNextLevel() && level < expList.Count)
+        if (level >= expList.Count) return;
+
+        exp += amount;
+
+        // 레벨업 체크 - 한 번에 한 레벨씩만 상승하도록 수정
+        if (level < expList.Count && exp >= expList[level - 1])
         {
             LevelUp();
         }

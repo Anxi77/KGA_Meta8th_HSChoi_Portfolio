@@ -98,6 +98,7 @@ public class SlowFieldSkill : AreaSkills
 
     public override bool SkillLevelUpdate(int newLevel)
     {
+        print("SkillLevelUpdate");
         if (base.SkillLevelUpdate(newLevel))
         {
             DestroyFields();

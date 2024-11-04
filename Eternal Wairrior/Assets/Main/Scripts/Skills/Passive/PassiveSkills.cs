@@ -17,15 +17,14 @@ public abstract class PassiveSkills : Skill
             skillData = CreateDefaultSkillData();
         }
 
-        // 기본 스탯이 없다면 생성
-        if (skillData.GetStatsForLevel(1) == null)
+        if (skillData.GetStatsForLevel(SkillLevel) == null)
         {
             var stats = new PassiveSkillStat
             {
                 baseStat = new BaseSkillStat
                 {
                     damage = _damage,
-                    skillLevel = 1,
+                    skillLevel = _skillLevel,
                     maxSkillLevel = 5,
                     element = ElementType.None,
                     elementalPower = _elementalPower
@@ -43,8 +42,8 @@ public abstract class PassiveSkills : Skill
                 attackRangeIncrease = _attackRangeIncrease,
                 hpRegenIncrease = _hpRegenIncrease
             };
-            skillData.SetStatsForLevel(1, stats);
-            Debug.Log($"Initialized default stats for {GetType().Name}");
+            skillData.SetStatsForLevel(SkillLevel, stats);
+            Debug.Log($"Initialized default stats for {GetType().Name} at level {SkillLevel}");
         }
     }
 
@@ -52,7 +51,7 @@ public abstract class PassiveSkills : Skill
     [SerializeField] protected float _damage = 10f;
     [SerializeField] protected float _elementalPower = 1f;
 
-    [Header("On Inspector Control")]
+    [Header("Passive Effect Stats")]
     [SerializeField] protected float _effectDuration = 5f;
     [SerializeField] protected float _cooldown = 10f;
     [SerializeField] protected float _triggerChance = 100f;
@@ -66,6 +65,9 @@ public abstract class PassiveSkills : Skill
     [SerializeField] protected float _attackRangeIncrease = 0f;
     [SerializeField] protected float _hpRegenIncrease = 0f;
 
+    public override float Damage => _damage;
+    public float ElementalPower => _elementalPower;
+
     protected PassiveSkillStat TypedStats
     {
         get
@@ -73,13 +75,12 @@ public abstract class PassiveSkills : Skill
             var stats = skillData?.GetStatsForLevel(SkillLevel) as PassiveSkillStat;
             if (stats == null)
             {
-                Debug.LogWarning($"No stats found for {GetType().Name} level {SkillLevel}, creating new stats");
                 stats = new PassiveSkillStat
                 {
                     baseStat = new BaseSkillStat
                     {
                         damage = _damage,
-                        skillLevel = SkillLevel,
+                        skillLevel = _skillLevel,
                         maxSkillLevel = 5,
                         element = skillData?.metadata.Element ?? ElementType.None,
                         elementalPower = _elementalPower
@@ -108,10 +109,17 @@ public abstract class PassiveSkills : Skill
         base.OnValidate();
         if (Application.isPlaying && skillData != null)
         {
-            // 인스펙터에서 값이 변경될 때 스탯 업데이트
             var currentStats = TypedStats;
 
-            // 인스펙터 값을 TypedStats에 반영
+            // Base Stats 업데이트
+            currentStats.baseStat.damage = _damage;
+            currentStats.baseStat.skillLevel = _skillLevel;
+            currentStats.baseStat.elementalPower = _elementalPower;
+
+            // Passive Stats 업데이트
+            currentStats.effectDuration = _effectDuration;
+            currentStats.cooldown = _cooldown;
+            currentStats.triggerChance = _triggerChance;
             currentStats.damageIncrease = _damageIncrease;
             currentStats.defenseIncrease = _defenseIncrease;
             currentStats.expAreaIncrease = _expAreaIncrease;
@@ -122,7 +130,13 @@ public abstract class PassiveSkills : Skill
             currentStats.attackRangeIncrease = _attackRangeIncrease;
             currentStats.hpRegenIncrease = _hpRegenIncrease;
 
-            // TypedStats의 값을 인스펙터 변수에도 반영
+            // 값 동기화
+            _damage = currentStats.baseStat.damage;
+            _skillLevel = currentStats.baseStat.skillLevel;
+            _elementalPower = currentStats.baseStat.elementalPower;
+            _effectDuration = currentStats.effectDuration;
+            _cooldown = currentStats.cooldown;
+            _triggerChance = currentStats.triggerChance;
             _damageIncrease = currentStats.damageIncrease;
             _defenseIncrease = currentStats.defenseIncrease;
             _expAreaIncrease = currentStats.expAreaIncrease;
@@ -181,50 +195,47 @@ public abstract class PassiveSkills : Skill
         if (_hpIncrease > 0) player.IncreaseMaxHP(-_hpIncrease);
     }
 
-    #region Skill Level Update
-    public override bool SkillLevelUpdate(int newLevel)
+    protected override void UpdateSkillTypeStats(ISkillStat newStats)
     {
-        if (newLevel <= MaxSkillLevel)
+        if (newStats is PassiveSkillStat passiveStats)
         {
-            var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(skillData.metadata.ID, newLevel, SkillType.Passive);
-            if (newStats != null)
-            {
-                skillData.SetStatsForLevel(newLevel, newStats);
-                UpdateInspectorValues(newStats as PassiveSkillStat);
-                return true;
-            }
+            UpdateInspectorValues(passiveStats);
         }
-        return false;
     }
 
     protected virtual void UpdateInspectorValues(PassiveSkillStat stats)
     {
-        if (stats != null)
+        if (stats == null || stats.baseStat == null)
         {
-            _damage = stats.baseStat.damage;
-            _elementalPower = stats.baseStat.elementalPower;
-            _effectDuration = stats.effectDuration;
-            _cooldown = stats.cooldown;
-            _triggerChance = stats.triggerChance;
-            _damageIncrease = stats.damageIncrease;
-            _defenseIncrease = stats.defenseIncrease;
-            _expAreaIncrease = stats.expAreaIncrease;
-            _homingActivate = stats.homingActivate;
-            _hpIncrease = stats.hpIncrease;
-            _moveSpeedIncrease = stats.moveSpeedIncrease;
-            _attackSpeedIncrease = stats.attackSpeedIncrease;
-            _attackRangeIncrease = stats.attackRangeIncrease;
-            _hpRegenIncrease = stats.hpRegenIncrease;
-
-            Debug.Log($"Updated stats for {skillData?.metadata?.Name ?? "Unknown Skill"}:" +
-                      $"\nDamage Increase: {_damageIncrease}" +
-                      $"\nMove Speed Increase: {_moveSpeedIncrease}" +
-                      $"\nAttack Speed Increase: {_attackSpeedIncrease}" +
-                      $"\nHP Regen Increase: {_hpRegenIncrease}");
+            Debug.LogError($"Invalid stats passed to UpdateInspectorValues for {GetType().Name}");
+            return;
         }
+
+        Debug.Log($"[PassiveSkills] Before Update - Level: {_skillLevel}");
+
+        // 레벨 업데이트
+        _skillLevel = stats.baseStat.skillLevel;  // 인스펙터 값만 업데이트
+
+        // 나머지 스탯 업데이트
+        _damage = stats.baseStat.damage;
+        _elementalPower = stats.baseStat.elementalPower;
+        _effectDuration = stats.effectDuration;
+        _cooldown = stats.cooldown;
+        _triggerChance = stats.triggerChance;
+        _damageIncrease = stats.damageIncrease;
+        _defenseIncrease = stats.defenseIncrease;
+        _expAreaIncrease = stats.expAreaIncrease;
+        _homingActivate = stats.homingActivate;
+        _hpIncrease = stats.hpIncrease;
+        _moveSpeedIncrease = stats.moveSpeedIncrease;
+        _attackSpeedIncrease = stats.attackSpeedIncrease;
+        _attackRangeIncrease = stats.attackRangeIncrease;
+        _hpRegenIncrease = stats.hpRegenIncrease;
+
+        Debug.Log($"[PassiveSkills] After Update - Level: {_skillLevel}");
     }
-    #endregion
-    protected virtual SkillData CreateDefaultSkillData()  // virtual 키워드 추가
+
+    protected virtual SkillData CreateDefaultSkillData()
     {
         var data = new SkillData();
         data.metadata = new SkillMetadata
@@ -236,14 +247,6 @@ public abstract class PassiveSkills : Skill
             Tier = 1
         };
         return data;
-    }
-
-    protected override void UpdateSkillTypeStats(ISkillStat newStats)
-    {
-        if (newStats is PassiveSkillStat passiveStats)
-        {
-            UpdateInspectorValues(passiveStats);
-        }
     }
 
     protected virtual void OnDestroy()

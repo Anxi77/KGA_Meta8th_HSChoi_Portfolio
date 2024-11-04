@@ -27,7 +27,7 @@ public class ExplodingProjectile : Projectile
     private IEnumerator ExplodeCoroutine()
     {
         moveSpeed = 0;
-        projectileParticle.Stop();
+        projectileParticle.gameObject.SetActive(false);
 
         ParticleSystem impactInstance = PoolManager.Instance.Spawn<ParticleSystem>(
             impactParticle.gameObject,
@@ -40,7 +40,6 @@ public class ExplodingProjectile : Projectile
             impactInstance.Play();
             float explosionRadius = GetParticleSystemRadius(impactInstance);
 
-            // Apply explosion damage and effects
             Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
             foreach (Collider2D hitCollider in hitColliders)
             {

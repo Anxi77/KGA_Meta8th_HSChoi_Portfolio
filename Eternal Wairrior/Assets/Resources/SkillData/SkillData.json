@@ -10,21 +10,21 @@
                 "Tier": 1,
                 "Tags": [],
                 "Prefab": {
-                    "instanceID": 128718
+                    "instanceID": 32184
                 },
                 "Icon": {
                     "instanceID": 0
                 }
             },
             "icon": {
-                "instanceID": 0
+                "instanceID": 33926
             },
             "projectile": {
                 "instanceID": 0
             },
             "prefabsByLevel": [
                 {
-                    "instanceID": 128718
+                    "instanceID": 32184
                 }
             ],
             "projectileStat": {
@@ -71,21 +71,21 @@
                 "Tier": 1,
                 "Tags": [],
                 "Prefab": {
-                    "instanceID": 94850
+                    "instanceID": 34456
                 },
                 "Icon": {
                     "instanceID": 0
                 }
             },
             "icon": {
-                "instanceID": 0
+                "instanceID": 34182
             },
             "projectile": {
-                "instanceID": 94730
+                "instanceID": 30788
             },
             "prefabsByLevel": [
                 {
-                    "instanceID": 94850
+                    "instanceID": 34456
                 }
             ],
             "projectileStat": {
@@ -132,21 +132,21 @@
                 "Tier": 1,
                 "Tags": [],
                 "Prefab": {
-                    "instanceID": 94856
+                    "instanceID": 34392
                 },
                 "Icon": {
                     "instanceID": 0
                 }
             },
             "icon": {
-                "instanceID": 0
+                "instanceID": 36854
             },
             "projectile": {
-                "instanceID": 0
+                "instanceID": 28726
             },
             "prefabsByLevel": [
                 {
-                    "instanceID": 94856
+                    "instanceID": 34392
                 }
             ],
             "projectileStat": {
@@ -193,21 +193,21 @@
                 "Tier": 1,
                 "Tags": [],
                 "Prefab": {
-                    "instanceID": 94844
+                    "instanceID": 31888
                 },
                 "Icon": {
                     "instanceID": 0
                 }
             },
             "icon": {
-                "instanceID": 0
+                "instanceID": 35626
             },
             "projectile": {
-                "instanceID": 0
+                "instanceID": 29738
             },
             "prefabsByLevel": [
                 {
-                    "instanceID": 94844
+                    "instanceID": 31888
                 }
             ],
             "projectileStat": {
@@ -221,6 +221,494 @@
                 "explosionRad": 0.0,
                 "projectileCount": 1,
                 "innerInterval": 0.10000000149011612
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100003,
+                "Name": "Gaia's Grace",
+                "Description": "Give Gaia's Grace to Player",
+                "Type": 3,
+                "Element": 4,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 34398
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 34666
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 34398
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100001,
+                "Name": "Vine",
+                "Description": "Wither Enemies",
+                "Type": 2,
+                "Element": 4,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 35090
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 35892
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 35090
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 5.0,
+                "duration": 3.0,
+                "tickRate": 1.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100011,
+                "Name": "Fire Ring",
+                "Description": "Fire Follows You",
+                "Type": 2,
+                "Element": 3,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 36272
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 35050
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 36272
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 5.0,
+                "duration": 3.0,
+                "tickRate": 1.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100010,
+                "Name": "Flame",
+                "Description": "Shoots Fire Ball Explodes",
+                "Type": 1,
+                "Element": 3,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 33644
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 36806
+            },
+            "projectile": {
+                "instanceID": 31798
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 36272
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 10.0,
+                "projectileScale": 1.0,
+                "shotInterval": 1.0,
+                "pierceCount": 1,
+                "attackRange": 10.0,
+                "homingRange": 5.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 1,
+                "innerInterval": 0.10000000149011612
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100012,
+                "Name": "Thermal Elevation",
+                "Description": " Fire Elevates You",
+                "Type": 3,
+                "Element": 3,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 33936
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 35336
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 33936
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100005,
+                "Name": "Frost Hunt",
+                "Description": "Fires Multiple Frost Projectile",
+                "Type": 1,
+                "Element": 2,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 34816
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 34158
+            },
+            "projectile": {
+                "instanceID": 30402
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 34816
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 10.0,
+                "projectileScale": 1.0,
+                "shotInterval": 1.0,
+                "pierceCount": 1,
+                "attackRange": 10.0,
+                "homingRange": 5.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 1,
+                "innerInterval": 0.10000000149011612
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100004,
+                "Name": "Frost Tide",
+                "Description": "Make Zone Which Slows Enemy",
+                "Type": 2,
+                "Element": 2,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 36392
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 35724
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 36392
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 5.0,
+                "duration": 3.0,
+                "tickRate": 1.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        },
+        {
+            "metadata": {
+                "ID": 100006,
+                "Name": "Tidal Essence",
+                "Description": "Tide Gives Player Favor",
+                "Type": 3,
+                "Element": 2,
+                "Tier": 1,
+                "Tags": [],
+                "Prefab": {
+                    "instanceID": 32584
+                },
+                "Icon": {
+                    "instanceID": 0
+                }
+            },
+            "icon": {
+                "instanceID": 35368
+            },
+            "projectile": {
+                "instanceID": 0
+            },
+            "prefabsByLevel": [
+                {
+                    "instanceID": 32584
+                }
+            ],
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
             },
             "areaStat": {
                 "radius": 0.0,

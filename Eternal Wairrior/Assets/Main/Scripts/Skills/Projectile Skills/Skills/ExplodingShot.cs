@@ -74,6 +74,5 @@ public class ExplodingShot : ProjectileSkills
 
     protected override string GetDefaultSkillName() => "Exploding Shot";
     protected override string GetDefaultDescription() => "Fires explosive projectiles that create area damage";
-
     protected override SkillType GetSkillType() => SkillType.Projectile;
 }

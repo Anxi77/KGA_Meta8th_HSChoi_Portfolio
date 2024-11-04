@@ -180,8 +180,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce95db0a56168764590e67d7c114b149, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  skillIcon: {fileID: 7433491107095306402}
-  skillTierText: {fileID: 4421985108157452906}
+  iconImage: {fileID: 7433491107095306402}
+  levelText: {fileID: 4421985108157452906}
+  elementalBorder: {fileID: 1839148864785522170}
 --- !u!1 &6312086619694389560
 GameObject:
   m_ObjectHideFlags: 0

@@ -55,7 +55,7 @@ public abstract class PermanentPassiveSkill : PassiveSkills
     {
         if (GameManager.Instance.player == null) return false;
 
-        Player player = GameManager.Instance.player;
+            Player player = GameManager.Instance.player;
 
         RemoveEffectFromPlayer(player);
 

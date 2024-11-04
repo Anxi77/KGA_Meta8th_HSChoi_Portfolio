@@ -7,10 +7,24 @@ public class PlayerSkillList : MonoBehaviour
 {
     public PlayerSkillIcon skillIconPrefab;
     private Player player;
+    private List<PlayerSkillIcon> currentIcons = new List<PlayerSkillIcon>();
 
     private void Awake()
     {
-        player = GameManager.Instance?.player;
+        StartCoroutine(WaitForPlayer());
+    }
+
+    private IEnumerator WaitForPlayer()
+    {
+        while (GameManager.Instance == null || GameManager.Instance.player == null)
+        {
+            yield return null;
+        }
+        player = GameManager.Instance.player;
+        if (gameObject.activeInHierarchy)
+        {
+            skillListUpdate();
+        }
     }
 
     public void skillListUpdate()
@@ -19,40 +33,42 @@ public class PlayerSkillList : MonoBehaviour
 
         try
         {
-            // 기존 아이콘 제거
-            foreach (Transform child in transform)
-            {
-                Destroy(child.gameObject);
-            }
+            ClearCurrentIcons();
 
             if (player == null)
             {
                 player = GameManager.Instance?.player;
                 if (player == null)
                 {
-                    Debug.LogError("Player reference is null in PlayerSkillList");
+                    StartCoroutine(WaitForPlayer());
                     return;
                 }
             }
 
             if (player.skills != null)
             {
-                foreach (Skill skill in player.skills.ToList())
+                var sortedSkills = player.skills
+                    .Where(s => s != null)
+                    .OrderBy(s => s.GetSkillData()?.metadata.Type)
+                    .ThenByDescending(s => s.SkillLevel)
+                    .ToList();
+
+                foreach (Skill skill in sortedSkills)
                 {
-                    if (skill != null)
+                    SkillData skillData = skill.GetSkillData();
+                    if (skillData != null)
                     {
-                        SkillData skillData = skill.GetSkillData();
-                        if (skillData != null)
-                        {
-                            PlayerSkillIcon icon = Instantiate(skillIconPrefab, transform);
-                            icon.SetSkillIcon(skillData.icon, skill);
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"Skill data is null for skill: {skill.name}");
-                        }
+                        PlayerSkillIcon icon = Instantiate(skillIconPrefab, transform);
+                        icon.SetSkillIcon(skillData.icon, skill);
+                        currentIcons.Add(icon);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Skill data is null for skill: {skill.name}");
                     }
                 }
+
+                Debug.Log($"Updated skill list with {currentIcons.Count} skills");
             }
             else
             {
@@ -61,7 +77,22 @@ public class PlayerSkillList : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error updating skill list: {e.Message}");
+            Debug.LogError($"Error updating skill list: {e.Message}\n{e.StackTrace}");
         }
+    }
+
+    private void ClearCurrentIcons()
+    {
+        foreach (var icon in currentIcons)
+        {
+            if (icon != null)
+                Destroy(icon.gameObject);
+        }
+        currentIcons.Clear();
+    }
+
+    private void OnEnable()
+    {
+        skillListUpdate();
     }
 }

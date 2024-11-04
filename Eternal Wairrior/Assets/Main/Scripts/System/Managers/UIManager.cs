@@ -1,4 +1,4 @@
-using System.Collections;
+Ôªøusing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,8 +21,8 @@ public class UIManager : SingletonManager<UIManager>
     public TextMeshProUGUI playerHpRegenText;
     public TextMeshProUGUI playerAttackRangeText;
     public TextMeshProUGUI playerAttackSpeedText;
-    public Image hpBarImage;
-    public Image expBarImage;
+    public Slider hpBarImage;
+    public Slider expBarImage;
 
     protected override void Awake()
     {
@@ -32,13 +32,13 @@ public class UIManager : SingletonManager<UIManager>
 
     private IEnumerator InitializeAfterGameManager()
     {
-        // GameManager∞° √ ±‚»≠µ… ∂ß±Ó¡ˆ ¥Î±‚
+        // GameManager  ±»≠ œ∑ UI  ±»≠
         while (GameManager.Instance == null || GameManager.Instance.player == null)
         {
             yield return null;
         }
 
-        // GameManager √ ±‚»≠ øœ∑· »ƒ UI √ ±‚»≠
+        // GameManager  ±»≠
         InitializeUI();
     }
 
@@ -99,25 +99,31 @@ public class UIManager : SingletonManager<UIManager>
             levelText.text = $"LEVEL : {player.level}";
             playerMSText.text = $"MoveSpeed : {player.moveSpeed:F1}";
             hpText.text = $"{player.hp:F0} / {player.maxHp:F0}";
-            hpBarImage.fillAmount = player.hp / player.maxHp;
+            hpBarImage.value = player.hp / player.maxHp;
             expCollectRadText.text = $"ExpRad : {player.expCollectionRadius:F1}";
             playerHpRegenText.text = $"HPRegen : {player.hpRegenMultiplier:F1}x";
             playerAttackRangeText.text = $"AR : {player.attackRange:F1}";
             playerAttackSpeedText.text = $"AS : {player.attackSpeed:F1}/s";
+
             if (player.level >= player._expList.Count)
             {
                 expText.text = "MAX LEVEL";
-                expBarImage.fillAmount = 1;
+                expBarImage.value = 1;
             }
             else
             {
-                expText.text = $"EXP : {player.CurrentExp()}/{player.GetExpForNextLevel() - player._expList[player.level - 1]}";
-                expBarImage.fillAmount = player.ExpAmount;
+                float currentExp = player.CurrentExp();
+                float requiredExp = player.GetExpForNextLevel();
+
+                expText.text = $"EXP : {currentExp:F0}/{requiredExp:F0}";
+                expBarImage.value = currentExp / requiredExp;
+
+                Debug.Log($"Level: {player.level}, Total Exp: {player.exp}, Current Level Exp: {currentExp}, Required Exp: {requiredExp}");
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error updating player info: {e.Message}");
+            Debug.LogError($"Error updating player info: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -136,9 +142,17 @@ public class UIManager : SingletonManager<UIManager>
         {
             if (player.level > lastLevel)
             {
+                Debug.Log($"Level Up detected: {lastLevel} -> {player.level}");
                 lastLevel = player.level;
                 ShowLevelUpPanel();
+                Time.timeScale = 0f;
             }
+
+            if (levelupPanel.gameObject.activeSelf)
+            {
+                Time.timeScale = 0f;
+            }
+
             yield return new WaitForSeconds(0.1f);
         }
     }
@@ -147,7 +161,13 @@ public class UIManager : SingletonManager<UIManager>
     {
         if (levelupPanel != null)
         {
+            levelupPanel.gameObject.SetActive(true);
+            Time.timeScale = 0f;
             levelupPanel.LevelUpPanelOpen(GameManager.Instance.player.skills, OnSkillSelected);
+        }
+        else
+        {
+            Debug.LogError("LevelUpPanel is not assigned in UIManager");
         }
     }
 
@@ -155,8 +175,9 @@ public class UIManager : SingletonManager<UIManager>
     {
         if (skill != null)
         {
-            GameManager.Instance.player.skills.Add(skill);
             skillList.skillListUpdate();
+            Time.timeScale = 1f;
+            levelupPanel.gameObject.SetActive(false);
         }
     }
 }

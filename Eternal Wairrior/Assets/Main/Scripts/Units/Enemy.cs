@@ -127,13 +127,34 @@ public class Enemy : MonoBehaviour
             slowEffectCoroutine = null;
         }
 
+        if (stunCoroutine != null)
+        {
+            StopCoroutine(stunCoroutine);
+            stunCoroutine = null;
+        }
+
+        if (dotDamageCoroutine != null)
+        {
+            StopCoroutine(dotDamageCoroutine);
+            dotDamageCoroutine = null;
+        }
+
+        if (defenseDebuffCoroutine != null)
+        {
+            StopCoroutine(defenseDebuffCoroutine);
+            defenseDebuffCoroutine = null;
+        }
+
+        moveSpeedDebuffAmount = 0f;
+        defenseDebuffAmount = 0f;
+        isStunned = false;
+        moveSpeed = originalMoveSpeed;
+        currentDefense = baseDefense;
+
         if (GameManager.Instance != null && GameManager.Instance.enemies != null)
         {
             GameManager.Instance.enemies.Remove(this);
         }
-
-        currentDefense = baseDefense;
-        defenseDebuffAmount = 0f;
     }
     #endregion
 
@@ -711,19 +732,13 @@ public class Enemy : MonoBehaviour
 
         hp -= finalDamage;
 
-        if (attackParticle != null)
-        {
-            var particle = PoolManager.Instance.Spawn<ParticleSystem>(
-                attackParticle.gameObject,
-                transform.position,
-                Quaternion.identity
-            );
-            particle.Play();
-            Destroy(particle.gameObject, particle.main.duration);
-        }
-
         if (hp <= 0)
         {
+            if (dotDamageCoroutine != null)
+            {
+                StopCoroutine(dotDamageCoroutine);
+                dotDamageCoroutine = null;
+            }
             Die();
         }
     }
@@ -738,7 +753,7 @@ public class Enemy : MonoBehaviour
             for (int i = 0; i < expParticleCount; i++)
             {
                 Vector3 spawnPosition = transform.position;
-                ExpParticle expParticle = PoolManager.Instance.Spawn<ExpParticle>(expParticlePrefab.gameObject,spawnPosition,quaternion.identity);
+                ExpParticle expParticle = PoolManager.Instance.Spawn<ExpParticle>(expParticlePrefab.gameObject, spawnPosition, quaternion.identity);
 
                 if (expParticle != null)
                 {
@@ -771,6 +786,8 @@ public class Enemy : MonoBehaviour
 
     public void ApplyDefenseDebuff(float amount, float duration)
     {
+        if (!gameObject.activeInHierarchy) return;
+
         if (defenseDebuffCoroutine != null)
         {
             StopCoroutine(defenseDebuffCoroutine);
@@ -791,8 +808,11 @@ public class Enemy : MonoBehaviour
 
         yield return new WaitForSeconds(duration);
 
-        defenseDebuffAmount = Mathf.Max(defenseDebuffAmount - actualReduction, 0f);
-        currentDefense = baseDefense * (1f - defenseDebuffAmount);
+        if (this != null && gameObject.activeInHierarchy)
+        {
+            defenseDebuffAmount = Mathf.Max(defenseDebuffAmount - actualReduction, 0f);
+            currentDefense = baseDefense * (1f - defenseDebuffAmount);
+        }
         defenseDebuffCoroutine = null;
     }
 
@@ -815,6 +835,8 @@ public class Enemy : MonoBehaviour
 
     public void ApplySlowEffect(float amount, float duration)
     {
+        if (!gameObject.activeInHierarchy) return;
+
         moveSpeedDebuffAmount = Mathf.Min(moveSpeedDebuffAmount + amount, 0.9f);
         UpdateMoveSpeed();
 
@@ -823,18 +845,18 @@ public class Enemy : MonoBehaviour
             StopCoroutine(slowEffectCoroutine);
         }
 
-        if (gameObject.activeInHierarchy)
-        {
-            slowEffectCoroutine = StartCoroutine(SlowEffectCoroutine(amount, duration));
-        }
+        slowEffectCoroutine = StartCoroutine(SlowEffectCoroutine(amount, duration));
     }
 
     private IEnumerator SlowEffectCoroutine(float amount, float duration)
     {
         yield return new WaitForSeconds(duration);
 
-        moveSpeedDebuffAmount = Mathf.Max(moveSpeedDebuffAmount - amount, 0f);
-        UpdateMoveSpeed();
+        if (this != null && gameObject.activeInHierarchy)
+        {
+            moveSpeedDebuffAmount = Mathf.Max(moveSpeedDebuffAmount - amount, 0f);
+            UpdateMoveSpeed();
+        }
         slowEffectCoroutine = null;
     }
 
@@ -845,6 +867,8 @@ public class Enemy : MonoBehaviour
 
     public void ApplyDotDamage(float damagePerTick, float tickInterval, float duration)
     {
+        if (!gameObject.activeInHierarchy) return;
+
         if (dotDamageCoroutine != null)
         {
             StopCoroutine(dotDamageCoroutine);
@@ -856,16 +880,23 @@ public class Enemy : MonoBehaviour
     private IEnumerator DotDamageCoroutine(float damagePerTick, float tickInterval, float duration)
     {
         float endTime = Time.time + duration;
-        while (Time.time < endTime && hp > 0)
+
+        while (Time.time < endTime && hp > 0 && gameObject.activeInHierarchy)
         {
-            TakeDamage(damagePerTick);
+            if (this != null && gameObject.activeInHierarchy)
+            {
+                TakeDamage(damagePerTick);
+            }
             yield return new WaitForSeconds(tickInterval);
         }
+
         dotDamageCoroutine = null;
     }
 
     public void ApplyStun(float power, float duration)
     {
+        if (!gameObject.activeInHierarchy) return;
+
         if (stunCoroutine != null)
         {
             StopCoroutine(stunCoroutine);
@@ -880,15 +911,12 @@ public class Enemy : MonoBehaviour
         float originalSpeed = moveSpeed;
         moveSpeed = 0;
 
-        // 스턴 시각 효과 추가
-        // if (stunEffectPrefab != null) { ... }
-
         yield return new WaitForSeconds(duration);
 
         if (this != null && gameObject.activeInHierarchy)
         {
             isStunned = false;
-            moveSpeed = originalSpeed * (1f - moveSpeedDebuffAmount); // 기존 슬로우 효과 유지
+            moveSpeed = originalSpeed * (1f - moveSpeedDebuffAmount);
         }
         stunCoroutine = null;
     }

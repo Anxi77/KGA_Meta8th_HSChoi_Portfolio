@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -7,46 +7,152 @@ using System.Linq;
 
 public class SkillLevelUpPanel : MonoBehaviour
 {
+    [Header("UI References")]
     public RectTransform list;
     public SkillLevelUpButton buttonPrefab;
     public SkillMaxLevelButton maxLevelButtonPrefab;
+
+    [Header("Settings")]
     private const int SKILL_CHOICES = 3;
 
+    [Header("Error Handling")]
     [SerializeField] private GameObject errorPopup;
     [SerializeField] private TextMeshProUGUI errorText;
 
-    public void LevelUpPanelOpen(List<Skill> playerSkills, Action<Skill> callback)
+    private Action<Skill> skillSelectedCallback;
+
+    private void OnEnable() => Time.timeScale = 0f;
+    private void OnDisable() => Time.timeScale = 1f;
+
+    public void LevelUpPanelOpen(List<Skill> playerSkills, Action<Skill> onSkillSelected)
     {
-        ClearExistingButtons();
-        gameObject.SetActive(true);
-        Time.timeScale = 0f;
-
-        var selectedSkills = SkillManager.Instance.GetRandomSkills(SKILL_CHOICES);
-
-        // Filter out max level skills
-        selectedSkills = selectedSkills.Where(skillData => {
-            var existingSkill = playerSkills.Find(s => s.SkillID == skillData.metadata.ID);
-            return existingSkill == null || existingSkill.SkillLevel < existingSkill.MaxSkillLevel;
-        }).ToList();
-
-        if (selectedSkills == null || selectedSkills.Count == 0)
+        try
         {
-            ShowNoSkillsAvailable();
-            return;
-        }
+            skillSelectedCallback = onSkillSelected;
+            ClearExistingButtons();
+            gameObject.SetActive(true);
 
-        foreach (var skillData in selectedSkills)
-        {
-            if (ValidateSkillData(skillData))
+            var availableSkills = GetAvailableSkills(playerSkills);
+            if (!availableSkills.Any())
             {
-                CreateSkillButton(skillData, callback);
+                ShowNoSkillsAvailable();
+                return;
+            }
+
+            foreach (var skillData in availableSkills)
+            {
+                CreateSkillUpgradeButton(skillData, playerSkills);
+            }
+
+            ShowElementalHeader(availableSkills[0].metadata.Element);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error in LevelUpPanelOpen: {e.Message}");
+            ShowError("Failed to open level up panel");
+        }
+    }
+
+    private List<SkillData> GetAvailableSkills(List<Skill> playerSkills)
+    {
+        return SkillManager.Instance.GetRandomSkills(SKILL_CHOICES)
+            .Where(skillData => IsSkillAvailable(skillData, playerSkills))
+            .ToList();
+    }
+
+    private bool IsSkillAvailable(SkillData skillData, List<Skill> playerSkills)
+    {
+        if (!ValidateSkillData(skillData)) return false;
+
+        var existingSkill = playerSkills.Find(s => s.SkillID == skillData.metadata.ID);
+        return existingSkill == null || existingSkill.SkillLevel < existingSkill.MaxSkillLevel;
+    }
+
+    private void CreateSkillUpgradeButton(SkillData skillData, List<Skill> playerSkills)
+    {
+        var existingSkill = playerSkills.Find(s => s.SkillID == skillData.metadata.ID);
+        var button = Instantiate(buttonPrefab, list);
+        var upgradeInfo = GetUpgradeInfo(existingSkill, skillData);
+
+        button.SetSkillSelectButton(
+            skillData,
+            CreateButtonCallback(skillData, existingSkill),
+            upgradeInfo.levelText,
+            upgradeInfo.currentStats
+        );
+    }
+
+    private Action CreateButtonCallback(SkillData skillData, Skill existingSkill)
+    {
+        return new Action(() => OnSkillButtonClicked(skillData, existingSkill));
+    }
+
+    private (string levelText, ISkillStat currentStats) GetUpgradeInfo(Skill existingSkill, SkillData skillData)
+    {
+        if (existingSkill != null)
+        {
+            return (
+                $"Lv.{existingSkill.SkillLevel} ‚Üí {existingSkill.SkillLevel + 1}",
+                existingSkill.GetSkillData().GetCurrentTypeStat()
+            );
+        }
+        return ("New!", null);
+    }
+
+    private void OnSkillButtonClicked(SkillData skillData, Skill existingSkill)
+    {
+        try
+        {
+            Skill updatedSkill = existingSkill != null
+                ? UpgradeExistingSkill(existingSkill)
+                : AddNewSkill(skillData);
+
+            if (updatedSkill != null)
+            {
+                skillSelectedCallback?.Invoke(updatedSkill);
+                LevelUpPanelClose();
             }
         }
-
-        if (selectedSkills.Count > 0)
+        catch (System.Exception e)
         {
-            ShowElementalHeader(selectedSkills[0].metadata.Element);
+            Debug.LogError($"Error in skill selection: {e.Message}");
+            ShowError("Failed to process skill selection");
         }
+    }
+
+    private Skill UpgradeExistingSkill(Skill skill)
+    {
+        int nextLevel = skill.SkillLevel + 1;
+        if (!skill.SkillLevelUpdate(nextLevel))
+        {
+            throw new System.Exception($"Failed to upgrade {skill.SkillName} to level {nextLevel}");
+        }
+        return skill;
+    }
+
+    private Skill AddNewSkill(SkillData skillData)
+    {
+        var player = GameManager.Instance.player;
+        if (!player.AddOrUpgradeSkill(skillData))
+        {
+            throw new System.Exception($"Failed to add new skill {skillData.metadata.Name}");
+        }
+        return player.skills.Find(s => s.SkillID == skillData.metadata.ID);
+    }
+
+    private void ShowNoSkillsAvailable()
+    {
+        ClearExistingButtons();
+        if (maxLevelButtonPrefab != null)
+        {
+            var maxLevelButton = Instantiate(maxLevelButtonPrefab, list);
+            maxLevelButton.Initialize(OnMaxLevelButtonClicked);
+        }
+    }
+
+    private void OnMaxLevelButtonClicked()
+    {
+        LevelUpPanelClose();
     }
 
     private void ClearExistingButtons()
@@ -55,6 +161,12 @@ public class SkillLevelUpPanel : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
+    }
+
+    public void LevelUpPanelClose()
+    {
+        ClearExistingButtons();
+        gameObject.SetActive(false);
     }
 
     private bool ValidateSkillData(SkillData skillData)
@@ -72,159 +184,6 @@ public class SkillLevelUpPanel : MonoBehaviour
         }
 
         return true;
-    }
-
-    private void CreateSkillButton(SkillData skillData, Action<Skill> callback)
-    {
-        try
-        {
-            var existingSkill = GameManager.Instance.player.skills
-                .Find(s => s.SkillID == skillData.metadata.ID);
-
-            SkillLevelUpButton skillButton = Instantiate(buttonPrefab, list);
-
-            if (existingSkill != null)
-            {
-                string levelInfo = $"Lv.{existingSkill.SkillLevel} °Ê {existingSkill.SkillLevel + 1}";
-                var currentStats = existingSkill.GetSkillData().GetCurrentTypeStat();
-
-                skillButton.SetSkillSelectButton(
-                    skillData,
-                    () =>
-                    {
-                        if (!existingSkill.SkillLevelUpdate(existingSkill.SkillLevel + 1))
-                        {
-                            Debug.LogError($"Failed to upgrade skill: {skillData.metadata.Name}");
-                            return;
-                        }
-
-                        UpdateSkillPrefab(existingSkill, skillData);
-                        callback?.Invoke(existingSkill);
-                        LevelUpPanelClose();
-                    },
-                    levelInfo,
-                    currentStats
-                );
-            }
-            else
-            {
-                skillButton.SetSkillSelectButton(
-                    skillData,
-                    () =>
-                    {
-                        if (!GameManager.Instance.player.AddOrUpgradeSkill(skillData))
-                        {
-                            Debug.LogError($"Failed to add new skill: {skillData.metadata.Name}");
-                            return;
-                        }
-                        LevelUpPanelClose();
-                    },
-                    "New!"
-                );
-            }
-        }
-        catch (System.Exception e)
-        {
-            ShowError($"Failed to create skill button: {e.Message}");
-        }
-    }
-
-    private void UpdateSkillPrefab(Skill skill, SkillData skillData)
-    {
-        int newLevel = skill.SkillLevel;
-
-        try
-        {
-            // ±‚¡∏ Ω∫≈≥¿« ªÛ≈¬ πÈæ˜
-            var oldSkillState = new SkillState(skill);
-
-            // ªı Ω∫≈≥ ª˝º∫ π◊ º≥¡§
-            GameObject newSkillObj = CreateNewSkill(skill, skillData, newLevel);
-            if (newSkillObj == null) return;
-
-            // «√∑π¿ÃæÓ Ω∫≈≥ ∏ÆΩ∫∆Æ æ˜µ•¿Ã∆Æ
-            UpdatePlayerSkillList(skill, newSkillObj.GetComponent<Skill>());
-
-            // ¿Ã¿¸ Ω∫≈≥ ¡¶∞≈
-            Destroy(skill.gameObject);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Failed to update skill prefab: {e.Message}");
-            ShowError("Failed to upgrade skill. Please try again.");
-        }
-    }
-
-    private GameObject CreateNewSkill(Skill oldSkill, SkillData skillData, int newLevel)
-    {
-        if (skillData.prefabsByLevel == null ||
-            newLevel > skillData.prefabsByLevel.Length ||
-            skillData.prefabsByLevel[newLevel - 1] == null)
-        {
-            Debug.Log($"No level-specific prefab found. Updating stats only.");
-            oldSkill.SkillLevelUpdate(newLevel);
-            return null;
-        }
-
-        GameObject newPrefab = skillData.prefabsByLevel[newLevel - 1];
-        GameObject newSkillObj = Instantiate(newPrefab,
-            oldSkill.transform.position,
-            oldSkill.transform.rotation,
-            oldSkill.transform.parent);
-
-        Skill newSkillComponent = newSkillObj.GetComponent<Skill>();
-        if (newSkillComponent == null)
-        {
-            Debug.LogError("New prefab missing Skill component!");
-            Destroy(newSkillObj);
-            return null;
-        }
-
-        // ªı Ω∫≈≥ √ ±‚»≠
-        InitializeNewSkill(newSkillComponent, skillData, newLevel);
-
-        return newSkillObj;
-    }
-
-    private void InitializeNewSkill(Skill newSkill, SkillData skillData, int newLevel)
-    {
-        var newSkillData = new SkillData
-        {
-            metadata = skillData.metadata,
-            prefabsByLevel = skillData.prefabsByLevel,
-            icon = skillData.icon
-        };
-
-        newSkill.SetSkillData(newSkillData);
-        newSkill.SkillLevelUpdate(newLevel);
-    }
-
-    private void ShowElementalHeader(ElementType element)
-    {
-        string elementName = element.ToString();
-        Debug.Log($"Selected Element: {elementName}");
-    }
-
-    private void ShowNoSkillsAvailable()
-    {
-        ClearExistingButtons();
-
-        if (maxLevelButtonPrefab != null)
-        {
-            SkillMaxLevelButton maxLevelButton = Instantiate(maxLevelButtonPrefab, list);
-            maxLevelButton.Initialize(() => LevelUpPanelClose());
-        }
-        else
-        {
-            Debug.LogError("Max Level Button Prefab is not assigned!");
-        }
-    }
-
-    public void LevelUpPanelClose()
-    {
-        ClearExistingButtons();
-        Time.timeScale = 1f;
-        gameObject.SetActive(false);
     }
 
     private void ShowError(string message)
@@ -250,34 +209,9 @@ public class SkillLevelUpPanel : MonoBehaviour
         }
     }
 
-    private void UpdatePlayerSkillList(Skill oldSkill, Skill newSkill)
+    private void ShowElementalHeader(ElementType element)
     {
-        try
-        {
-            var player = GameManager.Instance.player;
-            if (player != null)
-            {
-                int index = player.skills.IndexOf(oldSkill);
-                if (index != -1)
-                {
-                    player.skills[index] = newSkill;
-                    Debug.Log($"Successfully updated player skill list: {oldSkill.SkillName} -> {newSkill.SkillName}");
-                }
-                else
-                {
-                    Debug.LogError($"Could not find skill {oldSkill.SkillName} in player's skill list");
-                }
-                UIManager.Instance.skillList.skillListUpdate();
-            }
-            else
-            {
-                Debug.LogError("Player reference is null");
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error updating player skill list: {e.Message}");
-            ShowError("Failed to update skill list");
-        }
+        Debug.Log($"Selected Element: {element}");
+        // TODO: Ïã§Ï†ú UIÏóê ÏÜçÏÑ± Ìó§ÎçîÎ•º ÌëúÏãúÌïòÎäî Î°úÏßÅ Íµ¨ÌòÑ
     }
 }

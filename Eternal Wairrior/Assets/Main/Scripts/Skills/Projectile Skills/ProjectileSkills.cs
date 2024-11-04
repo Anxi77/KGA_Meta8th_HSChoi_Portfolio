@@ -66,6 +66,7 @@ public abstract class ProjectileSkills : Skill
     [SerializeField] protected float _innerInterval = 0.1f;
 
     public override float Damage => _damage;
+    public float ElementalPower => _elementalPower;
     public float ProjectileSpeed => _projectileSpeed;
     public float ProjectileScale => _projectileScale;
     public float ShotInterval => _shotInterval;
@@ -193,42 +194,6 @@ public abstract class ProjectileSkills : Skill
     }
     #endregion
 
-    #region Skill Level Update
-    public override bool SkillLevelUpdate(int newLevel)
-    {
-        if (newLevel <= MaxSkillLevel)
-        {
-            var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(skillData.metadata.ID, newLevel, SkillType.Projectile);
-            if (newStats != null)
-            {
-                skillData.SetStatsForLevel(newLevel, newStats);
-                UpdateInspectorValues(newStats as ProjectileSkillStat);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected virtual void UpdateInspectorValues(ProjectileSkillStat stats)
-    {
-        if (stats != null)
-        {
-            _damage = stats.baseStat.damage;
-            _elementalPower = stats.baseStat.elementalPower;
-            _projectileSpeed = stats.projectileSpeed;
-            _projectileScale = stats.projectileScale;
-            _shotInterval = stats.shotInterval;
-            _pierceCount = stats.pierceCount;
-            _attackRange = stats.attackRange;
-            _homingRange = stats.homingRange;
-            _isHoming = stats.isHoming;
-            _explosionRadius = stats.explosionRad;
-            _projectileCount = stats.projectileCount;
-            _innerInterval = stats.innerInterval;
-        }
-    }
-    #endregion
-
     public virtual void UpdateHomingState(bool activate)
     {
         _isHoming = activate;
@@ -251,6 +216,36 @@ public abstract class ProjectileSkills : Skill
         {
             UpdateInspectorValues(projectileStats);
         }
+    }
+
+    protected virtual void UpdateInspectorValues(ProjectileSkillStat stats)
+    {
+        if (stats == null || stats.baseStat == null)
+        {
+            Debug.LogError($"Invalid stats passed to UpdateInspectorValues for {GetType().Name}");
+            return;
+        }
+
+        Debug.Log($"[ProjectileSkills] Before Update - Level: {_skillLevel}");
+
+        // 레벨 업데이트
+        _skillLevel = stats.baseStat.skillLevel;  // 인스펙터 값만 업데이트
+
+        // 나머지 스탯 업데이트
+        _damage = stats.baseStat.damage;
+        _elementalPower = stats.baseStat.elementalPower;
+        _projectileSpeed = stats.projectileSpeed;
+        _projectileScale = stats.projectileScale;
+        _shotInterval = stats.shotInterval;
+        _pierceCount = stats.pierceCount;
+        _attackRange = stats.attackRange;
+        _homingRange = stats.homingRange;
+        _isHoming = stats.isHoming;
+        _explosionRadius = stats.explosionRad;
+        _projectileCount = stats.projectileCount;
+        _innerInterval = stats.innerInterval;
+
+        Debug.Log($"[ProjectileSkills] After Update - Level: {_skillLevel}");
     }
 
     public override string GetDetailedDescription()
@@ -277,5 +272,45 @@ public abstract class ProjectileSkills : Skill
             }
         }
         return baseDesc;
+    }
+
+    protected override void OnValidate()
+    {
+        base.OnValidate();
+        if (Application.isPlaying && skillData != null)
+        {
+            var currentStats = TypedStats;
+
+            currentStats.baseStat.damage = _damage;
+            currentStats.baseStat.skillLevel = _skillLevel;
+            currentStats.baseStat.elementalPower = _elementalPower;
+            currentStats.projectileSpeed = _projectileSpeed;
+            currentStats.projectileScale = _projectileScale;
+            currentStats.shotInterval = _shotInterval;
+            currentStats.pierceCount = _pierceCount;
+            currentStats.attackRange = _attackRange;
+            currentStats.homingRange = _homingRange;
+            currentStats.isHoming = _isHoming;
+            currentStats.explosionRad = _explosionRadius;
+            currentStats.projectileCount = _projectileCount;
+            currentStats.innerInterval = _innerInterval;
+
+            _damage = currentStats.baseStat.damage;
+            _skillLevel = currentStats.baseStat.skillLevel;
+            _elementalPower = currentStats.baseStat.elementalPower;
+            _projectileSpeed = currentStats.projectileSpeed;
+            _projectileScale = currentStats.projectileScale;
+            _shotInterval = currentStats.shotInterval;
+            _pierceCount = currentStats.pierceCount;
+            _attackRange = currentStats.attackRange;
+            _homingRange = currentStats.homingRange;
+            _isHoming = currentStats.isHoming;
+            _explosionRadius = currentStats.explosionRad;
+            _projectileCount = currentStats.projectileCount;
+            _innerInterval = currentStats.innerInterval;
+
+            skillData.SetStatsForLevel(SkillLevel, currentStats);
+            Debug.Log($"Updated stats for {GetType().Name} from inspector");
+        }
     }
 }

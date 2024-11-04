@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
@@ -13,32 +13,46 @@ public class SkillLevelUpButton : MonoBehaviour
     [SerializeField] private Image elementIcon;
     [SerializeField] private Button button;
 
-    public void SetSkillSelectButton(SkillData skillData, Action onClick, string levelInfo = null, ISkillStat currentStats = null)
+    private Action buttonClickCallback;
+
+    public void SetSkillSelectButton(SkillData skillData, Action onClickCallback, string levelInfo = null, ISkillStat currentStats = null)
     {
-        if (skillData == null)
+        try
         {
-            SetDisabledButton("Invalid Skill Data");
-            return;
+            if (!ValidateSkillData(skillData))
+            {
+                SetDisabledButton("Invalid Skill Data");
+                return;
+            }
+
+            buttonClickCallback = onClickCallback;
+            SetupVisuals(skillData, levelInfo);
+            SetupButtonListener();
+            SetupStats(skillData, currentStats, levelInfo);
         }
-
-        SetupSkillIcon(skillData);
-        SetupSkillText(skillData, levelInfo);
-        SetupElementIcon(skillData);
-        SetupButton(onClick);
-
-        if (currentStats != null)
+        catch (System.Exception e)
         {
-            SetupStatComparison(skillData, currentStats);
+            Debug.LogError($"Error in SetSkillSelectButton: {e.Message}");
+            SetDisabledButton("Error setting up button");
         }
+    }
+
+    private bool ValidateSkillData(SkillData skillData)
+    {
+        if (skillData == null || skillData.metadata == null)
+        {
+            Debug.LogError("Skill data or metadata is null");
+            return false;
+        }
+        return true;
     }
 
     private void SetupSkillIcon(SkillData skillData)
     {
-        if (skillIconImage != null)
-        {
-            skillIconImage.sprite = skillData.icon;
-            skillIconImage.gameObject.SetActive(skillData.icon != null);
-        }
+        if (skillIconImage == null) return;
+
+        skillIconImage.sprite = skillData.icon;
+        skillIconImage.gameObject.SetActive(skillData.icon != null);
     }
 
     private void SetupSkillText(SkillData skillData, string levelInfo)
@@ -55,11 +69,7 @@ public class SkillLevelUpButton : MonoBehaviour
 
         if (descriptionText != null)
         {
-            Skill skillComponent = skillData.metadata.Prefab?.GetComponent<Skill>();
-            string description = skillComponent != null ?
-                skillComponent.GetDetailedDescription() :
-                skillData.metadata.Description;
-
+            string description = skillData.metadata.Description;
             string elementDesc = GetElementalDescription(skillData.metadata.Element);
             descriptionText.text = $"{description}\n{elementDesc}";
         }
@@ -67,19 +77,92 @@ public class SkillLevelUpButton : MonoBehaviour
 
     private void SetupElementIcon(SkillData skillData)
     {
-        if (elementIcon != null)
+        if (elementIcon == null) return;
+
+        var sprite = GetElementSprite(skillData.metadata.Element);
+        if (sprite != null)
         {
-            elementIcon.sprite = GetElementSprite(skillData.metadata.Element);
-            elementIcon.gameObject.SetActive(skillData.metadata.Element != ElementType.None);
+            elementIcon.sprite = sprite;
+            elementIcon.gameObject.SetActive(true);
+            elementIcon.color = GetElementColor(skillData.metadata.Element);
+        }
+        else
+        {
+            elementIcon.gameObject.SetActive(false);
         }
     }
 
-    private void SetupButton(Action onClick)
+    private void SetupButtonListener()
     {
         if (button != null)
         {
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => onClick?.Invoke());
+            button.onClick.AddListener(OnButtonClick);
+        }
+    }
+
+    private void OnButtonClick()
+    {
+        try
+        {
+            buttonClickCallback?.Invoke();
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error in button click: {e.Message}");
+        }
+    }
+
+    private void SetupStats(SkillData skillData, ISkillStat currentStats, string levelInfo)
+    {
+        if (currentStats != null)
+        {
+            SetupStatComparison(skillData, currentStats);
+        }
+        else if (levelInfo == "New!")
+        {
+            SetupNewSkillStats(skillData);
+        }
+    }
+
+    private void SetupNewSkillStats(SkillData skillData)
+    {
+        if (statComparisonText == null) return;
+
+        var baseStats = skillData.GetCurrentTypeStat();
+        if (baseStats == null) return;
+
+        StringBuilder statText = new StringBuilder();
+        statText.AppendLine("Base Stats:");
+        AppendBaseStats(statText, baseStats.baseStat);
+        AppendTypeSpecificStats(statText, baseStats, skillData.metadata.Type);
+
+        statComparisonText.text = statText.ToString();
+    }
+
+    private void AppendBaseStats(StringBuilder sb, BaseSkillStat stats)
+    {
+        sb.AppendLine($"Base Damage: {stats.damage:F1}");
+        sb.AppendLine($"Element: {stats.element}");
+        sb.AppendLine($"Elemental Power: {stats.elementalPower:F1}x");
+        sb.AppendLine($"Max Level: {stats.maxSkillLevel}");
+    }
+
+    private void AppendTypeSpecificStats(StringBuilder sb, ISkillStat stats, SkillType type)
+    {
+        sb.AppendLine("\nSkill Specific Stats:");
+
+        switch (type)
+        {
+            case SkillType.Projectile:
+                AppendProjectileStats(sb, stats as ProjectileSkillStat);
+                break;
+            case SkillType.Area:
+                AppendAreaStats(sb, stats as AreaSkillStat);
+                break;
+            case SkillType.Passive:
+                AppendPassiveStats(sb, stats as PassiveSkillStat);
+                break;
         }
     }
 
@@ -89,7 +172,12 @@ public class SkillLevelUpButton : MonoBehaviour
         if (elementIcon != null) elementIcon.gameObject.SetActive(false);
         if (skillNameText != null) skillNameText.text = message;
         if (descriptionText != null) descriptionText.text = "";
-        if (button != null) button.interactable = false;
+        if (statComparisonText != null) statComparisonText.text = "";
+        if (button != null)
+        {
+            button.onClick.RemoveAllListeners();
+            button.interactable = false;
+        }
     }
 
     private string GetElementalDescription(ElementType element)
@@ -108,13 +196,35 @@ public class SkillLevelUpButton : MonoBehaviour
     {
         string iconPath = element switch
         {
-            ElementType.Dark => "Icons/DarkElement",
-            ElementType.Water => "Icons/WaterElement",
-            ElementType.Fire => "Icons/FireElement",
-            ElementType.Earth => "Icons/EarthElement",
+            ElementType.Dark => "Icons/Elements/DarkElement",
+            ElementType.Water => "Icons/Elements/WaterElement",
+            ElementType.Fire => "Icons/Elements/FireElement",
+            ElementType.Earth => "Icons/Elements/EarthElement",
             _ => ""
         };
-        return !string.IsNullOrEmpty(iconPath) ? Resources.Load<Sprite>(iconPath) : null;
+
+        if (!string.IsNullOrEmpty(iconPath))
+        {
+            var sprite = Resources.Load<Sprite>(iconPath);
+            if (sprite == null)
+            {
+                Debug.LogWarning($"Element sprite not found at path: {iconPath}");
+            }
+            return sprite;
+        }
+        return null;
+    }
+
+    private Color GetElementColor(ElementType element)
+    {
+        return element switch
+        {
+            ElementType.Fire => new Color(1f, 0.3f, 0.3f),
+            ElementType.Water => new Color(0.3f, 0.3f, 1f),
+            ElementType.Earth => new Color(0.3f, 0.8f, 0.3f),
+            ElementType.Dark => new Color(0.5f, 0.2f, 0.7f),
+            _ => Color.white
+        };
     }
 
     private void SetupStatComparison(SkillData skillData, ISkillStat currentStats)
@@ -134,7 +244,7 @@ public class SkillLevelUpButton : MonoBehaviour
 
         CompareBasicStats(comparison, currentStats.baseStat, nextLevelStats.baseStat);
 
-        // ��ų Ÿ�Ժ� ���� ��
+        // ų ŸԺ 
         switch (skillData.metadata.Type)
         {
             case SkillType.Projectile:
@@ -156,13 +266,13 @@ public class SkillLevelUpButton : MonoBehaviour
         float damageDiff = next.damage - current.damage;
         if (damageDiff != 0)
         {
-            sb.AppendLine($"Damage : {current.damage:F1} �� {next.damage:F1} (<color={GetColorForDiff(damageDiff)}>{"+" + damageDiff:F1}</color>)");
+            sb.AppendLine($"Damage : {current.damage:F1}  {next.damage:F1} (<color={GetColorForDiff(damageDiff)}>{"+" + damageDiff:F1}</color>)");
         }
 
         float elementalPowerDiff = next.elementalPower - current.elementalPower;
         if (elementalPowerDiff != 0)
         {
-            sb.AppendLine($"Elemental Power: {current.elementalPower:F1} �� {next.elementalPower:F1} (<color={GetColorForDiff(elementalPowerDiff)}>{"+" + elementalPowerDiff:F1}</color>)");
+            sb.AppendLine($"Elemental Power: {current.elementalPower:F1}  {next.elementalPower:F1} (<color={GetColorForDiff(elementalPowerDiff)}>{"+" + elementalPowerDiff:F1}</color>)");
         }
     }
 
@@ -194,22 +304,69 @@ public class SkillLevelUpButton : MonoBehaviour
 
     private void ComparePassiveStats(StringBuilder sb, PassiveSkillStat current, PassiveSkillStat next)
     {
-        if (current == null || next == null) return;
+        if (current == null || next == null)
+        {
+            Debug.LogWarning("Cannot compare passive stats: current or next is null");
+            return;
+        }
 
-        // Base stats
-        CompareFloatValue(sb, "Effect Duration", current.effectDuration, next.effectDuration);
-        CompareFloatValue(sb, "Cooldown", current.cooldown, next.cooldown, true);
-        CompareFloatValue(sb, "Trigger Chance", current.triggerChance, next.triggerChance);
-        CompareFloatValue(sb, "Damage Increase", current.damageIncrease, next.damageIncrease, false, "%");
-        CompareFloatValue(sb, "Defense Increase", current.defenseIncrease, next.defenseIncrease, false, "%");
-        CompareFloatValue(sb, "EXP Range Increase", current.expAreaIncrease, next.expAreaIncrease, false, "%");
-        CompareFloatValue(sb, "HP Increase", current.hpIncrease, next.hpIncrease, false, "%");
+        try
+        {
+            // 기본 지속시간과 쿨다운
+            if (next.effectDuration != current.effectDuration)
+            {
+                CompareFloatValue(sb, "Effect Duration", current.effectDuration, next.effectDuration, false, "s");
+            }
+            if (next.cooldown != current.cooldown)
+            {
+                CompareFloatValue(sb, "Cooldown", current.cooldown, next.cooldown, true, "s");
+            }
 
-        // Additional stats
-        CompareFloatValue(sb, "Move Speed Increase", current.moveSpeedIncrease, next.moveSpeedIncrease, false, "%");
-        CompareFloatValue(sb, "Attack Speed Increase", current.attackSpeedIncrease, next.attackSpeedIncrease, false, "%");
-        CompareFloatValue(sb, "Attack Range Increase", current.attackRangeIncrease, next.attackRangeIncrease, false, "%");
-        CompareFloatValue(sb, "HP Regen Increase", current.hpRegenIncrease, next.hpRegenIncrease, false, "%");
+            // 증가량 비교 (0이 아닌 경우에만 표시)
+            ComparePassiveIncrease(sb, "Damage", current.damageIncrease, next.damageIncrease);
+            ComparePassiveIncrease(sb, "Defense", current.defenseIncrease, next.defenseIncrease);
+            ComparePassiveIncrease(sb, "Move Speed", current.moveSpeedIncrease, next.moveSpeedIncrease);
+            ComparePassiveIncrease(sb, "Attack Speed", current.attackSpeedIncrease, next.attackSpeedIncrease);
+            ComparePassiveIncrease(sb, "Attack Range", current.attackRangeIncrease, next.attackRangeIncrease);
+            ComparePassiveIncrease(sb, "HP", current.hpIncrease, next.hpIncrease);
+            ComparePassiveIncrease(sb, "HP Regen", current.hpRegenIncrease, next.hpRegenIncrease);
+            ComparePassiveIncrease(sb, "EXP Collection Range", current.expAreaIncrease, next.expAreaIncrease);
+
+            // 트리거 확률이 100% 미만일 때만 표시
+            if (next.triggerChance < 100 || current.triggerChance < 100)
+            {
+                CompareFloatValue(sb, "Trigger Chance", current.triggerChance, next.triggerChance, false, "%");
+            }
+
+            // 유도 효과 변경 표시
+            if (current.homingActivate != next.homingActivate)
+            {
+                string status = next.homingActivate ? "Activated" : "Deactivated";
+                string color = next.homingActivate ? "#00FF00" : "#FF0000";
+                sb.AppendLine($"Homing Effect: <color={color}>{status}</color>");
+            }
+
+            // 디버그 로그 추가
+            Debug.Log($"Comparing passive stats:\n" +
+                     $"Current - Damage: {current.damageIncrease}, Speed: {current.moveSpeedIncrease}\n" +
+                     $"Next - Damage: {next.damageIncrease}, Speed: {next.moveSpeedIncrease}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error comparing passive stats: {e.Message}");
+        }
+    }
+
+    private void ComparePassiveIncrease(StringBuilder sb, string statName, float current, float next)
+    {
+        if (current > 0 || next > 0)
+        {
+            float diff = next - current;
+            string color = GetColorForDiff(diff);
+            string diffText = diff > 0 ? $"+{diff:F1}" : $"{diff:F1}";
+            sb.AppendLine($"{statName} Increase: {current:F1}% → {next:F1}% " +
+                         $"(<color={color}>{diffText}%</color>)");
+        }
     }
 
     private void CompareFloatValue(StringBuilder sb, string statName, float current, float next, bool isNegativeBetter = false, string unit = "")
@@ -219,7 +376,7 @@ public class SkillLevelUpButton : MonoBehaviour
         {
             string color = isNegativeBetter ? GetColorForDiff(-diff) : GetColorForDiff(diff);
             string diffText = diff > 0 ? $"+{diff:F1}" : $"{diff:F1}";
-            sb.AppendLine($"{statName}: {current:F1}{unit} �� {next:F1}{unit} (<color={color}>{diffText}{unit}</color>)");
+            sb.AppendLine($"{statName}: {current:F1}{unit}  {next:F1}{unit} (<color={color}>{diffText}{unit}</color>)");
         }
     }
 
@@ -229,13 +386,13 @@ public class SkillLevelUpButton : MonoBehaviour
         if (diff != 0)
         {
             string color = isNegativeBetter ? GetColorForDiff(-diff) : GetColorForDiff(diff);
-            sb.AppendLine($"{statName}: {current} �� {next} (<color={color}>{(diff > 0 ? "+" : "")}{diff}</color>)");
+            sb.AppendLine($"{statName}: {current}  {next} (<color={color}>{(diff > 0 ? "+" : "")}{diff}</color>)");
         }
     }
 
     private string GetColorForDiff(float diff)
     {
-        return diff > 0 ? "#00FF00" : "#FF0000"; 
+        return diff > 0 ? "#00FF00" : "#FF0000";
     }
 
     private void CompareBoolValue(StringBuilder sb, string statName, bool current, bool next)
@@ -243,7 +400,80 @@ public class SkillLevelUpButton : MonoBehaviour
         if (current != next)
         {
             string color = next ? "#00FF00" : "#FF0000";
-            sb.AppendLine($"{statName}: {current} �� {next} (<color={color}>{(next ? "Activated" : "Deactivated")}</color>)");
+            sb.AppendLine($"{statName}: {current}  {next} (<color={color}>{(next ? "Activated" : "Deactivated")}</color>)");
         }
+    }
+
+    private void AppendProjectileStats(StringBuilder sb, ProjectileSkillStat stats)
+    {
+        if (stats == null) return;
+
+        if (stats.projectileSpeed > 0)
+            sb.AppendLine($"Attack Range: {stats.attackRange:F1}");
+        if (stats.shotInterval > 0)
+            sb.AppendLine($"Shot Interval: {stats.shotInterval:F1}s");
+        if (stats.projectileSpeed > 0)
+            sb.AppendLine($"Projectile Speed: {stats.projectileSpeed:F1}");
+        if (stats.pierceCount > 0)
+            sb.AppendLine($"Pierce Count: {stats.pierceCount}");
+        if (stats.isHoming)
+            sb.AppendLine($"Homing Range: {stats.homingRange:F1}");
+        if (stats.explosionRad > 0)
+            sb.AppendLine($"Explosion Radius: {stats.explosionRad:F1}");
+        if (stats.projectileCount > 1)
+            sb.AppendLine($"Projectile Count: {stats.projectileCount}");
+    }
+
+    private void AppendAreaStats(StringBuilder sb, AreaSkillStat stats)
+    {
+        if (stats == null) return;
+
+        if (stats.radius > 0)
+            sb.AppendLine($"Area Radius: {stats.radius:F1}");
+        if (stats.duration > 0)
+            sb.AppendLine($"Duration: {stats.duration:F1}s");
+        if (stats.tickRate > 0)
+            sb.AppendLine($"Tick Rate: {stats.tickRate:F1}s");
+        if (stats.moveSpeed > 0)
+            sb.AppendLine($"Move Speed: {stats.moveSpeed:F1}");
+        if (stats.isPersistent)
+            sb.AppendLine("Persistent Effect");
+    }
+
+    private void AppendPassiveStats(StringBuilder sb, PassiveSkillStat stats)
+    {
+        if (stats == null) return;
+
+        if (stats.damageIncrease > 0)
+            sb.AppendLine($"Damage Increase: {stats.damageIncrease:F1}%");
+        if (stats.defenseIncrease > 0)
+            sb.AppendLine($"Defense Increase: {stats.defenseIncrease:F1}%");
+        if (stats.moveSpeedIncrease > 0)
+            sb.AppendLine($"Move Speed Increase: {stats.moveSpeedIncrease:F1}%");
+        if (stats.attackSpeedIncrease > 0)
+            sb.AppendLine($"Attack Speed Increase: {stats.attackSpeedIncrease:F1}%");
+        if (stats.attackRangeIncrease > 0)
+            sb.AppendLine($"Attack Range Increase: {stats.attackRangeIncrease:F1}%");
+        if (stats.hpIncrease > 0)
+            sb.AppendLine($"HP Increase: {stats.hpIncrease:F1}%");
+        if (stats.hpRegenIncrease > 0)
+            sb.AppendLine($"HP Regen Increase: {stats.hpRegenIncrease:F1}%");
+        if (stats.expAreaIncrease > 0)
+            sb.AppendLine($"EXP Collection Range: {stats.expAreaIncrease:F1}%");
+        if (stats.effectDuration > 0)
+            sb.AppendLine($"Effect Duration: {stats.effectDuration:F1}s");
+        if (stats.cooldown > 0)
+            sb.AppendLine($"Cooldown: {stats.cooldown:F1}s");
+        if (stats.triggerChance < 100)
+            sb.AppendLine($"Trigger Chance: {stats.triggerChance:F1}%");
+        if (stats.homingActivate)
+            sb.AppendLine("Activates Homing Effect");
+    }
+
+    private void SetupVisuals(SkillData skillData, string levelInfo)
+    {
+        SetupSkillIcon(skillData);
+        SetupSkillText(skillData, levelInfo);
+        SetupElementIcon(skillData);
     }
 }

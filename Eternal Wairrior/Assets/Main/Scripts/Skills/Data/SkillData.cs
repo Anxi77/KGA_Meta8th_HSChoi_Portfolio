@@ -1,4 +1,4 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +36,7 @@ public class SkillData
         statsByLevel = new Dictionary<int, ISkillStat>();
         prefabsByLevel = new GameObject[0];
 
-        // ±‚∫ª Ω∫≈» √ ±‚»≠
+        // ‚∫ª  ±»≠
         projectileStat = new ProjectileSkillStat
         {
             baseStat = new BaseSkillStat()
@@ -67,64 +67,51 @@ public class SkillData
 
     public void SetStatsForLevel(int level, ISkillStat stats)
     {
-        // ±‚∫ª ¿Ø»øº∫ ∞ÀªÁ
-        if (stats == null)
+        if (stats?.baseStat == null)
         {
-            Debug.LogError($"Attempting to set null stats for level {level}");
+            Debug.LogError("Attempting to set null stats");
             return;
         }
 
-        if (level <= 0)
+        if (stats.baseStat.skillLevel != level)
         {
-            Debug.LogError($"Invalid level: {level}");
-            return;
+            Debug.LogError($"Stat level mismatch. Expected: {level}, Got: {stats.baseStat.skillLevel}");
+            stats.baseStat.skillLevel = level;
         }
 
-        // Ω∫≈≥ ≈∏¿‘ ∞À¡ı
-        bool isValidType = stats switch
-        {
-            ProjectileSkillStat _ when metadata.Type == SkillType.Projectile => true,
-            AreaSkillStat _ when metadata.Type == SkillType.Area => true,
-            PassiveSkillStat _ when metadata.Type == SkillType.Passive => true,
-            _ => false
-        };
+        // Í∏∞Ï°¥ Ïä§ÌÉØ Ï†ÄÏû•
+        var oldStats = statsByLevel.ContainsKey(level) ? statsByLevel[level] : null;
 
-        if (!isValidType)
+        try
         {
-            Debug.LogError($"Stat type mismatch. Expected {metadata.Type} but got {stats.GetType().Name}");
-            return;
+            // ÏÉà Ïä§ÌÉØ ÏÑ§Ï†ï
+            statsByLevel[level] = stats;
+
+            // Ïä§ÌÇ¨ ÌÉÄÏûÖÎ≥Ñ Ïä§ÌÉØ ÏóÖÎç∞Ïù¥Ìä∏
+            switch (stats)
+            {
+                case ProjectileSkillStat projectileStats:
+                    projectileStat = projectileStats;
+                    break;
+                case AreaSkillStat areaStats:
+                    areaStat = areaStats;
+                    break;
+                case PassiveSkillStat passiveStats:
+                    passiveStat = passiveStats;
+                    break;
+            }
+
+            Debug.Log($"Successfully set stats for level {level}");
         }
-
-        // ∑π∫ß º¯º≠ ∞À¡ı
-        if (level > 1 && !statsByLevel.ContainsKey(level - 1))
+        catch (System.Exception e)
         {
-            Debug.LogWarning($"Setting stats for level {level} but level {level - 1} doesn't exist");
+            // Ïã§Ìå®Ïãú Ïù¥Ï†Ñ Ïä§ÌÉØ Î≥µÍµ¨
+            if (oldStats != null)
+            {
+                statsByLevel[level] = oldStats;
+            }
+            Debug.LogError($"Error setting stats: {e.Message}");
         }
-
-        // Ω∫≈» æ˜µ•¿Ã∆Æ
-        if (statsByLevel.ContainsKey(level))
-        {
-            Debug.Log($"Overwriting existing stats for level {level}");
-        }
-
-        // Ω∫≈≥ ≈∏¿‘∫∞ ¬¸¡∂ æ˜µ•¿Ã∆Æ
-        switch (stats)
-        {
-            case ProjectileSkillStat projectileStats:
-                projectileStat = projectileStats;
-                break;
-            case AreaSkillStat areaStats:
-                areaStat = areaStats;
-                break;
-            case PassiveSkillStat passiveStats:
-                passiveStat = passiveStats;
-                break;
-        }
-
-        // Dictionaryø° ¿˙¿Â
-        statsByLevel[level] = stats;
-
-        Debug.Log($"Successfully set stats for {metadata.Name} level {level}");
     }
 
     public ISkillStat GetCurrentTypeStat()

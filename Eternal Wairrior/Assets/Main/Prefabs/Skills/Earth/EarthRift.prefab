@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 65340770106118967}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.683, y: 2.376, z: 1.9001305}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -45,6 +45,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   skillData:
+    metadata:
+      ID: 100002
+      Name: Earth Rift
+      Description: 
+      Type: 1
+      Element: 4
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 0}
+      Icon: {fileID: 0}
     icon: {fileID: 0}
     projectile: {fileID: 5367269600100238616, guid: 54c61bb0999022b49bcaa64c82212734, type: 3}
     prefabsByLevel: []
@@ -69,6 +79,15 @@ MonoBehaviour:
       effectDuration: 0
       cooldown: 0
       triggerChance: 0
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
   _damage: 10
   _elementalPower: 1
   _projectileSpeed: 25

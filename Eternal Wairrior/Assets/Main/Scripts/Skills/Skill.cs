@@ -64,7 +64,24 @@ public abstract class Skill : MonoBehaviour
     // 기본 스탯 접근자
     public virtual float Damage => skillData?.GetCurrentTypeStat()?.baseStat?.damage ?? 0f;
     public string SkillName => skillData?.metadata?.Name ?? "Unknown";
-    public int SkillLevel => skillData?.GetCurrentTypeStat()?.baseStat?.skillLevel ?? 1;
+    protected int _skillLevel = 1;  // 기본 필드
+    public int SkillLevel
+    {
+        get
+        {
+            var currentStats = GetSkillData()?.GetCurrentTypeStat()?.baseStat;
+            if (currentStats != null)
+            {
+                return currentStats.skillLevel;
+            }
+            return _skillLevel;
+        }
+        protected set
+        {
+            _skillLevel = value;
+            Debug.Log($"Setting skill level to {value} for {SkillName}");
+        }
+    }
     public int MaxSkillLevel => skillData?.GetCurrentTypeStat()?.baseStat?.maxSkillLevel ?? 1;
     public SkillID SkillID => skillData?.metadata?.ID ?? SkillID.None;
 
@@ -98,14 +115,35 @@ public abstract class Skill : MonoBehaviour
 
     public virtual bool SkillLevelUpdate(int newLevel)
     {
+        Debug.Log($"=== Starting SkillLevelUpdate for {SkillName} ===");
+        Debug.Log($"Current Level: {SkillLevel}, Attempting to upgrade to: {newLevel}");
+
+        // 레벨 유효성 검사
+        if (newLevel <= 0)
+        {
+            Debug.LogError($"Invalid level: {newLevel}");
+            return false;
+        }
+
         if (newLevel > MaxSkillLevel)
         {
-            Debug.LogError($"Attempted to upgrade {SkillName} beyond max level");
+            Debug.LogError($"Attempted to upgrade {SkillName} beyond max level ({MaxSkillLevel})");
+            return false;
+        }
+
+        if (newLevel != SkillLevel + 1)
+        {
+            Debug.LogError($"Invalid level increment. Current: {SkillLevel}, Attempted: {newLevel}");
             return false;
         }
 
         try
         {
+            // 현재 스탯 로깅
+            var currentStats = GetSkillData()?.GetCurrentTypeStat();
+            Debug.Log($"Current stats - Level: {currentStats?.baseStat?.skillLevel}, Damage: {currentStats?.baseStat?.damage}");
+
+            // 새로운 스탯 가져오기
             var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(
                 skillData.metadata.ID,
                 newLevel,
@@ -113,21 +151,39 @@ public abstract class Skill : MonoBehaviour
 
             if (newStats == null)
             {
-                Debug.LogError($"Failed to get stats for {SkillName} level {newLevel}");
+                Debug.LogError("Failed to get new stats");
                 return false;
             }
 
+            Debug.Log($"New stats received - Level: {newStats.baseStat?.skillLevel}, Damage: {newStats.baseStat?.damage}");
+
+            // 명시적으로 레벨 설정
+            newStats.baseStat.skillLevel = newLevel;
+            SkillLevel = newLevel;  // 내부 필드도 업데이트
+
+            // 스탯 업데이트
+            Debug.Log("Setting new stats...");
             skillData.SetStatsForLevel(newLevel, newStats);
 
-            // 스킬 타입별 업데이트 처리
+            Debug.Log("Updating skill type stats...");
             UpdateSkillTypeStats(newStats);
 
-            Debug.Log($"Successfully upgraded {SkillName} to level {newLevel}");
+            // 검증
+            var updatedStats = GetSkillData()?.GetCurrentTypeStat();
+            Debug.Log($"Verification - Current Level: {SkillLevel}, Stats Level: {updatedStats?.baseStat?.skillLevel}");
+
+            if (updatedStats?.baseStat?.skillLevel != newLevel)
+            {
+                Debug.LogError($"Level update verification failed. Expected: {newLevel}, Got: {updatedStats?.baseStat?.skillLevel}");
+                return false;
+            }
+
+            Debug.Log($"=== Successfully completed SkillLevelUpdate for {SkillName} ===");
             return true;
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error upgrading skill {SkillName}: {e.Message}");
+            Debug.LogError($"Error in SkillLevelUpdate: {e.Message}\n{e.StackTrace}");
             return false;
         }
     }
