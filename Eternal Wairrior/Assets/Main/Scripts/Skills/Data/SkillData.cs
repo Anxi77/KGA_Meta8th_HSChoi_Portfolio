@@ -13,7 +13,9 @@ public class SkillMetadata
     public ElementType Element;
     public int Tier;
     public string[] Tags;
+    [System.NonSerialized]
     public GameObject Prefab;
+    [System.NonSerialized]
     public Sprite Icon;
 }
 
@@ -21,14 +23,21 @@ public class SkillMetadata
 public class SkillData
 {
     public SkillMetadata metadata;
+    [System.NonSerialized]
     private Dictionary<int, ISkillStat> statsByLevel;
 
+    [System.NonSerialized]
     public Sprite icon;
+    [System.NonSerialized]
     public GameObject projectile;
+    [System.NonSerialized]
     public GameObject[] prefabsByLevel;
-    public ProjectileSkillStat projectileStat;
-    public AreaSkillStat areaStat;
-    public PassiveSkillStat passiveStat;
+
+    // 기본 스탯들을 직렬화 가능하도록 수정
+    public BaseSkillStat baseStats = new BaseSkillStat();
+    public ProjectileSkillStat projectileStat = new ProjectileSkillStat();
+    public AreaSkillStat areaStat = new AreaSkillStat();
+    public PassiveSkillStat passiveStat = new PassiveSkillStat();
 
     public SkillData()
     {
@@ -36,20 +45,28 @@ public class SkillData
         statsByLevel = new Dictionary<int, ISkillStat>();
         prefabsByLevel = new GameObject[0];
 
-        // ⺻ ʱȭ
+        // 기본 스탯 초기화
+        baseStats = new BaseSkillStat
+        {
+            damage = 10f,
+            skillLevel = 1,
+            maxSkillLevel = 5,
+            elementalPower = 1f
+        };
+
         projectileStat = new ProjectileSkillStat
         {
-            baseStat = new BaseSkillStat()
+            baseStat = baseStats
         };
 
         areaStat = new AreaSkillStat
         {
-            baseStat = new BaseSkillStat()
+            baseStat = baseStats
         };
 
         passiveStat = new PassiveSkillStat
         {
-            baseStat = new BaseSkillStat(),
+            baseStat = baseStats,
             moveSpeedIncrease = 0f,
             attackSpeedIncrease = 0f,
             attackRangeIncrease = 0f,
@@ -73,43 +90,33 @@ public class SkillData
             return;
         }
 
-        if (stats.baseStat.skillLevel != level)
-        {
-            Debug.LogError($"Stat level mismatch. Expected: {level}, Got: {stats.baseStat.skillLevel}");
-            stats.baseStat.skillLevel = level;
-        }
-
-        // 기존 스탯 저장
-        var oldStats = statsByLevel.ContainsKey(level) ? statsByLevel[level] : null;
-
         try
         {
-            // 새 스탯 설정
-            statsByLevel[level] = stats;
+            // 기본 스탯 업데이트
+            baseStats = new BaseSkillStat(stats.baseStat);
 
             // 스킬 타입별 스탯 업데이트
             switch (stats)
             {
                 case ProjectileSkillStat projectileStats:
-                    projectileStat = projectileStats;
+                    projectileStat = new ProjectileSkillStat(projectileStats);
                     break;
                 case AreaSkillStat areaStats:
-                    areaStat = areaStats;
+                    areaStat = new AreaSkillStat(areaStats);
                     break;
                 case PassiveSkillStat passiveStats:
-                    passiveStat = passiveStats;
+                    passiveStat = new PassiveSkillStat(passiveStats);
                     break;
             }
+
+            // 레벨별 스탯 저장
+            if (statsByLevel == null) statsByLevel = new Dictionary<int, ISkillStat>();
+            statsByLevel[level] = stats;
 
             Debug.Log($"Successfully set stats for level {level}");
         }
         catch (System.Exception e)
         {
-            // 실패시 이전 스탯 복구
-            if (oldStats != null)
-            {
-                statsByLevel[level] = oldStats;
-            }
             Debug.LogError($"Error setting stats: {e.Message}");
         }
     }
@@ -119,59 +126,11 @@ public class SkillData
         switch (metadata.Type)
         {
             case SkillType.Projectile:
-                if (projectileStat == null)
-                {
-                    projectileStat = new ProjectileSkillStat
-                    {
-                        baseStat = new BaseSkillStat
-                        {
-                            damage = 10f,
-                            skillName = metadata.Name,
-                            skillLevel = 1,
-                            maxSkillLevel = 5,
-                            element = metadata.Element,
-                            elementalPower = 1f
-                        }
-                    };
-                }
                 return projectileStat;
-
             case SkillType.Area:
-                if (areaStat == null)
-                {
-                    areaStat = new AreaSkillStat
-                    {
-                        baseStat = new BaseSkillStat
-                        {
-                            damage = 10f,
-                            skillName = metadata.Name,
-                            skillLevel = 1,
-                            maxSkillLevel = 5,
-                            element = metadata.Element,
-                            elementalPower = 1f
-                        }
-                    };
-                }
                 return areaStat;
-
             case SkillType.Passive:
-                if (passiveStat == null)
-                {
-                    passiveStat = new PassiveSkillStat
-                    {
-                        baseStat = new BaseSkillStat
-                        {
-                            damage = 10f,
-                            skillName = metadata.Name,
-                            skillLevel = 1,
-                            maxSkillLevel = 5,
-                            element = metadata.Element,
-                            elementalPower = 1f
-                        },
-                    };
-                }
                 return passiveStat;
-
             default:
                 return null;
         }
@@ -233,4 +192,48 @@ public class SkillData
 public class SkillDataWrapper
 {
     public List<SkillData> skillDatas;
+    public ResourceReferenceData resourceReferences;
+
+    public SkillDataWrapper()
+    {
+        skillDatas = new List<SkillData>();
+        resourceReferences = new ResourceReferenceData();
+    }
+}
+
+[System.Serializable]
+public class ResourceReferenceData
+{
+    public List<string> keys = new List<string>();
+    public List<AssetReference> values = new List<AssetReference>();
+
+    public void Add(string key, AssetReference value)
+    {
+        keys.Add(key);
+        values.Add(value);
+    }
+
+    public bool TryGetValue(string key, out AssetReference value)
+    {
+        int index = keys.IndexOf(key);
+        if (index != -1)
+        {
+            value = values[index];
+            return true;
+        }
+        value = null;
+        return false;
+    }
+
+    public bool ContainsKey(string key)
+    {
+        return keys.Contains(key);
+    }
+}
+
+[System.Serializable]
+public class AssetReference
+{
+    public string guid;
+    public string path;
 }

@@ -1,6 +1,0 @@
-skillid,level,damage,maxskilllevel,element,elementalpower,effectduration,cooldown,triggerchance,damageincrease,defenseincrease,expareaincrease,homingactivate,hpincrease,movespeedincrease,attackspeedincrease,attackrangeincrease,hpregenincrease
-AbyssalExpansion,1,10,5,Dark,1,5,10,100,123,123,123,False,123,123,123,123,123
-AbyssalExpansion,2,12,5,Dark,1.1,5,10,100,123,123,123,False,123,321,123,123,123
-AbyssalExpansion,3,14.4,5,Dark,1.21,5,10,100,123,123,123,False,123,321,123,123,123
-AbyssalExpansion,4,17.28,5,Dark,1.331,5,10,100,123,123,123,False,123,321,123,123,123
-AbyssalExpansion,5,20.736,5,Dark,1.4641,5,10,100,123,123,123,False,123,321,123,123,123

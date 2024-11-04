@@ -1,2 +1,0 @@
-skillid,level,damage,maxskilllevel,element,elementalpower,radius,duration,tickrate,ispersistent,movespeed
-Vine,1,10,5,None,1,5,3,1,False,0

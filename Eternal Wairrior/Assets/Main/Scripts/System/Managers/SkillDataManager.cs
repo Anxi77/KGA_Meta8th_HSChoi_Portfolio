@@ -40,6 +40,8 @@ public class SkillDataManager : DataManager
     private bool isInitialized = false;
     public bool IsInitialized => isInitialized;
 
+    private Dictionary<(SkillID, int), ISkillStat> statsCache = new Dictionary<(SkillID, int), ISkillStat>();
+
     protected override void Awake()
     {
         if (instance == null)
@@ -59,18 +61,39 @@ public class SkillDataManager : DataManager
 
     private IEnumerator Initialize()
     {
-        skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
-        LoadSkillStatsFromCSV();
-        LoadAllSkillData();
+        float timeout = 10f;
+        float elapsed = 0f;
+        bool allResourcesLoaded = false;
 
-        // 모든 데이터가 로드될 때까지 대기
         while (skillDatas == null || !skillStatsByLevel.Any())
         {
+            elapsed += Time.deltaTime;
+            if (elapsed >= timeout)
+            {
+                Debug.LogError("SkillDataManager initialization timed out");
+                break;
+            }
+
+            // 리소스 로딩 상태 확인
+            allResourcesLoaded = skillDatas != null &&
+                skillDatas.All(skill =>
+                    skill != null &&
+                    skill.metadata != null &&
+                    skill.metadata.Prefab != null &&
+                    skill.icon != null &&
+                    (skill.metadata.Type != SkillType.Projectile || skill.projectile != null)
+                );
+
+            if (allResourcesLoaded)
+            {
+                break;
+            }
+
             yield return null;
         }
 
-        isInitialized = true;
-        Debug.Log("SkillDataManager initialization completed");
+        isInitialized = skillDatas != null && skillStatsByLevel.Any() && allResourcesLoaded;
+        Debug.Log($"SkillDataManager initialization completed: {isInitialized}");
     }
 
     public List<SkillData> GetAllSkillData()
@@ -83,129 +106,157 @@ public class SkillDataManager : DataManager
 #if UNITY_EDITOR
         try
         {
+            var wrapper = new SkillDataWrapper();
+            wrapper.skillDatas = skillDatas;
+
             foreach (var skill in skillDatas)
             {
-                if (skill.metadata.ID == SkillID.None) continue;
+                if (skill == null || skill.metadata == null) continue;
 
-                // 아이콘 참조 업데이트
-                string iconPath = $"{ICON_PATH}/{skill.metadata.ID}_Icon";
-                Sprite icon = Resources.Load<Sprite>(iconPath);
-                if (icon != null)
+                // 메타데이터 프리팹
+                if (skill.metadata.Prefab != null)
                 {
-                    string assetPath = AssetDatabase.GetAssetPath(icon);
-                    Sprite iconAsset = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-                    // SkillData의 icon 필드와 metadata의 Icon 필드 모두 설정
-                    skill.icon = iconAsset;
-                    skill.metadata.Icon = iconAsset;
-                    Debug.Log($"Updated icon reference: {assetPath} (InstanceID: {iconAsset.GetInstanceID()})");
-                }
-
-                // 메타데이터 프리팹 참조 업데이트
-                string metadataPrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Metadata";
-                GameObject metadataPrefab = Resources.Load<GameObject>(metadataPrefabPath);
-                if (metadataPrefab != null)
-                {
-                    string assetPath = AssetDatabase.GetAssetPath(metadataPrefab);
-                    GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                    skill.metadata.Prefab = prefabAsset;
-                    Debug.Log($"Updated metadata prefab reference: {assetPath} (InstanceID: {prefabAsset.GetInstanceID()})");
-                }
-
-                // 프로젝타일 프리팹 참조 업데이트
-                if (skill.metadata.Type == SkillType.Projectile)
-                {
-                    string projectilePrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Projectile";
-                    GameObject projectilePrefab = Resources.Load<GameObject>(projectilePrefabPath);
-                    if (projectilePrefab != null)
+                    string path = AssetDatabase.GetAssetPath(skill.metadata.Prefab);
+                    string guid = AssetDatabase.AssetPathToGUID(path);
+                    wrapper.resourceReferences.Add($"{skill.metadata.ID}_Metadata", new AssetReference
                     {
-                        string assetPath = AssetDatabase.GetAssetPath(projectilePrefab);
-                        GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                        skill.projectile = prefabAsset;
-                        Debug.Log($"Updated projectile prefab reference: {assetPath} (InstanceID: {prefabAsset.GetInstanceID()})");
-                    }
+                        guid = guid,
+                        path = path
+                    });
                 }
 
-                // 레벨별 프리팹 참조 업데이트
+                // 아이콘
+                if (skill.icon != null)
+                {
+                    string path = AssetDatabase.GetAssetPath(skill.icon);
+                    string guid = AssetDatabase.AssetPathToGUID(path);
+                    wrapper.resourceReferences.Add($"{skill.metadata.ID}_Icon", new AssetReference
+                    {
+                        guid = guid,
+                        path = path
+                    });
+                }
+
+                // 프로젝타일
+                if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
+                {
+                    string path = AssetDatabase.GetAssetPath(skill.projectile);
+                    string guid = AssetDatabase.AssetPathToGUID(path);
+                    wrapper.resourceReferences.Add($"{skill.metadata.ID}_Projectile", new AssetReference
+                    {
+                        guid = guid,
+                        path = path
+                    });
+                }
+
+                // 레벨별 프리팹
                 if (skill.prefabsByLevel != null)
                 {
                     for (int i = 0; i < skill.prefabsByLevel.Length; i++)
                     {
-                        string levelPrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Level_{i + 1}";
-                        GameObject levelPrefab = Resources.Load<GameObject>(levelPrefabPath);
-                        if (levelPrefab != null)
+                        if (skill.prefabsByLevel[i] != null)
                         {
-                            string assetPath = AssetDatabase.GetAssetPath(levelPrefab);
-                            GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                            skill.prefabsByLevel[i] = prefabAsset;
-                            Debug.Log($"Updated level {i + 1} prefab reference: {assetPath} (InstanceID: {prefabAsset.GetInstanceID()})");
+                            string path = AssetDatabase.GetAssetPath(skill.prefabsByLevel[i]);
+                            string guid = AssetDatabase.AssetPathToGUID(path);
+                            wrapper.resourceReferences.Add($"{skill.metadata.ID}_Level_{i + 1}", new AssetReference
+                            {
+                                guid = guid,
+                                path = path
+                            });
                         }
                     }
                 }
             }
 
-            // 저장 전 검증
-            foreach (var skill in skillDatas)
-            {
-                if (skill.icon != null && skill.metadata.Icon == null)
-                {
-                    Debug.LogError($"Icon mismatch for skill {skill.metadata.Name}: icon is set but metadata.Icon is null");
-                    skill.metadata.Icon = skill.icon;
-                }
-            }
-
-            // JSON으로 저장
-            SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillDatas };
-            string jsonData = JsonUtility.ToJson(wrapper, true);
-            string directory = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
-            string path = Path.Combine(directory, SKILL_DATA_FILENAME);
-
-            Directory.CreateDirectory(directory);
-            File.WriteAllText(path, jsonData);
-
-            // 저장된 JSON 파일 검증
-            string savedJson = File.ReadAllText(path);
-            SkillDataWrapper savedWrapper = JsonUtility.FromJson<SkillDataWrapper>(savedJson);
-            foreach (var skill in savedWrapper.skillDatas)
-            {
-                if (skill.metadata.Prefab != null)
-                {
-                    Debug.Log($"Verified metadata prefab for {skill.metadata.Name} - InstanceID: {skill.metadata.Prefab.GetInstanceID()}");
-                }
-                if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
-                {
-                    Debug.Log($"Verified projectile prefab for {skill.metadata.Name} - InstanceID: {skill.projectile.GetInstanceID()}");
-                }
-                if (skill.icon != null)
-                {
-                    Debug.Log($"Verified icon for {skill.metadata.Name} - InstanceID: {skill.icon.GetInstanceID()}");
-                }
-            }
-
-            Debug.Log($"Successfully saved skill data to {path}");
+            SaveData(SKILL_DATA_FILENAME, wrapper);
+            Debug.Log("Successfully saved all skill data with GUID references");
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Failed to save skill data: {e.Message}\n{e.StackTrace}");
         }
-#else
-        SkillDataWrapper wrapper = new SkillDataWrapper { skillDatas = skillDatas };
-        SaveData(SKILL_DATA_FILENAME, wrapper);
 #endif
     }
 
     public void LoadAllSkillData()
     {
-        SkillDataWrapper wrapper = LoadData<SkillDataWrapper>(SKILL_DATA_FILENAME);
+        var wrapper = LoadData<SkillDataWrapper>(SKILL_DATA_FILENAME);
         if (wrapper != null)
         {
-            skillDatas = wrapper.skillDatas ?? new List<SkillData>();
+            skillDatas = wrapper.skillDatas;
+
+            // GUID를 통한 에셋 참조 복원
+            foreach (var skill in skillDatas)
+            {
+                if (skill == null || skill.metadata == null) continue;
+
+                // 메타데이터 프리팹
+                if (wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Metadata", out var metadataRef))
+                {
+                    // Resources 폴더 내의 상대 경로로 변환
+                    string resourcePath = GetResourcePath(metadataRef.path);
+                    if (!string.IsNullOrEmpty(resourcePath))
+                    {
+                        skill.metadata.Prefab = Resources.Load<GameObject>(resourcePath);
+                    }
+                }
+
+                // 아이콘
+                if (wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Icon", out var iconRef))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(iconRef.guid);
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        skill.icon = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                        skill.metadata.Icon = skill.icon;
+                    }
+                }
+
+                // 프로젝타일
+                if (skill.metadata.Type == SkillType.Projectile &&
+                    wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Projectile", out var projectileRef))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(projectileRef.guid);
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        skill.projectile = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    }
+                }
+
+                // 레벨별 프리팹
+                List<GameObject> levelPrefabs = new List<GameObject>();
+                int level = 1;
+                while (wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Level_{level}", out var levelRef))
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(levelRef.guid);
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                        if (prefab != null)
+                        {
+                            levelPrefabs.Add(prefab);
+                        }
+                    }
+                    level++;
+                }
+                skill.prefabsByLevel = levelPrefabs.ToArray();
+            }
         }
-        else
+    }
+
+    private string GetResourcePath(string fullPath)
+    {
+        // "Assets/Resources/" 이후의 경로만 추출하고 확장자 제거
+        const string resourcesFolder = "Resources/";
+        int resourceIndex = fullPath.IndexOf(resourcesFolder);
+        if (resourceIndex != -1)
         {
-            skillDatas = new List<SkillData>();
-            CreateDefaultSkillData();
+            string resourcePath = fullPath.Substring(resourceIndex + resourcesFolder.Length);
+            return Path.ChangeExtension(resourcePath, null);
         }
+        return null;
     }
 
     private void CreateDefaultSkillData()
@@ -589,6 +640,22 @@ public class SkillDataManager : DataManager
     }
 
     public ISkillStat GetSkillStatsForLevel(SkillID skillID, int level, SkillType skillType)
+    {
+        var key = (skillID, level);
+        if (statsCache.TryGetValue(key, out var cachedStats))
+        {
+            return cachedStats;
+        }
+
+        var stats = GetSkillStatsForLevelInternal(skillID, level, skillType);
+        if (stats != null)
+        {
+            statsCache[key] = stats;
+        }
+        return stats;
+    }
+
+    private ISkillStat GetSkillStatsForLevelInternal(SkillID skillID, int level, SkillType skillType)
     {
         if (!ValidateSkillRequest(skillID, level, skillType, out string errorMessage))
         {
@@ -1046,13 +1113,25 @@ public class SkillDataManager : DataManager
     public Sprite LoadSkillIcon(SkillID skillId)
     {
         string iconPath = $"{ICON_PATH}/{skillId}_Icon";
-        return Resources.Load<Sprite>(iconPath);
+        var sprite = Resources.Load<Sprite>(iconPath);
+        if (sprite == null)
+        {
+            Debug.LogWarning($"Failed to load icon for {skillId}, using fallback");
+            return Resources.Load<Sprite>("DefaultSkillIcon"); // 폴백 아이콘
+        }
+        return sprite;
     }
 
     public GameObject LoadSkillPrefab(SkillID skillId, string suffix)
     {
         string prefabPath = $"{PREFAB_PATH}/{skillId}_{suffix}";
-        return Resources.Load<GameObject>(prefabPath);
+        var prefab = Resources.Load<GameObject>(prefabPath);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"Failed to load prefab for {skillId}_{suffix}");
+            return null;
+        }
+        return prefab;
     }
 
     public List<SkillStatData> GetSkillStatsListForID(SkillID skillID)
@@ -1062,5 +1141,61 @@ public class SkillDataManager : DataManager
             return levelStats.Values.ToList();
         }
         return null;
+    }
+
+    private bool ValidateResourcePath(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+
+        // Resources 폴더 내에 있는지 확인
+        if (!path.Contains("/Resources/"))
+        {
+            Debug.LogError($"Asset path is not in Resources folder: {path}");
+            return false;
+        }
+
+        // 파일이 실제로 존재하는지 확인
+        string fullPath = Path.Combine(Application.dataPath, path.Replace("Assets/", ""));
+        if (!File.Exists(fullPath))
+        {
+            Debug.LogError($"Asset file not found: {path}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private GameObject LoadPrefabWithFallback(string guid, string path, string resourcePath)
+    {
+        GameObject prefab = null;
+
+        // 1. Resources.Load 시도
+        if (!string.IsNullOrEmpty(resourcePath))
+        {
+            prefab = Resources.Load<GameObject>(resourcePath);
+        }
+
+        // 2. GUID로 시도
+        if (prefab == null && !string.IsNullOrEmpty(guid))
+        {
+            string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+            if (!string.IsNullOrEmpty(assetPath))
+            {
+                prefab = Resources.Load<GameObject>(GetResourcePath(assetPath));
+            }
+        }
+
+        // 3. 직접 경로로 시도
+        if (prefab == null && !string.IsNullOrEmpty(path))
+        {
+            prefab = Resources.Load<GameObject>(GetResourcePath(path));
+        }
+
+        if (prefab == null)
+        {
+            Debug.LogWarning($"Failed to load prefab: GUID={guid}, Path={path}");
+        }
+
+        return prefab;
     }
 }
