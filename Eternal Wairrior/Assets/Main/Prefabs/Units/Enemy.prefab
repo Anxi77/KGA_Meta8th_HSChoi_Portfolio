@@ -264,7 +264,7 @@ MonoBehaviour:
   hp: 100
   damage: 0
   moveSpeed: 1
-  mobEXP: 0
+  mobEXP: 100
   damageInterval: 0.5
   attackRange: 0.9
   preferredDistance: 1
