@@ -19,11 +19,18 @@ public class SkillMetadata
 }
 
 [System.Serializable]
+public class SerializableSkillStat
+{
+    public int level;
+    public string statJson;
+    public SkillType skillType;
+}
+
+[System.Serializable]
 public class SkillData : ISerializationCallbackReceiver
 {
     public SkillMetadata metadata;
 
-    // Dictionary를 직렬화 가능한 형태로 변환
     [SerializeField]
     private List<SerializableSkillStat> serializedStats = new List<SerializableSkillStat>();
 
@@ -34,73 +41,95 @@ public class SkillData : ISerializationCallbackReceiver
     public GameObject projectile;
     public GameObject[] prefabsByLevel;
 
-    // 기본 스탯들
-    public BaseSkillStat baseStats = new BaseSkillStat();
-    public ProjectileSkillStat projectileStat = new ProjectileSkillStat();
-    public AreaSkillStat areaStat = new AreaSkillStat();
-    public PassiveSkillStat passiveStat = new PassiveSkillStat();
+    public BaseSkillStat baseStats;
+    public ProjectileSkillStat projectileStat;
+    public AreaSkillStat areaStat;
+    public PassiveSkillStat passiveStat;
+    public ResourceReferenceData resourceReferences;
 
-    // 에셋 레퍼런스 정보 저장
-    public ResourceReferenceData resourceReferences = new ResourceReferenceData();
-
-    [System.Serializable]
-    private class SerializableSkillStat
+    public SkillData()
     {
-        public int level;
-        public string statJson;
-        public SkillType skillType;
+        metadata = new SkillMetadata();
+        statsByLevel = new Dictionary<int, ISkillStat>();
+        serializedStats = new List<SerializableSkillStat>();
+        prefabsByLevel = new GameObject[0];
+        baseStats = new BaseSkillStat();
+        projectileStat = new ProjectileSkillStat { baseStat = baseStats };
+        areaStat = new AreaSkillStat { baseStat = baseStats };
+        passiveStat = new PassiveSkillStat { baseStat = baseStats };
+        resourceReferences = new ResourceReferenceData();
     }
 
     void ISerializationCallbackReceiver.OnBeforeSerialize()
     {
-        serializedStats.Clear();
-        if (statsByLevel != null)
+        if (statsByLevel == null)
         {
-            foreach (var kvp in statsByLevel)
-            {
-                serializedStats.Add(new SerializableSkillStat
-                {
-                    level = kvp.Key,
-                    statJson = JsonUtility.ToJson(kvp.Value),
-                    skillType = metadata.Type
-                });
-            }
+            statsByLevel = new Dictionary<int, ISkillStat>();
         }
 
-        // 리소스 레퍼런스 저장
+        serializedStats.Clear();
+        foreach (var kvp in statsByLevel)
+        {
+            serializedStats.Add(new SerializableSkillStat
+            {
+                level = kvp.Key,
+                statJson = JsonUtility.ToJson(kvp.Value),
+                skillType = metadata?.Type ?? SkillType.None
+            });
+        }
+
         SaveResourceReferences();
     }
 
     void ISerializationCallbackReceiver.OnAfterDeserialize()
     {
         statsByLevel = new Dictionary<int, ISkillStat>();
-        foreach (var stat in serializedStats)
+
+        if (serializedStats != null)
         {
-            ISkillStat skillStat = null;
-            switch (stat.skillType)
+            foreach (var stat in serializedStats)
             {
-                case SkillType.Projectile:
-                    skillStat = JsonUtility.FromJson<ProjectileSkillStat>(stat.statJson);
-                    break;
-                case SkillType.Area:
-                    skillStat = JsonUtility.FromJson<AreaSkillStat>(stat.statJson);
-                    break;
-                case SkillType.Passive:
-                    skillStat = JsonUtility.FromJson<PassiveSkillStat>(stat.statJson);
-                    break;
-            }
-            if (skillStat != null)
-            {
-                statsByLevel[stat.level] = skillStat;
+                if (stat == null) continue;
+
+                ISkillStat skillStat = null;
+                try
+                {
+                    switch (stat.skillType)
+                    {
+                        case SkillType.Projectile:
+                            skillStat = JsonUtility.FromJson<ProjectileSkillStat>(stat.statJson);
+                            break;
+                        case SkillType.Area:
+                            skillStat = JsonUtility.FromJson<AreaSkillStat>(stat.statJson);
+                            break;
+                        case SkillType.Passive:
+                            skillStat = JsonUtility.FromJson<PassiveSkillStat>(stat.statJson);
+                            break;
+                    }
+
+                    if (skillStat != null)
+                    {
+                        statsByLevel[stat.level] = skillStat;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Error deserializing stat for level {stat.level}: {e.Message}");
+                }
             }
         }
+
+        baseStats ??= new BaseSkillStat();
+        projectileStat ??= new ProjectileSkillStat { baseStat = baseStats };
+        areaStat ??= new AreaSkillStat { baseStat = baseStats };
+        passiveStat ??= new PassiveSkillStat { baseStat = baseStats };
+        resourceReferences ??= new ResourceReferenceData();
     }
 
     private void SaveResourceReferences()
     {
         resourceReferences.Clear();
 
-        // 아이콘 레퍼런스 저장
         if (icon != null)
         {
             string path = AssetDatabase.GetAssetPath(icon);
@@ -108,7 +137,6 @@ public class SkillData : ISerializationCallbackReceiver
             resourceReferences.Add("icon", new AssetReference { guid = guid, path = path });
         }
 
-        // 프리팹 레퍼런스 저장
         if (metadata.Prefab != null)
         {
             string path = AssetDatabase.GetAssetPath(metadata.Prefab);
@@ -116,7 +144,6 @@ public class SkillData : ISerializationCallbackReceiver
             resourceReferences.Add("prefab", new AssetReference { guid = guid, path = path });
         }
 
-        // 프로젝타일 프리팹 레퍼런스 저장
         if (projectile != null)
         {
             string path = AssetDatabase.GetAssetPath(projectile);
@@ -124,7 +151,6 @@ public class SkillData : ISerializationCallbackReceiver
             resourceReferences.Add("projectile", new AssetReference { guid = guid, path = path });
         }
 
-        // 레벨별 프리팹 레퍼런스 저장
         if (prefabsByLevel != null)
         {
             for (int i = 0; i < prefabsByLevel.Length; i++)
@@ -141,10 +167,18 @@ public class SkillData : ISerializationCallbackReceiver
 
     public ISkillStat GetStatsForLevel(int level)
     {
+        if (statsByLevel == null)
+        {
+            statsByLevel = new Dictionary<int, ISkillStat>();
+            Debug.LogWarning($"statsByLevel was null for skill {metadata?.Name ?? "Unknown"}");
+        }
+
         if (statsByLevel.TryGetValue(level, out var stats))
             return stats;
 
-        return CreateDefaultStats();
+        var defaultStats = CreateDefaultStats();
+        statsByLevel[level] = defaultStats;
+        return defaultStats;
     }
 
     public void SetStatsForLevel(int level, ISkillStat stats)
@@ -157,10 +191,8 @@ public class SkillData : ISerializationCallbackReceiver
 
         try
         {
-            // 기본 스탯 업데이트
             baseStats = new BaseSkillStat(stats.baseStat);
 
-            // 스킬 타입별 스탯 업데이트
             switch (stats)
             {
                 case ProjectileSkillStat projectileStats:
@@ -174,7 +206,6 @@ public class SkillData : ISerializationCallbackReceiver
                     break;
             }
 
-            // 레벨별 스탯 저장
             if (statsByLevel == null) statsByLevel = new Dictionary<int, ISkillStat>();
             statsByLevel[level] = stats;
 
@@ -203,7 +234,6 @@ public class SkillData : ISerializationCallbackReceiver
 
     private ISkillStat CreateDefaultStats()
     {
-        // Always return ProjectileSkillStat as default if type is None
         if (metadata.Type == SkillType.None)
         {
             return new ProjectileSkillStat
