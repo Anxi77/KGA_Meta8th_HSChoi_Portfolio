@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1374449084411105895
+--- !u!1 &6272182981364376747
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,40 +8,40 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4227864942697393889}
-  - component: {fileID: 7523077321073331703}
+  - component: {fileID: 7392185541624930078}
+  - component: {fileID: 2880876188589853129}
   m_Layer: 0
-  m_Name: AbyssalExpansion_Level_2
+  m_Name: GaiasGrace_Level_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4227864942697393889
+--- !u!4 &7392185541624930078
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1374449084411105895}
+  m_GameObject: {fileID: 6272182981364376747}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7523077321073331703
+--- !u!114 &2880876188589853129
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1374449084411105895}
+  m_GameObject: {fileID: 6272182981364376747}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ad201c5a8abb2145bf1192883ccf4ec, type: 3}
+  m_Script: {fileID: 11500000, guid: a95bb37e36056da47923d8072d311303, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   skillData:

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1072162447242421452
+--- !u!1 &8147795559274499416
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,40 +8,40 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4824437120206224519}
-  - component: {fileID: 8164575197678255235}
+  - component: {fileID: 8793082615283019151}
+  - component: {fileID: 7145471054970856480}
   m_Layer: 0
-  m_Name: AbyssalExpansion_Metadata
+  m_Name: TidalEssence_Metadata
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4824437120206224519
+--- !u!4 &8793082615283019151
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1072162447242421452}
+  m_GameObject: {fileID: 8147795559274499416}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8164575197678255235
+--- !u!114 &7145471054970856480
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1072162447242421452}
+  m_GameObject: {fileID: 8147795559274499416}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ad201c5a8abb2145bf1192883ccf4ec, type: 3}
+  m_Script: {fileID: 11500000, guid: 4af47d393b1feaa42ae64cb8ca90b363, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   skillData:
@@ -100,7 +100,7 @@ MonoBehaviour:
   _expAreaIncrease: 0
   _homingActivate: 0
   _hpIncrease: 0
-  _moveSpeedIncrease: 0
-  _attackSpeedIncrease: 0
+  _moveSpeedIncrease: 100
+  _attackSpeedIncrease: 100
   _attackRangeIncrease: 0
   _hpRegenIncrease: 0
