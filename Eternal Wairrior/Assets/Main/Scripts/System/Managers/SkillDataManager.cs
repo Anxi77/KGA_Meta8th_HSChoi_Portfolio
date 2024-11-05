@@ -34,7 +34,7 @@ public class SkillDataManager : DataManager
     private const string ICON_PATH = "SkillData/Icons";
     private const string SKILL_DATA_FILENAME = "SkillData.json";
 
-    private Dictionary<SkillID, Dictionary<int, SkillStatData>> skillStatsByLevel;
+    private Dictionary<SkillID, Dictionary<int, SkillStatData>> skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
     private Dictionary<SkillID, List<SkillStatData>> skillStatsList = new Dictionary<SkillID, List<SkillStatData>>();
 
     private bool isInitialized = false;
@@ -44,56 +44,230 @@ public class SkillDataManager : DataManager
 
     protected override void Awake()
     {
-        if (instance == null)
+        Debug.Log($"SkillDataManager Awake - Current instance: {instance}, This: {this}");
+
+        if (instance != null && instance != this)
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (instance != this)
-        {
+            Debug.Log("Destroying duplicate SkillDataManager");
             Destroy(gameObject);
             return;
         }
 
+        instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        // 기본 초기화
+        if (skillStatsByLevel == null)
+        {
+            skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
+        }
+        if (skillDatas == null)
+        {
+            skillDatas = new List<SkillData>();
+        }
+
         base.Awake();
         StartCoroutine(Initialize());
+
+        Debug.Log("SkillDataManager initialization started");
     }
 
     private IEnumerator Initialize()
     {
-        float timeout = 10f;
-        float elapsed = 0f;
-        bool allResourcesLoaded = false;
+        Debug.Log("Starting SkillDataManager initialization...");
 
-        while (skillDatas == null || !skillStatsByLevel.Any())
+        // 1. CSV 파일 로드 전에 리소스 폴더 확인
+        string resourcePath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
+        if (!Directory.Exists(resourcePath))
         {
-            elapsed += Time.deltaTime;
-            if (elapsed >= timeout)
-            {
-                Debug.LogError("SkillDataManager initialization timed out");
-                break;
-            }
-
-            // 리소스 로딩 상태 확인
-            allResourcesLoaded = skillDatas != null &&
-                skillDatas.All(skill =>
-                    skill != null &&
-                    skill.metadata != null &&
-                    skill.metadata.Prefab != null &&
-                    skill.icon != null &&
-                    (skill.metadata.Type != SkillType.Projectile || skill.projectile != null)
-                );
-
-            if (allResourcesLoaded)
-            {
-                break;
-            }
-
-            yield return null;
+            Debug.LogError($"Resource directory not found: {resourcePath}");
+            yield break;
         }
 
-        isInitialized = skillDatas != null && skillStatsByLevel.Any() && allResourcesLoaded;
+        // 2. CSV 파일 로드 (스킬 스탯 데이터)
+        LoadSkillStatsFromCSV();
+        Debug.Log($"LoadSkillStatsFromCSV completed. SkillStatsByLevel count: {skillStatsByLevel?.Count ?? 0}");
+
+        // 3. JSON 데이터 로드 (스킬 기본 데이터)
+        LoadAllSkillData();
+        Debug.Log($"LoadAllSkillData completed. SkillDatas count: {skillDatas?.Count ?? 0}");
+
+        // 4. 각 스킬의 리소스와 스탯 초기화
+        foreach (var skill in skillDatas)
+        {
+            if (skill != null && skill.metadata != null)
+            {
+                yield return StartCoroutine(InitializeSkill(skill));
+            }
+        }
+
+        // 5. 초기화 완료 체크
+        isInitialized = ValidateInitialization();
         Debug.Log($"SkillDataManager initialization completed: {isInitialized}");
+    }
+
+    private IEnumerator InitializeSkill(SkillData skill)
+    {
+        Debug.Log($"Initializing skill: {skill.metadata.Name} (ID: {skill.metadata.ID}, Type: {skill.metadata.Type})");
+
+        // 스킬 스탯 설정
+        if (skillStatsByLevel.TryGetValue(skill.metadata.ID, out var levelStats))
+        {
+            if (levelStats.TryGetValue(1, out var statData))
+            {
+                ISkillStat skillStat = null;
+
+                try
+                {
+                    switch (skill.metadata.Type)
+                    {
+                        case SkillType.Projectile:
+                            var projectileStat = new ProjectileSkillStat();
+                            CopyBaseStats(skill.baseStats, projectileStat);
+                            CopyProjectileStats(skill.projectileStat, projectileStat);
+                            skillStat = projectileStat;
+                            break;
+
+                        case SkillType.Area:
+                            var areaStat = new AreaSkillStat();
+                            CopyBaseStats(skill.baseStats, areaStat);
+                            CopyAreaStats(skill.areaStat, areaStat);
+                            skillStat = areaStat;
+                            break;
+
+                        case SkillType.Passive:
+                            var passiveStat = new PassiveSkillStat();
+                            CopyBaseStats(skill.baseStats, passiveStat);
+                            CopyPassiveStats(skill.passiveStat, passiveStat);
+                            skillStat = passiveStat;
+                            break;
+                    }
+
+                    if (skillStat != null)
+                    {
+                        skill.SetStatsForLevel(1, skillStat);
+                        Debug.Log($"Set stats for skill: {skill.metadata.Name}, Type: {skill.metadata.Type}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to create skill stat for {skill.metadata.Name}");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Error setting stats for {skill.metadata.Name}: {e.Message}");
+                }
+            }
+            else
+            {
+                Debug.LogError($"No level 1 stats found for skill: {skill.metadata.Name}");
+            }
+        }
+        else
+        {
+            Debug.LogError($"No stats found for skill: {skill.metadata.Name}");
+        }
+
+        // 리소스 로드 전에 메타데이터 검증
+        if (skill.metadata == null)
+        {
+            Debug.LogError($"Metadata is null for skill: {skill.metadata?.Name ?? "Unknown"}");
+            yield break;
+        }
+
+        // 리소스 로드
+        yield return StartCoroutine(LoadSkillResources(skill));
+    }
+
+    private IEnumerator LoadSkillResources(SkillData skill)
+    {
+        if (skill == null || skill.metadata == null)
+        {
+            Debug.LogError("Cannot load resources for null skill or metadata");
+            yield break;
+        }
+
+        // 메타데이터 프리팹 로드
+        string metadataPrefabPath = $"{PREFAB_PATH}/{skill.metadata.ID}_Metadata";
+        GameObject metadataPrefab = Resources.Load<GameObject>(metadataPrefabPath);
+        if (metadataPrefab != null)
+        {
+            skill.metadata.Prefab = metadataPrefab;
+            Debug.Log($"Loaded metadata prefab for {skill.metadata.Name}");
+        }
+        else
+        {
+            Debug.LogWarning($"Failed to load metadata prefab for {skill.metadata.Name} at path: {metadataPrefabPath}");
+        }
+
+        // 아이콘 로드
+        string iconPath = $"{ICON_PATH}/{skill.metadata.ID}_Icon";
+        Sprite icon = Resources.Load<Sprite>(iconPath);
+        if (icon != null)
+        {
+            skill.icon = icon;
+            skill.metadata.Icon = icon;
+            Debug.Log($"Loaded icon for {skill.metadata.Name}");
+        }
+        else
+        {
+            Debug.LogWarning($"Failed to load icon for {skill.metadata.Name} at path: {iconPath}");
+        }
+
+        // 프로젝타일 타입인 경우 프로젝타일 프리팹 로드
+        if (skill.metadata.Type == SkillType.Projectile)
+        {
+            string projectilePath = $"{PREFAB_PATH}/{skill.metadata.ID}_Projectile";
+            GameObject projectilePrefab = Resources.Load<GameObject>(projectilePath);
+            if (projectilePrefab != null)
+            {
+                skill.projectile = projectilePrefab;
+                Debug.Log($"Loaded projectile prefab for {skill.metadata.Name}");
+            }
+            else
+            {
+                Debug.LogWarning($"Failed to load projectile prefab for {skill.metadata.Name} at path: {projectilePath}");
+            }
+        }
+
+        yield return null;
+    }
+
+    private bool ValidateInitialization()
+    {
+        if (skillDatas == null || skillDatas.Count == 0)
+        {
+            Debug.LogError("No skill data loaded");
+            return false;
+        }
+
+        foreach (var skill in skillDatas)
+        {
+            if (skill == null || skill.metadata == null)
+            {
+                Debug.LogError("Found null skill or metadata");
+                return false;
+            }
+
+            // 스킬 타입에 따른 필수 리소스 검증
+            switch (skill.metadata.Type)
+            {
+                case SkillType.Projectile:
+                    if (skill.projectile == null)
+                    {
+                        Debug.LogWarning($"Missing projectile prefab for {skill.metadata.Name}");
+                    }
+                    break;
+            }
+
+            // 스탯 데이터 검증
+            if (!skillStatsByLevel.ContainsKey(skill.metadata.ID))
+            {
+                Debug.LogWarning($"No stats found for skill {skill.metadata.Name}");
+            }
+        }
+
+        return true;
     }
 
     public List<SkillData> GetAllSkillData()
@@ -182,68 +356,116 @@ public class SkillDataManager : DataManager
 
     public void LoadAllSkillData()
     {
-        var wrapper = LoadData<SkillDataWrapper>(SKILL_DATA_FILENAME);
-        if (wrapper != null)
+        try
         {
-            skillDatas = wrapper.skillDatas;
+            var wrapper = LoadData<SkillDataWrapper>(SKILL_DATA_FILENAME);
+            if (wrapper == null || wrapper.skillDatas == null)
+            {
+                Debug.LogError("Failed to load skill data wrapper or skill data is null");
+                skillDatas = new List<SkillData>();
+                return;
+            }
 
-            // GUID를 통한 에셋 참조 복원
+            skillDatas = wrapper.skillDatas;
+            Debug.Log($"Loaded {skillDatas.Count} skills from JSON");
+
             foreach (var skill in skillDatas)
             {
-                if (skill == null || skill.metadata == null) continue;
-
-                // 메타데이터 프리팹
-                if (wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Metadata", out var metadataRef))
+                if (skill == null || skill.metadata == null)
                 {
-                    // Resources 폴더 내의 상대 경로로 변환
-                    string resourcePath = GetResourcePath(metadataRef.path);
-                    if (!string.IsNullOrEmpty(resourcePath))
-                    {
-                        skill.metadata.Prefab = Resources.Load<GameObject>(resourcePath);
-                    }
+                    Debug.LogError("Found null skill or metadata while loading");
+                    continue;
                 }
 
-                // 아이콘
-                if (wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Icon", out var iconRef))
+                // 기존 스탯 데이터를 ISkillStat으로 변환하여 설정
+                ISkillStat skillStat = null;
+                switch (skill.metadata.Type)
                 {
-                    string path = AssetDatabase.GUIDToAssetPath(iconRef.guid);
-                    if (!string.IsNullOrEmpty(path))
-                    {
-                        skill.icon = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-                        skill.metadata.Icon = skill.icon;
-                    }
+                    case SkillType.Projectile:
+                        var projectileStat = new ProjectileSkillStat();
+                        CopyBaseStats(skill.baseStats, projectileStat);
+                        CopyProjectileStats(skill.projectileStat, projectileStat);
+                        skillStat = projectileStat;
+                        break;
+
+                    case SkillType.Area:
+                        var areaStat = new AreaSkillStat();
+                        CopyBaseStats(skill.baseStats, areaStat);
+                        CopyAreaStats(skill.areaStat, areaStat);
+                        skillStat = areaStat;
+                        break;
+
+                    case SkillType.Passive:
+                        var passiveStat = new PassiveSkillStat();
+                        CopyBaseStats(skill.baseStats, passiveStat);
+                        CopyPassiveStats(skill.passiveStat, passiveStat);
+                        skillStat = passiveStat;
+                        break;
                 }
 
-                // 프로젝타일
-                if (skill.metadata.Type == SkillType.Projectile &&
-                    wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Projectile", out var projectileRef))
+                if (skillStat != null)
                 {
-                    string path = AssetDatabase.GUIDToAssetPath(projectileRef.guid);
-                    if (!string.IsNullOrEmpty(path))
-                    {
-                        skill.projectile = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                    }
+                    skill.SetStatsForLevel(1, skillStat);
                 }
-
-                // 레벨별 프리팹
-                List<GameObject> levelPrefabs = new List<GameObject>();
-                int level = 1;
-                while (wrapper.resourceReferences.TryGetValue($"{skill.metadata.ID}_Level_{level}", out var levelRef))
-                {
-                    string path = AssetDatabase.GUIDToAssetPath(levelRef.guid);
-                    if (!string.IsNullOrEmpty(path))
-                    {
-                        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                        if (prefab != null)
-                        {
-                            levelPrefabs.Add(prefab);
-                        }
-                    }
-                    level++;
-                }
-                skill.prefabsByLevel = levelPrefabs.ToArray();
             }
         }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error loading skill data: {e.Message}\n{e.StackTrace}");
+            skillDatas = new List<SkillData>();
+        }
+    }
+
+    private void CopyBaseStats(BaseSkillStat source, ISkillStat target)
+    {
+        target.baseStat = new BaseSkillStat
+        {
+            damage = source.damage,
+            skillName = source.skillName,
+            skillLevel = source.skillLevel,
+            maxSkillLevel = source.maxSkillLevel,
+            element = source.element,
+            elementalPower = source.elementalPower
+        };
+    }
+
+    private void CopyProjectileStats(ProjectileSkillStat source, ProjectileSkillStat target)
+    {
+        target.projectileSpeed = source.projectileSpeed;
+        target.projectileScale = source.projectileScale;
+        target.shotInterval = source.shotInterval;
+        target.pierceCount = source.pierceCount;
+        target.attackRange = source.attackRange;
+        target.homingRange = source.homingRange;
+        target.isHoming = source.isHoming;
+        target.explosionRad = source.explosionRad;
+        target.projectileCount = source.projectileCount;
+        target.innerInterval = source.innerInterval;
+    }
+
+    private void CopyAreaStats(AreaSkillStat source, AreaSkillStat target)
+    {
+        target.radius = source.radius;
+        target.duration = source.duration;
+        target.tickRate = source.tickRate;
+        target.isPersistent = source.isPersistent;
+        target.moveSpeed = source.moveSpeed;
+    }
+
+    private void CopyPassiveStats(PassiveSkillStat source, PassiveSkillStat target)
+    {
+        target.effectDuration = source.effectDuration;
+        target.cooldown = source.cooldown;
+        target.triggerChance = source.triggerChance;
+        target.damageIncrease = source.damageIncrease;
+        target.defenseIncrease = source.defenseIncrease;
+        target.expAreaIncrease = source.expAreaIncrease;
+        target.homingActivate = source.homingActivate;
+        target.hpIncrease = source.hpIncrease;
+        target.moveSpeedIncrease = source.moveSpeedIncrease;
+        target.attackSpeedIncrease = source.attackSpeedIncrease;
+        target.attackRangeIncrease = source.attackRangeIncrease;
+        target.hpRegenIncrease = source.hpRegenIncrease;
     }
 
     private string GetResourcePath(string fullPath)
@@ -310,60 +532,30 @@ public class SkillDataManager : DataManager
                 "PassiveSkillStats"
             };
 
-            bool anyFileLoaded = false;
-            var tempStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
+            skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
 
             foreach (var fileName in fileNames)
             {
                 TextAsset csvFile = Resources.Load<TextAsset>($"{RESOURCE_PATH}/{fileName}");
                 if (csvFile == null)
                 {
-                    Debug.LogWarning($"Failed to load {fileName}.csv");
+                    Debug.LogError($"Failed to load {fileName}.csv");
                     continue;
                 }
 
-                anyFileLoaded = true;
+                Debug.Log($"Loading {fileName}.csv...");
                 string[] lines = csvFile.text.Split('\n');
 
-                // CSV 파일 내용 출력
-                Debug.Log($"Loading {fileName}.csv contents:");
-                foreach (var line in lines)
+                if (lines.Length <= 1)
                 {
-                    Debug.Log(line);
+                    Debug.LogWarning($"{fileName}.csv is empty or contains only headers");
+                    continue;
                 }
 
-                ProcessCSVFile(csvFile, fileName, tempStatsByLevel);
-
-                // 로드된 스탯 데이터 검증
-                foreach (var skillStats in tempStatsByLevel)
-                {
-                    Debug.Log($"Loaded stats for skill {skillStats.Key}:");
-                    var levels = skillStats.Value.Keys.OrderBy(k => k).ToList();
-                    foreach (var level in levels)
-                    {
-                        Debug.Log($"Level {level} stats found");
-                    }
-
-                    // 레벨 연속성 검사
-                    for (int i = 1; i < levels.Count; i++)
-                    {
-                        if (levels[i] != levels[i - 1] + 1)
-                        {
-                            Debug.LogError($"Missing level data for skill {skillStats.Key} between levels {levels[i - 1]} and {levels[i]}");
-                        }
-                    }
-                }
+                ProcessCSVFile(csvFile, fileName, skillStatsByLevel);
             }
 
-            if (anyFileLoaded)
-            {
-                skillStatsByLevel = tempStatsByLevel;
-                Debug.Log("Successfully loaded skill stats from CSV files");
-            }
-            else
-            {
-                Debug.LogError("No skill stat CSV files were loaded!");
-            }
+            Debug.Log($"Loaded skill stats for {skillStatsByLevel.Count} skills");
         }
         catch (System.Exception e)
         {
@@ -853,7 +1045,7 @@ public class SkillDataManager : DataManager
                 skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
             }
 
-            // 새로운 Dictionary 생성
+            // 새로 Dictionary 생성
             var newStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
 
             foreach (var pair in editorStats)
@@ -874,7 +1066,7 @@ public class SkillDataManager : DataManager
                         continue;
                     }
 
-                    // stat의 skillID가 None이면 pair.Key로 설정
+                    // stat의 skillID가 None이면 pair.Key 설정
                     if (stat.skillID == SkillID.None)
                     {
                         stat.skillID = pair.Key;
