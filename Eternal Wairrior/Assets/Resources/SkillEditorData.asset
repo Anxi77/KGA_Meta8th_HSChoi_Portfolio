@@ -1,0 +1,272 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a4b6ca984f98044fa3d3a3f02650415, type: 3}
+  m_Name: SkillEditorData
+  m_EditorClassIdentifier: 
+  skillList:
+  - metadata:
+      ID: 100003
+      Name: New Skill
+      Description: New skill description
+      Type: 3
+      Element: 2
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+      Icon: {fileID: 21300000, guid: cd9bda7ed770d6e469973146276a940c, type: 3}
+    icon: {fileID: 21300000, guid: cd9bda7ed770d6e469973146276a940c, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel: []
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+  skillStats:
+  - skillID: 100001
+    levelStats:
+    - skillID: 100001
+      level: 1
+      damage: 10
+      maxSkillLevel: 5
+      element: 0
+      elementalPower: 1
+      projectileSpeed: 10
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 10
+      homingRange: 5
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.1
+      radius: 5
+      duration: 3
+      tickRate: 1
+      isPersistent: 0
+      moveSpeed: 0
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+  - skillID: 100003
+    levelStats:
+    - skillID: 100003
+      level: 1
+      damage: 10
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+      projectileSpeed: 10
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 10
+      homingRange: 5
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.1
+      radius: 5
+      duration: 3
+      tickRate: 1
+      isPersistent: 0
+      moveSpeed: 0
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    - skillID: 100003
+      level: 2
+      damage: 10
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+      projectileSpeed: 10
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 10
+      homingRange: 5
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.1
+      radius: 5
+      duration: 3
+      tickRate: 1
+      isPersistent: 0
+      moveSpeed: 0
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    - skillID: 100003
+      level: 3
+      damage: 10
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+      projectileSpeed: 10
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 10
+      homingRange: 5
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.1
+      radius: 5
+      duration: 3
+      tickRate: 1
+      isPersistent: 0
+      moveSpeed: 0
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    - skillID: 100003
+      level: 4
+      damage: 10
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+      projectileSpeed: 10
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 10
+      homingRange: 5
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.1
+      radius: 5
+      duration: 3
+      tickRate: 1
+      isPersistent: 0
+      moveSpeed: 0
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    - skillID: 100003
+      level: 5
+      damage: 10
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+      projectileSpeed: 10
+      projectileScale: 1
+      shotInterval: 1
+      pierceCount: 1
+      attackRange: 10
+      homingRange: 5
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 1
+      innerInterval: 0.1
+      radius: 5
+      duration: 3
+      tickRate: 1
+      isPersistent: 0
+      moveSpeed: 0
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+  lastSelectedSkillID: 100003
+  scrollPosition: {x: 0, y: 0}
+  showBaseStats: 1
+  showLevelStats: 1

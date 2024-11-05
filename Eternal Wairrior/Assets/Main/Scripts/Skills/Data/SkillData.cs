@@ -13,9 +13,7 @@ public class SkillMetadata
     public ElementType Element;
     public int Tier;
     public string[] Tags;
-    [System.NonSerialized]
     public GameObject Prefab;
-    [System.NonSerialized]
     public Sprite Icon;
 }
 
@@ -25,12 +23,8 @@ public class SkillData
     public SkillMetadata metadata;
     [System.NonSerialized]
     private Dictionary<int, ISkillStat> statsByLevel;
-
-    [System.NonSerialized]
     public Sprite icon;
-    [System.NonSerialized]
     public GameObject projectile;
-    [System.NonSerialized]
     public GameObject[] prefabsByLevel;
 
     // 기본 스탯들을 직렬화 가능하도록 수정

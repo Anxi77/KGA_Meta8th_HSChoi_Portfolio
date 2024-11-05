@@ -20,7 +20,7 @@ public enum SkillID
     EarthRift,   // Projectile
     GaiasGrace,  // Passive
     //Water
-    ForstTide,   // Area
+    FrostTide,   // Area
     FrostHunt,   // Projectile
     TidalEssence,// Passive
     //Dark
