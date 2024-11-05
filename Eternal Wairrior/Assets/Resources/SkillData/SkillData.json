@@ -1,7 +1,97 @@
 {
-    "skillDatas": [],
+    "skillDatas": [
+        {
+            "metadata": {
+                "ID": 100009,
+                "Name": "Abyssal Expansion",
+                "Description": "Expands",
+                "Type": 3,
+                "Element": 1,
+                "Tier": 1,
+                "Tags": []
+            },
+            "baseStats": {
+                "damage": 10.0,
+                "skillName": "",
+                "skillLevel": 1,
+                "maxSkillLevel": 5,
+                "element": 1,
+                "elementalPower": 1.0
+            },
+            "projectileStat": {
+                "projectileSpeed": 0.0,
+                "projectileScale": 0.0,
+                "shotInterval": 0.0,
+                "pierceCount": 0,
+                "attackRange": 0.0,
+                "homingRange": 0.0,
+                "isHoming": false,
+                "explosionRad": 0.0,
+                "projectileCount": 0,
+                "innerInterval": 0.0
+            },
+            "areaStat": {
+                "radius": 0.0,
+                "duration": 0.0,
+                "tickRate": 0.0,
+                "isPersistent": false,
+                "moveSpeed": 0.0
+            },
+            "passiveStat": {
+                "effectDuration": 5.0,
+                "cooldown": 10.0,
+                "triggerChance": 100.0,
+                "damageIncrease": 0.0,
+                "defenseIncrease": 0.0,
+                "expAreaIncrease": 0.0,
+                "homingActivate": false,
+                "hpIncrease": 0.0,
+                "moveSpeedIncrease": 0.0,
+                "attackSpeedIncrease": 0.0,
+                "attackRangeIncrease": 0.0,
+                "hpRegenIncrease": 0.0
+            }
+        }
+    ],
     "resourceReferences": {
-        "keys": [],
-        "values": []
+        "keys": [
+            "AbyssalExpansion_Metadata",
+            "AbyssalExpansion_Icon",
+            "AbyssalExpansion_Level_1",
+            "AbyssalExpansion_Level_2",
+            "AbyssalExpansion_Level_3",
+            "AbyssalExpansion_Level_4",
+            "AbyssalExpansion_Level_5"
+        ],
+        "values": [
+            {
+                "guid": "b27865ffd0914544f933e40984b74479",
+                "path": "Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab"
+            },
+            {
+                "guid": "26f4dbde2c3a37947bc60403d698dc64",
+                "path": "Assets/Resources/SkillData/Icons/AbyssalExpansion_Icon.png"
+            },
+            {
+                "guid": "b27865ffd0914544f933e40984b74479",
+                "path": "Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab"
+            },
+            {
+                "guid": "b27865ffd0914544f933e40984b74479",
+                "path": "Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab"
+            },
+            {
+                "guid": "b27865ffd0914544f933e40984b74479",
+                "path": "Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab"
+            },
+            {
+                "guid": "b27865ffd0914544f933e40984b74479",
+                "path": "Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab"
+            },
+            {
+                "guid": "b27865ffd0914544f933e40984b74479",
+                "path": "Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab"
+            }
+        ]
     }
 }

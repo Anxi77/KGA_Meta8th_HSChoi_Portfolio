@@ -42,9 +42,6 @@ public class SkillDataManager : DataManager
 
     private Dictionary<(SkillID, int), ISkillStat> statsCache = new Dictionary<(SkillID, int), ISkillStat>();
 
-    private float lastUpdateTime = 0f;
-    private const float UPDATE_INTERVAL = 0.5f; // 업데이트 간격 (초)
-
     protected override void Awake()
     {
         Debug.Log($"SkillDataManager Awake - Current instance: {instance}, This: {this}");
@@ -79,318 +76,34 @@ public class SkillDataManager : DataManager
     {
         Debug.Log("Starting SkillDataManager initialization...");
 
-        // 1. 리소스 폴더 경로 확인
+        // 1. CSV 파일 로드 에 리소스 폴더 확인
         string resourcePath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
-        bool hasExistingData = false;
-
-        // 2. JSON 파일 존재 여부 확인
-        string jsonPath = Path.Combine(resourcePath, SKILL_DATA_FILENAME);
-        if (File.Exists(jsonPath))
+        if (!Directory.Exists(resourcePath))
         {
-            string jsonContent = File.ReadAllText(jsonPath);
-            if (!string.IsNullOrEmpty(jsonContent))
-            {
-                var wrapper = JsonUtility.FromJson<SkillDataWrapper>(jsonContent);
-                if (wrapper != null && wrapper.skillDatas != null && wrapper.skillDatas.Count > 0)
-                {
-                    skillDatas = wrapper.skillDatas;
-                    hasExistingData = true;
-                    Debug.Log($"Loaded {skillDatas.Count} skills from existing JSON data");
-                }
-            }
+            Debug.LogError($"Resource directory not found: {resourcePath}");
+            yield break;
         }
 
-        // 3. CSV 파일 존재 여부 확인 및 로드
-        string[] csvFiles = {
-            Path.Combine(resourcePath, "ProjectileSkillStats.csv"),
-            Path.Combine(resourcePath, "AreaSkillStats.csv"),
-            Path.Combine(resourcePath, "PassiveSkillStats.csv")
-        };
+        // 2. CSV 파일 로드 (스킬 스탯 데이터)
+        LoadSkillStatsFromCSV();
+        Debug.Log($"LoadSkillStatsFromCSV completed. SkillStatsByLevel count: {skillStatsByLevel?.Count ?? 0}");
 
-        if (csvFiles.Any(File.Exists))
-        {
-            LoadSkillStatsFromCSV();
-            hasExistingData = true;
-            Debug.Log($"Loaded skill stats from existing CSV files");
-        }
+        // 3. JSON 데이터 로드 (스킬 기본 데이터)
+        LoadAllSkillData();
+        Debug.Log($"LoadAllSkillData completed. SkillDatas count: {skillDatas?.Count ?? 0}");
 
-        // 4. 기존 데이터가 없는 경우에만 초기화
-        if (!hasExistingData)
+        // 4. 각 스킬의 리소스와 스탯 초기화
+        foreach (var skill in skillDatas)
         {
-            Debug.Log("No existing data found. Creating new skill data...");
-            CreateDefaultSkillData();
-            
-            // 새로 생성된 스킬들의 리소스와 스탯 초기화
-            foreach (var skill in skillDatas)
+            if (skill != null && skill.metadata != null)
             {
-                if (skill != null && skill.metadata != null)
-                {
-                    yield return StartCoroutine(InitializeSkill(skill));
-                }
-            }
-        }
-        else
-        {
-            // 기존 데이터가 있는 경우는 리소스만 로드
-            foreach (var skill in skillDatas)
-            {
-                if (skill != null && skill.metadata != null)
-                {
-                    yield return StartCoroutine(LoadSkillResources(skill));
-                }
+                yield return StartCoroutine(InitializeSkill(skill));
             }
         }
 
         // 5. 초기화 완료 체크
         isInitialized = ValidateInitialization();
         Debug.Log($"SkillDataManager initialization completed: {isInitialized}");
-    }
-
-    private void CreateDefaultSkillData()
-    {
-        Debug.Log("Creating default skill data...");
-        skillDatas = new List<SkillData>();
-        skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
-
-        // Earth Element Skills
-        CreateSkill(
-            SkillID.Vine,
-            "Vine Trap",
-            "Creates a field of vines that can bind enemies",
-            SkillType.Area,
-            ElementType.Earth
-        );
-
-        CreateSkill(
-            SkillID.EarthRift,
-            "Earth Rift",
-            "Launches earth shards that pierce through enemies",
-            SkillType.Projectile,
-            ElementType.Earth
-        );
-
-        CreateSkill(
-            SkillID.GaiasGrace,
-            "Gaia's Grace",
-            "Increases defense and HP regeneration",
-            SkillType.Passive,
-            ElementType.Earth
-        );
-
-        // Water Element Skills
-        CreateSkill(
-            SkillID.ForstTide,
-            "Frost Tide",
-            "Creates a freezing field that slows enemies",
-            SkillType.Area,
-            ElementType.Water
-        );
-
-        CreateSkill(
-            SkillID.FrostHunt,
-            "Frost Hunt",
-            "Launches ice projectiles that track enemies",
-            SkillType.Projectile,
-            ElementType.Water
-        );
-
-        CreateSkill(
-            SkillID.TidalEssence,
-            "Tidal Essence",
-            "Increases movement speed and attack range",
-            SkillType.Passive,
-            ElementType.Water
-        );
-
-        // Dark Element Skills
-        CreateSkill(
-            SkillID.ShadowWaltz,
-            "Shadow Waltz",
-            "Creates a field of darkness that damages enemies",
-            SkillType.Area,
-            ElementType.Dark
-        );
-
-        CreateSkill(
-            SkillID.EventHorizon,
-            "Event Horizon",
-            "Launches dark orbs that pull enemies in",
-            SkillType.Projectile,
-            ElementType.Dark
-        );
-
-        CreateSkill(
-            SkillID.AbyssalExpansion,
-            "Abyssal Expansion",
-            "Increases damage and experience gain area",
-            SkillType.Passive,
-            ElementType.Dark
-        );
-
-        // Fire Element Skills
-        CreateSkill(
-            SkillID.Flame,
-            "Flame Shot",
-            "Launches fireballs that explode on impact",
-            SkillType.Projectile,
-            ElementType.Fire
-        );
-
-        CreateSkill(
-            SkillID.FireRing,
-            "Fire Ring",
-            "Creates a ring of fire around the player",
-            SkillType.Area,
-            ElementType.Fire
-        );
-
-        CreateSkill(
-            SkillID.ThermalElevation,
-            "Thermal Elevation",
-            "Increases attack speed and damage",
-            SkillType.Passive,
-            ElementType.Fire
-        );
-
-        SaveAllSkillData();
-        Debug.Log($"Created {skillDatas.Count} default skills");
-    }
-
-    private void CreateSkill(SkillID id, string name, string description, SkillType type, ElementType element)
-    {
-        var skill = new SkillData
-        {
-            metadata = new SkillMetadata
-            {
-                ID = id,
-                Name = name,
-                Description = description,
-                Type = type,
-                Element = element,
-                Tier = 1
-            }
-        };
-
-        // 스킬 타입에 따른 기본 스탯 설정
-        var statData = new SkillStatData
-        {
-            skillID = id,
-            level = 1,
-            maxSkillLevel = 5,
-            element = element,
-            elementalPower = 1f
-        };
-
-        // 스킬 타입별 특수 스탯 설정
-        switch (type)
-        {
-            case SkillType.Projectile:
-                ConfigureProjectileStats(statData, element);
-                break;
-            case SkillType.Area:
-                ConfigureAreaStats(statData, element);
-                break;
-            case SkillType.Passive:
-                ConfigurePassiveStats(statData, element);
-                break;
-        }
-
-        // 스킬 데이터와 스탯 저장
-        skillDatas.Add(skill);
-        if (!skillStatsByLevel.ContainsKey(id))
-        {
-            skillStatsByLevel[id] = new Dictionary<int, SkillStatData>();
-        }
-        skillStatsByLevel[id][1] = statData;
-    }
-
-    private void ConfigureProjectileStats(SkillStatData stats, ElementType element)
-    {
-        stats.damage = 15f;
-        stats.projectileSpeed = 12f;
-        stats.projectileScale = 1f;
-        stats.shotInterval = 0.8f;
-        stats.pierceCount = 1;
-        stats.attackRange = 12f;
-        
-        // 원소별 특수 설정
-        switch (element)
-        {
-            case ElementType.Fire:
-                stats.explosionRad = 2f;
-                stats.damage = 18f;
-                break;
-            case ElementType.Water:
-                stats.isHoming = true;
-                stats.homingRange = 8f;
-                break;
-            case ElementType.Dark:
-                stats.pierceCount = 2;
-                break;
-            case ElementType.Earth:
-                stats.projectileCount = 3;
-                stats.innerInterval = 0.15f;
-                break;
-        }
-    }
-
-    private void ConfigureAreaStats(SkillStatData stats, ElementType element)
-    {
-        stats.damage = 12f;
-        stats.radius = 5f;
-        stats.duration = 3f;
-        stats.tickRate = 0.5f;
-        
-        // 원소별 특수 설정
-        switch (element)
-        {
-            case ElementType.Fire:
-                stats.isPersistent = true;
-                stats.damage = 8f;
-                stats.tickRate = 0.3f;
-                break;
-            case ElementType.Water:
-                stats.radius = 6f;
-                stats.duration = 4f;
-                break;
-            case ElementType.Dark:
-                stats.moveSpeed = 3f;
-                stats.damage = 15f;
-                break;
-            case ElementType.Earth:
-                stats.radius = 4f;
-                stats.damage = 20f;
-                break;
-        }
-    }
-
-    private void ConfigurePassiveStats(SkillStatData stats, ElementType element)
-    {
-        stats.effectDuration = 5f;
-        stats.cooldown = 15f;
-        stats.triggerChance = 100f;
-        
-        // 원소별 특수 설정
-        switch (element)
-        {
-            case ElementType.Fire:
-                stats.damageIncrease = 15f;
-                stats.attackSpeedIncrease = 10f;
-                break;
-            case ElementType.Water:
-                stats.moveSpeedIncrease = 15f;
-                stats.attackRangeIncrease = 20f;
-                break;
-            case ElementType.Dark:
-                stats.damageIncrease = 10f;
-                stats.expAreaIncrease = 20f;
-                break;
-            case ElementType.Earth:
-                stats.defenseIncrease = 15f;
-                stats.hpIncrease = 20f;
-                stats.hpRegenIncrease = 10f;
-                break;
-        }
     }
 
     private IEnumerator InitializeSkill(SkillData skill)
@@ -501,7 +214,7 @@ public class SkillDataManager : DataManager
             Debug.LogWarning($"Failed to load icon for {skill.metadata.Name} at path: {iconPath}");
         }
 
-        // 프로젝일  경우 프젝타 프리팹 로드
+        // 프로젝일 타입인 경우 프젝타일 프리팹 로드
         if (skill.metadata.Type == SkillType.Projectile)
         {
             string projectilePath = $"{PREFAB_PATH}/{skill.metadata.ID}_Projectile";
@@ -559,64 +272,27 @@ public class SkillDataManager : DataManager
 
     public List<SkillData> GetAllSkillData()
     {
-        var copiedList = new List<SkillData>();
-        foreach (var skill in skillDatas)
-        {
-            var copiedSkill = new SkillData
-            {
-                metadata = new SkillMetadata
-                {
-                    ID = skill.metadata.ID,
-                    Name = skill.metadata.Name,
-                    Description = skill.metadata.Description,
-                    Type = skill.metadata.Type,
-                    Element = skill.metadata.Element,
-                    Tier = skill.metadata.Tier,
-                    Tags = skill.metadata.Tags?.ToArray(),
-                    Prefab = skill.metadata.Prefab,
-                    Icon = skill.metadata.Icon
-                },
-                icon = skill.icon,
-                projectile = skill.projectile,
-                prefabsByLevel = skill.prefabsByLevel?.ToArray(),
-                baseStats = new BaseSkillStat(skill.baseStats),
-                projectileStat = new ProjectileSkillStat(skill.projectileStat),
-                areaStat = new AreaSkillStat(skill.areaStat),
-                passiveStat = new PassiveSkillStat(skill.passiveStat)
-            };
-
-            copiedList.Add(copiedSkill);
-        }
-        return copiedList;
+        return new List<SkillData>(skillDatas);
     }
 
     public void SaveAllSkillData()
     {
         try
         {
-            // 리소스 레퍼런스 데이터 생성
-            var resourceReferences = new ResourceReferenceData();
-            
-            // 각 스킬의 리소스 참조 정보 저장
+            var wrapper = new SkillDataWrapper();
+            wrapper.skillDatas = skillDatas;
+            wrapper.resourceReferences = new ResourceReferenceData();
+
+            // 리소스 참조 저장
             foreach (var skill in skillDatas)
             {
-                if (skill != null)
-                {
-                    SaveSkillResources(skill);
-                    AddResourceReferences(skill, resourceReferences);
-                }
+                SaveSkillResources(skill, wrapper.resourceReferences);
             }
 
-            // 스킬 데이터와 리소스 레퍼런스를 함께 저장
-            var wrapper = new SkillDataWrapper 
-            { 
-                skillDatas = skillDatas,
-                resourceReferences = resourceReferences
-            };
-            
+            // JSON 저장
             SaveData(SKILL_DATA_FILENAME, wrapper);
 
-            // CSV 데이터 저장
+            // CSV 저장
             SaveSkillStatsToCSV(Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH));
 
             Debug.Log("Successfully saved all skill data");
@@ -624,45 +300,18 @@ public class SkillDataManager : DataManager
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error saving all skill data: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"Failed to save skill data: {e.Message}");
         }
     }
 
-    private void SaveSkillResources(SkillData skill)
+    private void SaveSkillResources(SkillData skill, ResourceReferenceData references)
     {
         if (skill?.metadata == null) return;
 
-        try
-        {
-            // 아이콘 저장
-            if (skill.icon != null)
-            {
-                SaveIconToResources(skill.icon, skill.metadata.ID);
-                skill.metadata.Icon = skill.icon; // 메타데이터에도 아이콘 참조 저장
-            }
-
-            // 메타데이터 프리팹 저장
-            if (skill.metadata.Prefab != null)
-            {
-                SavePrefabToResources(skill.metadata.Prefab, skill.metadata.ID, "Metadata");
-            }
-
-            // 프로젝타일 프리팹 저장 (해당하는 경우)
-            if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
-            {
-                SavePrefabToResources(skill.projectile, skill.metadata.ID, "Projectile");
-            }
-
-            // 레벨별 프리팹 저장
-            SaveLevelPrefabs(skill);
-
-            // 저장 후 즉시 AssetDatabase 갱신
-            AssetDatabase.Refresh();
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error saving skill resources: {e.Message}\n{e.StackTrace}");
-        }
+        SavePrefabReference(skill, references);
+        SaveIconReference(skill, references);
+        SaveProjectileReference(skill, references);
+        SaveLevelPrefabReferences(skill, references);
     }
 
     // 리소스 참조 저장을 위한 헬퍼 메서드들
@@ -855,29 +504,17 @@ public class SkillDataManager : DataManager
         return null;
     }
 
+    private void CreateDefaultSkillData()
+    {
+    }
+
     public void UpdateSkillData(SkillData updatedSkill)
     {
-        if (!ValidateSkillData(updatedSkill)) return;
-
-        // 마지막 업데이트로부터 일정 시간이 지나지 않았다면 무시
-        if (Time.realtimeSinceStartup - lastUpdateTime < UPDATE_INTERVAL)
-        {
-            return;
-        }
-
-        lastUpdateTime = Time.realtimeSinceStartup;
-
         int index = skillDatas.FindIndex(x => x.metadata.ID == updatedSkill.metadata.ID);
         if (index != -1)
         {
             skillDatas[index] = updatedSkill;
-            SaveSkillResources(updatedSkill);
             SaveAllSkillData();
-            Debug.Log($"Updated skill: {updatedSkill.metadata.Name}");
-        }
-        else
-        {
-            Debug.LogError($"Skill not found: {updatedSkill.metadata.Name}");
         }
     }
 
@@ -1369,23 +1006,10 @@ public class SkillDataManager : DataManager
     {
         try
         {
-            string path = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, fileName);
-            if (File.Exists(path))
+            TextAsset jsonFile = Resources.Load<TextAsset>(Path.Combine(RESOURCE_PATH, Path.GetFileNameWithoutExtension(fileName)));
+            if (jsonFile != null)
             {
-                string jsonContent = File.ReadAllText(path);
-                if (!string.IsNullOrEmpty(jsonContent))
-                {
-                    T data = JsonUtility.FromJson<T>(jsonContent);
-                    if (data != null)
-                    {
-                        Debug.Log($"Successfully loaded data from {path}");
-                        return data;
-                    }
-                }
-            }
-            else
-            {
-                Debug.Log($"No existing data file found at {path}");
+                return JsonUtility.FromJson<T>(jsonFile.text);
             }
         }
         catch (System.Exception e)
@@ -1412,22 +1036,8 @@ public class SkillDataManager : DataManager
 
             Directory.CreateDirectory(directory);
             File.WriteAllText(path, jsonData);
-            
-            // 저장 후 즉시 리소스 레퍼런스도 업데이트
-            if (data is SkillDataWrapper wrapper)
-            {
-                skillDatas = wrapper.skillDatas;
-                foreach (var skill in skillDatas)
-                {
-                    if (skill != null)
-                    {
-                        SaveSkillResources(skill);
-                    }
-                }
-            }
-            
             Debug.Log($"Data saved successfully to {path}");
-            AssetDatabase.Refresh();
+            UnityEditor.AssetDatabase.Refresh();
         }
         catch (System.Exception e)
         {
@@ -1450,17 +1060,9 @@ public class SkillDataManager : DataManager
             return;
         }
 
-        // 마지막 업데이트로부터 일정 시간이 지나지 않았다면 무시
-        if (Time.realtimeSinceStartup - lastUpdateTime < UPDATE_INTERVAL)
-        {
-            return;
-        }
-
-        lastUpdateTime = Time.realtimeSinceStartup;
-
         try
         {
-            // skillStatsByLevel null이면 초기화
+            // skillStatsByLevel이 null이면 초기화
             if (skillStatsByLevel == null)
             {
                 skillStatsByLevel = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
@@ -1599,32 +1201,30 @@ public class SkillDataManager : DataManager
         return true;
     }
 
-    public void SavePassiveSkillStats(string path)
+    public void SavePassiveSkillStats(string directory)
     {
+        string path = Path.Combine(directory, "PassiveSkillStats.csv");
         StringBuilder csv = new StringBuilder();
 
-        // 헤더 작성
+        // 헤더 작성 - 정확한 헤더 이름 사용
         csv.AppendLine("skillid,level,damage,maxskilllevel,element,elementalpower," +
                       "effectduration,cooldown,triggerchance,damageincrease,defenseincrease," +
                       "expareaincrease,homingactivate,hpincrease,movespeedincrease," +
                       "attackspeedincrease,attackrangeincrease,hpregenincrease");
 
-        foreach (var skillStats in skillStatsByLevel)
+        foreach (var skillStats in skillStatsList.Values)
         {
-            // 해당 스킬의 타입이 패시브인지 확인
-            var skill = skillDatas.Find(s => s.metadata.ID == skillStats.Key);
-            if (skill?.metadata.Type == SkillType.Passive)
+            foreach (var stat in skillStats)
             {
-                foreach (var levelStats in skillStats.Value)
+                var skill = skillDatas.Find(s => s.metadata.ID == stat.skillID);
+                if (skill?.metadata.Type == SkillType.Passive)
                 {
-                    var stat = levelStats.Value;
-                    // CSV 라인 작성
                     string line = $"{stat.skillID},{stat.level},{stat.damage},{stat.maxSkillLevel}," +
-                                $"{stat.element},{stat.elementalPower},{stat.effectDuration}," +
-                                $"{stat.cooldown},{stat.triggerChance},{stat.damageIncrease}," +
-                                $"{stat.defenseIncrease},{stat.expAreaIncrease},{stat.homingActivate}," +
-                                $"{stat.hpIncrease},{stat.moveSpeedIncrease},{stat.attackSpeedIncrease}," +
-                                $"{stat.attackRangeIncrease},{stat.hpRegenIncrease}";
+                                 $"{stat.element},{stat.elementalPower},{stat.effectDuration}," +
+                                 $"{stat.cooldown},{stat.triggerChance},{stat.damageIncrease}," +
+                                 $"{stat.defenseIncrease},{stat.expAreaIncrease},{stat.homingActivate}," +
+                                 $"{stat.hpIncrease},{stat.moveSpeedIncrease},{stat.attackSpeedIncrease}," +
+                                 $"{stat.attackRangeIncrease},{stat.hpRegenIncrease}";
 
                     csv.AppendLine(line);
                     Debug.Log($"Saving passive skill stats: {line}");
@@ -1632,23 +1232,8 @@ public class SkillDataManager : DataManager
             }
         }
 
-        try
-        {
-            // 디렉토리가 없으면 생성
-            string directory = Path.GetDirectoryName(path);
-            if (!Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            // 파일 저장
-            File.WriteAllText(path, csv.ToString());
-            Debug.Log($"Successfully saved passive skill stats to: {path}");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error saving passive skill stats: {e.Message}\n{e.StackTrace}");
-        }
+        File.WriteAllText(path, csv.ToString());
+        Debug.Log($"Saved passive skill stats to: {path}");
     }
 
     private void LoadSkillStatsFromCSV(string fileName)
@@ -1845,8 +1430,7 @@ public class SkillDataManager : DataManager
             string passivePath = Path.Combine(directory, "PassiveSkillStats.csv");
             SavePassiveSkillStats(passivePath);
 
-            Debug.Log($"Successfully saved all skill stats CSV files in: {directory}");
-            AssetDatabase.Refresh();
+            Debug.Log($"Successfully saved skill stats CSV files in: {directory}");
         }
         catch (System.Exception e)
         {
@@ -1908,707 +1492,4 @@ public class SkillDataManager : DataManager
 
         File.WriteAllText(path, csv.ToString());
     }
-
-    // 기타 필요한 데이터 관리 메서드들...
-
-    #region Resource Management
-    public void SavePrefabToResources(GameObject prefab, SkillID skillId, string suffix)
-    {
-        if (prefab == null) return;
-
-        try
-        {
-            string directory = Path.Combine(Application.dataPath, "Resources", PREFAB_PATH);
-            Directory.CreateDirectory(directory);
-
-            string prefabPath = Path.Combine(directory, $"{skillId}_{suffix}.prefab");
-            string assetPath = $"Assets/Resources/{PREFAB_PATH}/{skillId}_{suffix}.prefab";
-
-            if (File.Exists(prefabPath))
-            {
-                AssetDatabase.DeleteAsset(assetPath);
-            }
-
-            GameObject prefabInstance = Instantiate(prefab);
-            bool success = PrefabUtility.SaveAsPrefabAsset(prefabInstance, assetPath, out _);
-            DestroyImmediate(prefabInstance);
-
-            if (success)
-            {
-                Debug.Log($"Saved prefab to: {assetPath}");
-                AssetDatabase.Refresh();
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error saving prefab: {e.Message}");
-        }
-    }
-
-    public void SaveIconToResources(Sprite icon, SkillID skillId)
-    {
-        if (icon == null) return;
-
-        try
-        {
-            string directory = Path.Combine(Application.dataPath, "Resources", ICON_PATH);
-            Directory.CreateDirectory(directory);
-
-            string destinationPath = Path.Combine(directory, $"{skillId}_Icon.png");
-            string assetPath = $"Assets/Resources/{ICON_PATH}/{skillId}_Icon.png";
-
-            // 기존 아이콘 파일이 있다면 삭제
-            if (File.Exists(destinationPath))
-            {
-                File.Delete(destinationPath);
-                AssetDatabase.DeleteAsset(assetPath);
-            }
-
-            // 텍스처 읽기 가능하도록 설정
-            Texture2D sourceTexture = icon.texture;
-            if (!sourceTexture.isReadable)
-            {
-                string sourcePath = AssetDatabase.GetAssetPath(sourceTexture);
-                TextureImporter importer = AssetImporter.GetAtPath(sourcePath) as TextureImporter;
-                if (importer != null)
-                {
-                    importer.isReadable = true;
-                    importer.SaveAndReimport();
-                    sourceTexture = icon.texture;
-                }
-            }
-
-            // 새 텍스처 생성 및 저장
-            Texture2D newTexture = new Texture2D(sourceTexture.width, sourceTexture.height);
-            newTexture.SetPixels(sourceTexture.GetPixels());
-            newTexture.Apply();
-
-            byte[] bytes = newTexture.EncodeToPNG();
-            File.WriteAllBytes(destinationPath, bytes);
-
-            AssetDatabase.Refresh();
-            Object.DestroyImmediate(newTexture);
-
-            Debug.Log($"Successfully saved icon for {skillId} to {destinationPath}");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error saving icon: {e.Message}\n{e.StackTrace}");
-        }
-    }
-
-    private void SaveLevelPrefabs(SkillData skill)
-    {
-        if (skill.prefabsByLevel == null) return;
-
-        for (int i = 0; i < skill.prefabsByLevel.Length; i++)
-        {
-            if (skill.prefabsByLevel[i] != null)
-            {
-                SavePrefabToResources(skill.prefabsByLevel[i], skill.metadata.ID, $"Level_{i + 1}");
-            }
-        }
-    }
-    #endregion
-
-    #region Skill Data Management
-    public SkillData CreateNewSkill()
-    {
-        SkillData newSkill = new SkillData
-        {
-            metadata = new SkillMetadata
-            {
-                Name = "New Skill",
-                Description = "New skill description",
-                Type = SkillType.None,
-                ID = SkillID.None,
-                Element = ElementType.None,
-                Tier = 1
-            }
-        };
-
-        InitializeDefaultStats(newSkill);
-        skillDatas.Add(newSkill);
-        return newSkill;
-    }
-
-
-    private void AddResourceReferences(SkillData skill, ResourceReferenceData references)
-    {
-        if (skill?.metadata == null) return;
-
-        // 메타데이터 프리팹 참조 추가
-        if (skill.metadata.Prefab != null)
-        {
-            string path = AssetDatabase.GetAssetPath(skill.metadata.Prefab);
-            string guid = AssetDatabase.AssetPathToGUID(path);
-            references.Add($"{skill.metadata.ID}_Metadata", new AssetReference
-            {
-                guid = guid,
-                path = path
-            });
-        }
-
-        // 아이콘 참조 추가
-        if (skill.icon != null)
-        {
-            string iconPath = AssetDatabase.GetAssetPath(skill.icon);
-            string iconGuid = AssetDatabase.AssetPathToGUID(iconPath);
-            references.Add($"{skill.metadata.ID}_Icon", new AssetReference
-            {
-                guid = iconGuid,
-                path = iconPath
-            });
-        }
-
-        // 프로젝타일 스킬인 경우 프로젝타일 프리팹 참조 추가
-        if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
-        {
-            string projectilePath = AssetDatabase.GetAssetPath(skill.projectile);
-            string projectileGuid = AssetDatabase.AssetPathToGUID(projectilePath);
-            references.Add($"{skill.metadata.ID}_Projectile", new AssetReference
-            {
-                guid = projectileGuid,
-                path = projectilePath
-            });
-        }
-
-        // 레벨별 프리팹 참조 추가
-        if (skill.prefabsByLevel != null)
-        {
-            for (int i = 0; i < skill.prefabsByLevel.Length; i++)
-            {
-                if (skill.prefabsByLevel[i] != null)
-                {
-                    string levelPrefabPath = AssetDatabase.GetAssetPath(skill.prefabsByLevel[i]);
-                    string levelPrefabGuid = AssetDatabase.AssetPathToGUID(levelPrefabPath);
-                    references.Add($"{skill.metadata.ID}_Level_{i + 1}", new AssetReference
-                    {
-                        guid = levelPrefabGuid,
-                        path = levelPrefabPath
-                    });
-                }
-            }
-        }
-
-        Debug.Log($"Added resource references for skill: {skill.metadata.Name}");
-    }
-    #endregion
-
-    #region Stats Management
-    public void UpdateSkillStats(SkillData skill, Dictionary<SkillID, List<SkillStatData>> statsData)
-    {
-        if (!skillStatsByLevel.ContainsKey(skill.metadata.ID))
-        {
-            skillStatsByLevel[skill.metadata.ID] = new Dictionary<int, SkillStatData>();
-        }
-
-        var stats = statsData[skill.metadata.ID];
-        foreach (var stat in stats)
-        {
-            skillStatsByLevel[skill.metadata.ID][stat.level] = stat;
-        }
-    }
-
-    private void InitializeDefaultStats(SkillData skill)
-    {
-        var defaultStat = new SkillStatData
-        {
-            skillID = skill.metadata.ID,
-            level = 1,
-            damage = 10f,
-            maxSkillLevel = 5,
-            element = skill.metadata.Element,
-            elementalPower = 1f
-        };
-
-        switch (skill.metadata.Type)
-        {
-            case SkillType.Projectile:
-                InitializeProjectileStats(defaultStat);
-                break;
-            case SkillType.Area:
-                InitializeAreaStats(defaultStat);
-                break;
-            case SkillType.Passive:
-                InitializePassiveStats(defaultStat);
-                break;
-        }
-
-        if (!skillStatsByLevel.ContainsKey(skill.metadata.ID))
-        {
-            skillStatsByLevel[skill.metadata.ID] = new Dictionary<int, SkillStatData>();
-        }
-        skillStatsByLevel[skill.metadata.ID][1] = defaultStat;
-    }
-
-    private void InitializeProjectileStats(SkillStatData stats)
-    {
-        stats.projectileSpeed = 10f;
-        stats.projectileScale = 1f;
-        stats.shotInterval = 1f;
-        stats.pierceCount = 1;
-        stats.attackRange = 10f;
-        stats.homingRange = 5f;
-        stats.isHoming = false;
-        stats.explosionRad = 0f;
-        stats.projectileCount = 1;
-        stats.innerInterval = 0.1f;
-    }
-
-    private void InitializeAreaStats(SkillStatData stats)
-    {
-        stats.radius = 5f;
-        stats.duration = 3f;
-        stats.tickRate = 1f;
-        stats.isPersistent = false;
-        stats.moveSpeed = 0f;
-    }
-
-    private void InitializePassiveStats(SkillStatData stats)
-    {
-        stats.effectDuration = 5f;
-        stats.cooldown = 10f;
-        stats.triggerChance = 100f;
-        stats.damageIncrease = 0f;
-        stats.defenseIncrease = 0f;
-        stats.expAreaIncrease = 0f;
-        stats.homingActivate = false;
-        stats.hpIncrease = 0f;
-        stats.moveSpeedIncrease = 0f;
-        stats.attackSpeedIncrease = 0f;
-        stats.attackRangeIncrease = 0f;
-        stats.hpRegenIncrease = 0f;
-    }
-
-    public void DeleteSkill(SkillData skill)
-    {
-        if (skill == null || skill.metadata == null) return;
-
-        // 리소스 파일들 삭제
-        DeleteSkillResources(skill.metadata.ID);
-
-        // 스킬 데이터 제거
-        skillDatas.Remove(skill);
-        if (skillStatsByLevel.ContainsKey(skill.metadata.ID))
-        {
-            skillStatsByLevel.Remove(skill.metadata.ID);
-        }
-
-        SaveAllSkillData();
-        Debug.Log($"Deleted skill: {skill.metadata.Name}");
-    }
-
-    private void DeleteSkillResources(SkillID skillId)
-    {
-        string[] paths = {
-            $"Assets/Resources/{PREFAB_PATH}/{skillId}_Metadata.prefab",
-            $"Assets/Resources/{PREFAB_PATH}/{skillId}_Projectile.prefab",
-            $"Assets/Resources/{ICON_PATH}/{skillId}_Icon.png"
-        };
-
-        foreach (string path in paths)
-        {
-            if (File.Exists(path))
-            {
-                AssetDatabase.DeleteAsset(path);
-            }
-        }
-
-        // 레벨 프리팹들 삭제
-        int level = 1;
-        while (true)
-        {
-            string levelPath = $"Assets/Resources/{PREFAB_PATH}/{skillId}_Level_{level}";
-            if (!File.Exists(levelPath)) break;
-            AssetDatabase.DeleteAsset(levelPath);
-            level++;
-        }
-
-        AssetDatabase.Refresh();
-    }
-
-    public void UpdateSkillStats(SkillID skillId, List<SkillStatData> stats)
-    {
-        if (!skillStatsByLevel.ContainsKey(skillId))
-        {
-            skillStatsByLevel[skillId] = new Dictionary<int, SkillStatData>();
-        }
-
-        foreach (var stat in stats)
-        {
-            if (ValidateSkillStat(stat))
-            {
-                skillStatsByLevel[skillId][stat.level] = stat;
-            }
-        }
-
-        SaveSkillStatsToCSV(Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH));
-    }
-
-    public List<SkillStatData> GetSkillStats(SkillID skillId)
-    {
-        if (skillStatsByLevel.TryGetValue(skillId, out var stats))
-        {
-            return stats.Values.ToList();
-        }
-        return new List<SkillStatData>();
-    }
-
-    public void AddSkillLevel(SkillID skillId)
-    {
-        if (!skillStatsByLevel.ContainsKey(skillId)) return;
-
-        var stats = skillStatsByLevel[skillId];
-        int newLevel = stats.Keys.Max() + 1;
-
-        // 이전 레벨의 스탯을 복사하고 수치 증가
-        var prevStat = stats[newLevel - 1].Clone();
-        prevStat.level = newLevel;
-        prevStat.damage *= 1.2f;  // 20% 증가
-        prevStat.elementalPower *= 1.1f;  // 10% 증가
-
-        stats[newLevel] = prevStat;
-        SaveSkillStatsToCSV(Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH));
-    }
-    #endregion
-
-    #region Resource Loading
-    public GameObject LoadPrefabFromResources(SkillID skillId, string suffix)
-    {
-        string path = $"{PREFAB_PATH}/{skillId}_{suffix}";
-        GameObject prefab = Resources.Load<GameObject>(path);
-        if (prefab == null)
-        {
-            Debug.LogWarning($"Failed to load prefab: {path}");
-        }
-        return prefab;
-    }
-
-    public Sprite LoadIconFromResources(SkillID skillId)
-    {
-        string path = $"{ICON_PATH}/{skillId}_Icon";
-        Sprite icon = Resources.Load<Sprite>(path);
-        if (icon == null)
-        {
-            Debug.LogWarning($"Failed to load icon: {path}");
-        }
-        return icon;
-    }
-
-    private void LoadLevelPrefabs(SkillData skill)
-    {
-        List<GameObject> levelPrefabs = new List<GameObject>();
-        int level = 1;
-
-        while (true)
-        {
-            string path = $"{PREFAB_PATH}/{skill.metadata.ID}_Level_{level}";
-            GameObject prefab = Resources.Load<GameObject>(path);
-            if (prefab == null) break;
-
-            levelPrefabs.Add(prefab);
-            level++;
-        }
-
-        skill.prefabsByLevel = levelPrefabs.ToArray();
-    }
-    #endregion
-
-    public void DeleteSkillLevel(SkillID skillId, int level)
-    {
-        if (skillStatsByLevel.ContainsKey(skillId))
-        {
-            if (skillStatsByLevel[skillId].ContainsKey(level))
-            {
-                skillStatsByLevel[skillId].Remove(level);
-                SaveSkillStatsToCSV(Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH));
-            }
-        }
-    }
-
-    public void ExportToJson()
-    {
-        var wrapper = new SkillDataWrapper { skillDatas = skillDatas };
-        string jsonPath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, "SkillData.json");
-        File.WriteAllText(jsonPath, JsonUtility.ToJson(wrapper, true));
-        AssetDatabase.Refresh();
-    }
-
-    public void ImportFromJson()
-    {
-        string jsonPath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, "SkillData.json");
-        if (File.Exists(jsonPath))
-        {
-            string jsonContent = File.ReadAllText(jsonPath);
-            var wrapper = JsonUtility.FromJson<SkillDataWrapper>(jsonContent);
-            if (wrapper != null && wrapper.skillDatas != null)
-            {
-                skillDatas = wrapper.skillDatas;
-                LoadSkillStatsFromCSV();
-            }
-        }
-    }
-
-    public new void ClearAllData()
-    {
-        // JSON 파일 존재 여부 확인
-        string jsonPath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, SKILL_DATA_FILENAME);
-        bool hasJsonData = File.Exists(jsonPath);
-
-        // CSV 파일들 존재 여부 확인
-        string[] csvFiles = {
-            Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, "ProjectileSkillStats.csv"),
-            Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, "AreaSkillStats.csv"),
-            Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, "PassiveSkillStats.csv")
-        };
-        bool hasCsvData = csvFiles.Any(File.Exists);
-
-        // 데이터가 존재하면 확인 메시지 표시
-        if (hasJsonData || hasCsvData)
-        {
-            if (!EditorUtility.DisplayDialog("Clear All Data",
-                "Existing skill data found. Are you sure you want to clear all data? This cannot be undone.",
-                "Clear", "Cancel"))
-            {
-                return;
-            }
-        }
-
-        skillDatas.Clear();
-        skillStatsByLevel.Clear();
-        SaveAllSkillData();
-    }
-
-    public void InitializeSkillStats(SkillData skill)
-    {
-        if (skill == null || skill.metadata == null) return;
-
-        var defaultStat = new SkillStatData
-        {
-            skillID = skill.metadata.ID,
-            level = 1,
-            damage = 10f,
-            maxSkillLevel = 5,
-            element = skill.metadata.Element,
-            elementalPower = 1f
-        };
-
-        InitializeStatsByType(defaultStat, skill.metadata.Type);
-
-        if (!skillStatsByLevel.ContainsKey(skill.metadata.ID))
-        {
-            skillStatsByLevel[skill.metadata.ID] = new Dictionary<int, SkillStatData>();
-        }
-        skillStatsByLevel[skill.metadata.ID][1] = defaultStat;
-    }
-
-    private void InitializeStatsByType(SkillStatData stats, SkillType type)
-    {
-        switch (type)
-        {
-            case SkillType.Projectile:
-                InitializeProjectileStats(stats);
-                break;
-            case SkillType.Area:
-                InitializeAreaStats(stats);
-                break;
-            case SkillType.Passive:
-                InitializePassiveStats(stats);
-                break;
-        }
-    }
-
-    // 스킬 ID가 변경될 때 호출될 메서드
-    public void UpdateSkillID(SkillData skill, SkillID oldID, SkillID newID)
-    {
-        if (oldID == newID) return;
-
-        Debug.Log($"Updating skill ID from {oldID} to {newID}");
-
-        // 기존 스탯 데이터 백업
-        Dictionary<int, SkillStatData> oldStats = null;
-        if (skillStatsByLevel.ContainsKey(oldID))
-        {
-            oldStats = new Dictionary<int, SkillStatData>(skillStatsByLevel[oldID]);
-            skillStatsByLevel.Remove(oldID);
-        }
-
-        // 새로운 ID로 스탯 데이터 이전
-        if (oldStats != null)
-        {
-            skillStatsByLevel[newID] = new Dictionary<int, SkillStatData>();
-            foreach (var levelStat in oldStats)
-            {
-                var newStat = levelStat.Value.Clone();
-                newStat.skillID = newID;
-                skillStatsByLevel[newID][levelStat.Key] = newStat;
-            }
-            Debug.Log($"Transferred {oldStats.Count} level stats to new ID");
-        }
-        else if (!skillStatsByLevel.ContainsKey(newID))
-        {
-            // 새로운 ID에 대한 기본 스탯 초기화
-            InitializeSkillStats(skill);
-            Debug.Log($"Initialized new stats for skill ID: {newID}");
-        }
-
-        // 리소스 참조 업데이트
-        UpdateResourceReferences(skill, oldID, newID);
-    }
-
-    private void UpdateResourceReferences(SkillData skill, SkillID oldID, SkillID newID)
-    {
-        // 기존 리소스들의 이름 변경
-        if (skill.metadata.Prefab != null)
-        {
-            RenameResource(skill.metadata.Prefab, $"{oldID}_Metadata", $"{newID}_Metadata");
-        }
-
-        if (skill.icon != null)
-        {
-            RenameResource(skill.icon, $"{oldID}_Icon", $"{newID}_Icon");
-        }
-
-        if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
-        {
-            RenameResource(skill.projectile, $"{oldID}_Projectile", $"{newID}_Projectile");
-        }
-
-        if (skill.prefabsByLevel != null)
-        {
-            for (int i = 0; i < skill.prefabsByLevel.Length; i++)
-            {
-                if (skill.prefabsByLevel[i] != null)
-                {
-                    RenameResource(skill.prefabsByLevel[i], $"{oldID}_Level_{i + 1}", $"{newID}_Level_{i + 1}");
-                }
-            }
-        }
-
-        AssetDatabase.Refresh();
-    }
-
-    private void RenameResource(Object asset, string oldSuffix, string newSuffix)
-    {
-        string path = AssetDatabase.GetAssetPath(asset);
-        if (!string.IsNullOrEmpty(path))
-        {
-            string newPath = path.Replace(oldSuffix, newSuffix);
-            AssetDatabase.MoveAsset(path, newPath);
-        }
-    }
-
-    private void OnEnable()
-    {
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        // 데이터가 없을 때만 로드하도록 수정
-        if (skillDatas == null || !skillDatas.Any())
-        {
-            LoadAllData();
-            // CSV 데이터도 없을 때만 로드
-            if (skillStatsByLevel == null || !skillStatsByLevel.Any())
-            {
-                LoadSkillStatsFromCSV();
-            }
-        }
-    }
-
-    private new void LoadAllData()
-    {
-        try
-        {
-            string jsonPath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH, SKILL_DATA_FILENAME);
-
-            // JSON 파일이 존재하고 내용이 있는지 확인
-            if (File.Exists(jsonPath))
-            {
-                string jsonContent = File.ReadAllText(jsonPath);
-                if (!string.IsNullOrEmpty(jsonContent))
-                {
-                    var wrapper = JsonUtility.FromJson<SkillDataWrapper>(jsonContent);
-                    if (wrapper != null)
-                    {
-                        skillDatas = wrapper.skillDatas ?? new List<SkillData>();
-                        
-                        // 리소스 레퍼런스를 사용하여 리소스 복원
-                        if (wrapper.resourceReferences != null)
-                        {
-                            foreach (var skill in skillDatas)
-                            {
-                                RestoreSkillResources(skill, wrapper.resourceReferences);
-                            }
-                        }
-
-                        Debug.Log($"Successfully loaded {skillDatas.Count} skills from JSON");
-                        return;
-                    }
-                }
-            }
-
-            // 데이터가 없는 경우 새로운 리스트 생성
-            skillDatas = new List<SkillData>();
-            Debug.Log("Created new skill data list");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error loading skill data: {e.Message}\n{e.StackTrace}");
-            skillDatas = new List<SkillData>();
-        }
-    }
-
-    private void RestoreSkillResources(SkillData skill, ResourceReferenceData references)
-    {
-        if (skill?.metadata == null) return;
-
-        string metadataKey = $"{skill.metadata.ID}_Metadata";
-        if (references.TryGetValue(metadataKey, out var metadataRef))
-        {
-            skill.metadata.Prefab = LoadPrefabWithFallback(metadataRef.guid, metadataRef.path, GetResourcePath(metadataRef.path));
-        }
-
-        string iconKey = $"{skill.metadata.ID}_Icon";
-        if (references.TryGetValue(iconKey, out var iconRef))
-        {
-            string iconPath = GetResourcePath(iconRef.path);
-            skill.icon = Resources.Load<Sprite>(iconPath);
-            skill.metadata.Icon = skill.icon;
-        }
-
-        if (skill.metadata.Type == SkillType.Projectile)
-        {
-            string projectileKey = $"{skill.metadata.ID}_Projectile";
-            if (references.TryGetValue(projectileKey, out var projectileRef))
-            {
-                skill.projectile = LoadPrefabWithFallback(projectileRef.guid, projectileRef.path, GetResourcePath(projectileRef.path));
-            }
-        }
-
-        // 레벨별 프리팹 복원
-        int level = 1;
-        List<GameObject> levelPrefabs = new List<GameObject>();
-        while (true)
-        {
-            string levelKey = $"{skill.metadata.ID}_Level_{level}";
-            if (!references.TryGetValue(levelKey, out var levelRef))
-                break;
-
-            var levelPrefab = LoadPrefabWithFallback(levelRef.guid, levelRef.path, GetResourcePath(levelRef.path));
-            if (levelPrefab != null)
-                levelPrefabs.Add(levelPrefab);
-            level++;
-        }
-        skill.prefabsByLevel = levelPrefabs.ToArray();
-    }
-
 }
