@@ -76,7 +76,7 @@ public class SkillDataManager : DataManager
     {
         Debug.Log("Starting SkillDataManager initialization...");
 
-        // 1. CSV 파일 로드 전에 리소스 폴더 확인
+        // 1. CSV 파일 로드 에 리소스 폴더 확인
         string resourcePath = Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH);
         if (!Directory.Exists(resourcePath))
         {
@@ -214,7 +214,7 @@ public class SkillDataManager : DataManager
             Debug.LogWarning($"Failed to load icon for {skill.metadata.Name} at path: {iconPath}");
         }
 
-        // 프로젝타일 타입인 경우 프로젝타일 프리팹 로드
+        // 프로젝일 타입인 경우 프젝타일 프리팹 로드
         if (skill.metadata.Type == SkillType.Projectile)
         {
             string projectilePath = $"{PREFAB_PATH}/{skill.metadata.ID}_Projectile";
@@ -277,81 +277,104 @@ public class SkillDataManager : DataManager
 
     public void SaveAllSkillData()
     {
-#if UNITY_EDITOR
         try
         {
             var wrapper = new SkillDataWrapper();
             wrapper.skillDatas = skillDatas;
+            wrapper.resourceReferences = new ResourceReferenceData();
 
+            // 리소스 참조 저장
             foreach (var skill in skillDatas)
             {
-                if (skill == null || skill.metadata == null) continue;
-
-                // 메타데이터 프리팹
-                if (skill.metadata.Prefab != null)
-                {
-                    string path = AssetDatabase.GetAssetPath(skill.metadata.Prefab);
-                    string guid = AssetDatabase.AssetPathToGUID(path);
-                    wrapper.resourceReferences.Add($"{skill.metadata.ID}_Metadata", new AssetReference
-                    {
-                        guid = guid,
-                        path = path
-                    });
-                }
-
-                // 아이콘
-                if (skill.icon != null)
-                {
-                    string path = AssetDatabase.GetAssetPath(skill.icon);
-                    string guid = AssetDatabase.AssetPathToGUID(path);
-                    wrapper.resourceReferences.Add($"{skill.metadata.ID}_Icon", new AssetReference
-                    {
-                        guid = guid,
-                        path = path
-                    });
-                }
-
-                // 프로젝타일
-                if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
-                {
-                    string path = AssetDatabase.GetAssetPath(skill.projectile);
-                    string guid = AssetDatabase.AssetPathToGUID(path);
-                    wrapper.resourceReferences.Add($"{skill.metadata.ID}_Projectile", new AssetReference
-                    {
-                        guid = guid,
-                        path = path
-                    });
-                }
-
-                // 레벨별 프리팹
-                if (skill.prefabsByLevel != null)
-                {
-                    for (int i = 0; i < skill.prefabsByLevel.Length; i++)
-                    {
-                        if (skill.prefabsByLevel[i] != null)
-                        {
-                            string path = AssetDatabase.GetAssetPath(skill.prefabsByLevel[i]);
-                            string guid = AssetDatabase.AssetPathToGUID(path);
-                            wrapper.resourceReferences.Add($"{skill.metadata.ID}_Level_{i + 1}", new AssetReference
-                            {
-                                guid = guid,
-                                path = path
-                            });
-                        }
-                    }
-                }
+                SaveSkillResources(skill, wrapper.resourceReferences);
             }
 
+            // JSON 저장
             SaveData(SKILL_DATA_FILENAME, wrapper);
-            Debug.Log("Successfully saved all skill data with GUID references");
-            AssetDatabase.SaveAssets();
+
+            // CSV 저장
+            SaveSkillStatsToCSV(Path.Combine(Application.dataPath, "Resources", RESOURCE_PATH));
+
+            Debug.Log("Successfully saved all skill data");
             AssetDatabase.Refresh();
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Failed to save skill data: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"Failed to save skill data: {e.Message}");
         }
-#endif
+    }
+
+    private void SaveSkillResources(SkillData skill, ResourceReferenceData references)
+    {
+        if (skill?.metadata == null) return;
+
+        SavePrefabReference(skill, references);
+        SaveIconReference(skill, references);
+        SaveProjectileReference(skill, references);
+        SaveLevelPrefabReferences(skill, references);
+    }
+
+    // 리소스 참조 저장을 위한 헬퍼 메서드들
+    private void SavePrefabReference(SkillData skill, ResourceReferenceData references)
+    {
+        if (skill.metadata.Prefab != null)
+        {
+            string path = AssetDatabase.GetAssetPath(skill.metadata.Prefab);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            references.Add($"{skill.metadata.ID}_Metadata", new AssetReference
+            {
+                guid = guid,
+                path = path
+            });
+        }
+    }
+
+    private void SaveIconReference(SkillData skill, ResourceReferenceData references)
+    {
+        if (skill.icon != null)
+        {
+            string path = AssetDatabase.GetAssetPath(skill.icon);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            references.Add($"{skill.metadata.ID}_Icon", new AssetReference
+            {
+                guid = guid,
+                path = path
+            });
+        }
+    }
+
+    private void SaveProjectileReference(SkillData skill, ResourceReferenceData references)
+    {
+        if (skill.metadata.Type == SkillType.Projectile && skill.projectile != null)
+        {
+            string path = AssetDatabase.GetAssetPath(skill.projectile);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            references.Add($"{skill.metadata.ID}_Projectile", new AssetReference
+            {
+                guid = guid,
+                path = path
+            });
+        }
+    }
+
+    private void SaveLevelPrefabReferences(SkillData skill, ResourceReferenceData references)
+    {
+        if (skill.prefabsByLevel != null)
+        {
+            for (int i = 0; i < skill.prefabsByLevel.Length; i++)
+            {
+                if (skill.prefabsByLevel[i] != null)
+                {
+                    string path = AssetDatabase.GetAssetPath(skill.prefabsByLevel[i]);
+                    string guid = AssetDatabase.AssetPathToGUID(path);
+                    references.Add($"{skill.metadata.ID}_Level_{i + 1}", new AssetReference
+                    {
+                        guid = guid,
+                        path = path
+                    });
+                }
+            }
+        }
     }
 
     public void LoadAllSkillData()
@@ -1389,5 +1412,84 @@ public class SkillDataManager : DataManager
         }
 
         return prefab;
+    }
+
+    private void SaveSkillStatsToCSV(string directory)
+    {
+        try
+        {
+            // 프로젝타일 스킬 CSV
+            string projectilePath = Path.Combine(directory, "ProjectileSkillStats.csv");
+            SaveProjectileSkillStats(projectilePath);
+
+            // 에어리어 스킬 CSV
+            string areaPath = Path.Combine(directory, "AreaSkillStats.csv");
+            SaveAreaSkillStats(areaPath);
+
+            // 패시브 스킬 CSV
+            string passivePath = Path.Combine(directory, "PassiveSkillStats.csv");
+            SavePassiveSkillStats(passivePath);
+
+            Debug.Log($"Successfully saved skill stats CSV files in: {directory}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error saving skill stats to CSV: {e.Message}");
+        }
+    }
+
+    private void SaveProjectileSkillStats(string path)
+    {
+        StringBuilder csv = new StringBuilder();
+        csv.AppendLine("skillid,level,damage,maxskilllevel,element,elementalpower," +
+                      "projectilespeed,projectilescale,shotinterval,piercecount,attackrange," +
+                      "homingrange,ishoming,explosionrad,projectilecount,innerinterval");
+
+        foreach (var skillStats in skillStatsByLevel)
+        {
+            var skill = skillDatas.Find(s => s.metadata.ID == skillStats.Key);
+            if (skill?.metadata.Type == SkillType.Projectile)
+            {
+                foreach (var levelStats in skillStats.Value)
+                {
+                    csv.AppendLine($"{skillStats.Key},{levelStats.Key}," +
+                                 $"{levelStats.Value.damage},{levelStats.Value.maxSkillLevel}," +
+                                 $"{levelStats.Value.element},{levelStats.Value.elementalPower}," +
+                                 $"{levelStats.Value.projectileSpeed},{levelStats.Value.projectileScale}," +
+                                 $"{levelStats.Value.shotInterval},{levelStats.Value.pierceCount}," +
+                                 $"{levelStats.Value.attackRange},{levelStats.Value.homingRange}," +
+                                 $"{levelStats.Value.isHoming},{levelStats.Value.explosionRad}," +
+                                 $"{levelStats.Value.projectileCount},{levelStats.Value.innerInterval}");
+                }
+            }
+        }
+
+        File.WriteAllText(path, csv.ToString());
+    }
+
+    private void SaveAreaSkillStats(string path)
+    {
+        StringBuilder csv = new StringBuilder();
+        csv.AppendLine("skillid,level,damage,maxskilllevel,element,elementalpower," +
+                      "radius,duration,tickrate,ispersistent,movespeed");
+
+        foreach (var skillStats in skillStatsByLevel)
+        {
+            var skill = skillDatas.Find(s => s.metadata.ID == skillStats.Key);
+            if (skill?.metadata.Type == SkillType.Area)
+            {
+                foreach (var levelStats in skillStats.Value)
+                {
+                    csv.AppendLine($"{skillStats.Key},{levelStats.Key}," +
+                                 $"{levelStats.Value.damage},{levelStats.Value.maxSkillLevel}," +
+                                 $"{levelStats.Value.element},{levelStats.Value.elementalPower}," +
+                                 $"{levelStats.Value.radius},{levelStats.Value.duration}," +
+                                 $"{levelStats.Value.tickRate},{levelStats.Value.isPersistent}," +
+                                 $"{levelStats.Value.moveSpeed}");
+                }
+            }
+        }
+
+        File.WriteAllText(path, csv.ToString());
     }
 }
