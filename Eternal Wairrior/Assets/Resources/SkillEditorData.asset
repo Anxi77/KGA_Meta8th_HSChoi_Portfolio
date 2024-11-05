@@ -14,24 +14,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   skillList:
   - metadata:
-      ID: 100003
+      ID: 100009
       Name: New Skill
       Description: New skill description
       Type: 3
-      Element: 2
+      Element: 1
       Tier: 0
       Tags: []
-      Prefab: {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
-      Icon: {fileID: 21300000, guid: cd9bda7ed770d6e469973146276a940c, type: 3}
-    icon: {fileID: 21300000, guid: cd9bda7ed770d6e469973146276a940c, type: 3}
+      Prefab: {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+      Icon: {fileID: 21300000, guid: 9e771bb2207c7ae40b316f9dd66e6a7f, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 9e771bb2207c7ae40b316f9dd66e6a7f, type: 3}
     projectile: {fileID: 0}
-    prefabsByLevel: []
+    prefabsByLevel:
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
     baseStats:
       damage: 10
       skillName: 
       skillLevel: 1
       maxSkillLevel: 5
-      element: 2
+      element: 1
       elementalPower: 1
     projectileStat:
       projectileSpeed: 0
@@ -63,210 +69,36 @@ MonoBehaviour:
       attackSpeedIncrease: 0
       attackRangeIncrease: 0
       hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 9e771bb2207c7ae40b316f9dd66e6a7f
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Necro/256/Necro_256_6.png
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
   skillStats:
-  - skillID: 100001
-    levelStats:
-    - skillID: 100001
-      level: 1
-      damage: 10
-      maxSkillLevel: 5
-      element: 0
-      elementalPower: 1
-      projectileSpeed: 10
-      projectileScale: 1
-      shotInterval: 1
-      pierceCount: 1
-      attackRange: 10
-      homingRange: 5
-      isHoming: 0
-      explosionRad: 0
-      projectileCount: 1
-      innerInterval: 0.1
-      radius: 5
-      duration: 3
-      tickRate: 1
-      isPersistent: 0
-      moveSpeed: 0
-      effectDuration: 5
-      cooldown: 10
-      triggerChance: 100
-      damageIncrease: 0
-      defenseIncrease: 0
-      expAreaIncrease: 0
-      homingActivate: 0
-      hpIncrease: 0
-      moveSpeedIncrease: 0
-      attackSpeedIncrease: 0
-      attackRangeIncrease: 0
-      hpRegenIncrease: 0
-  - skillID: 100003
-    levelStats:
-    - skillID: 100003
-      level: 1
-      damage: 10
-      maxSkillLevel: 5
-      element: 2
-      elementalPower: 1
-      projectileSpeed: 10
-      projectileScale: 1
-      shotInterval: 1
-      pierceCount: 1
-      attackRange: 10
-      homingRange: 5
-      isHoming: 0
-      explosionRad: 0
-      projectileCount: 1
-      innerInterval: 0.1
-      radius: 5
-      duration: 3
-      tickRate: 1
-      isPersistent: 0
-      moveSpeed: 0
-      effectDuration: 5
-      cooldown: 10
-      triggerChance: 100
-      damageIncrease: 0
-      defenseIncrease: 0
-      expAreaIncrease: 0
-      homingActivate: 0
-      hpIncrease: 0
-      moveSpeedIncrease: 0
-      attackSpeedIncrease: 0
-      attackRangeIncrease: 0
-      hpRegenIncrease: 0
-    - skillID: 100003
-      level: 2
-      damage: 10
-      maxSkillLevel: 5
-      element: 2
-      elementalPower: 1
-      projectileSpeed: 10
-      projectileScale: 1
-      shotInterval: 1
-      pierceCount: 1
-      attackRange: 10
-      homingRange: 5
-      isHoming: 0
-      explosionRad: 0
-      projectileCount: 1
-      innerInterval: 0.1
-      radius: 5
-      duration: 3
-      tickRate: 1
-      isPersistent: 0
-      moveSpeed: 0
-      effectDuration: 5
-      cooldown: 10
-      triggerChance: 100
-      damageIncrease: 0
-      defenseIncrease: 0
-      expAreaIncrease: 0
-      homingActivate: 0
-      hpIncrease: 0
-      moveSpeedIncrease: 0
-      attackSpeedIncrease: 0
-      attackRangeIncrease: 0
-      hpRegenIncrease: 0
-    - skillID: 100003
-      level: 3
-      damage: 10
-      maxSkillLevel: 5
-      element: 2
-      elementalPower: 1
-      projectileSpeed: 10
-      projectileScale: 1
-      shotInterval: 1
-      pierceCount: 1
-      attackRange: 10
-      homingRange: 5
-      isHoming: 0
-      explosionRad: 0
-      projectileCount: 1
-      innerInterval: 0.1
-      radius: 5
-      duration: 3
-      tickRate: 1
-      isPersistent: 0
-      moveSpeed: 0
-      effectDuration: 5
-      cooldown: 10
-      triggerChance: 100
-      damageIncrease: 0
-      defenseIncrease: 0
-      expAreaIncrease: 0
-      homingActivate: 0
-      hpIncrease: 0
-      moveSpeedIncrease: 0
-      attackSpeedIncrease: 0
-      attackRangeIncrease: 0
-      hpRegenIncrease: 0
-    - skillID: 100003
-      level: 4
-      damage: 10
-      maxSkillLevel: 5
-      element: 2
-      elementalPower: 1
-      projectileSpeed: 10
-      projectileScale: 1
-      shotInterval: 1
-      pierceCount: 1
-      attackRange: 10
-      homingRange: 5
-      isHoming: 0
-      explosionRad: 0
-      projectileCount: 1
-      innerInterval: 0.1
-      radius: 5
-      duration: 3
-      tickRate: 1
-      isPersistent: 0
-      moveSpeed: 0
-      effectDuration: 5
-      cooldown: 10
-      triggerChance: 100
-      damageIncrease: 0
-      defenseIncrease: 0
-      expAreaIncrease: 0
-      homingActivate: 0
-      hpIncrease: 0
-      moveSpeedIncrease: 0
-      attackSpeedIncrease: 0
-      attackRangeIncrease: 0
-      hpRegenIncrease: 0
-    - skillID: 100003
-      level: 5
-      damage: 10
-      maxSkillLevel: 5
-      element: 2
-      elementalPower: 1
-      projectileSpeed: 10
-      projectileScale: 1
-      shotInterval: 1
-      pierceCount: 1
-      attackRange: 10
-      homingRange: 5
-      isHoming: 0
-      explosionRad: 0
-      projectileCount: 1
-      innerInterval: 0.1
-      radius: 5
-      duration: 3
-      tickRate: 1
-      isPersistent: 0
-      moveSpeed: 0
-      effectDuration: 5
-      cooldown: 10
-      triggerChance: 100
-      damageIncrease: 0
-      defenseIncrease: 0
-      expAreaIncrease: 0
-      homingActivate: 0
-      hpIncrease: 0
-      moveSpeedIncrease: 0
-      attackSpeedIncrease: 0
-      attackRangeIncrease: 0
-      hpRegenIncrease: 0
-  lastSelectedSkillID: 100003
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100009
+    levelStats: []
+  lastSelectedSkillID: 100009
   scrollPosition: {x: 0, y: 0}
   showBaseStats: 1
   showLevelStats: 1

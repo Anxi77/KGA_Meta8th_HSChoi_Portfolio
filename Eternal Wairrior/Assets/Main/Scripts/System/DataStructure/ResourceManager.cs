@@ -20,7 +20,7 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
 
         try
         {
-            // 절대 경로 생성
+            // 텍스처 경로 생성
             string fullPath = Path.Combine(Application.dataPath, "Resources", basePath);
             if (!Directory.Exists(fullPath))
             {
@@ -30,7 +30,7 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
 
             string assetPath = $"Assets/Resources/{basePath}/{key}";
 
-            // 데이터 타입에 따른 저장 처리
+            // 스프라이트인지 게임오브젝트인지 확인
             if (data is Sprite sprite)
             {
                 SaveSprite(assetPath, sprite);
@@ -115,65 +115,79 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
 
             string fullPath = $"{path}.png";
 
-            // 텍스처 설정 변경을 위해 에셋 경로 가져오기
+            // 텍스처 원본 경로 가져오기
             string texturePath = AssetDatabase.GetAssetPath(sprite.texture);
-            TextureImporter importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
 
-            if (importer != null)
+            // 원본 파일이 존재하면 직접 복사
+            if (File.Exists(texturePath))
             {
-                // 원본 설정 저장
-                bool originalReadable = importer.isReadable;
-                TextureImporterCompression originalCompression = importer.textureCompression;
-
-                try
-                {
-                    // 텍스처 설정 변경
-                    importer.isReadable = true;
-                    importer.textureCompression = TextureImporterCompression.Uncompressed;
-                    importer.SaveAndReimport();
-
-                    // 텍스처를 PNG로 변환
-                    Texture2D tempTexture = new Texture2D(
-                        sprite.texture.width,
-                        sprite.texture.height,
-                        TextureFormat.RGBA32,
-                        false);
-
-                    // 스프라이트의 픽셀 데이터 복사
-                    Graphics.CopyTexture(sprite.texture, tempTexture);
-
-                    byte[] bytes = tempTexture.EncodeToPNG();
-                    if (bytes != null && bytes.Length > 0)
-                    {
-                        File.WriteAllBytes(fullPath, bytes);
-                        Debug.Log($"Saved sprite to: {fullPath}");
-                    }
-                    else
-                    {
-                        Debug.LogError("Failed to encode texture to PNG");
-                    }
-
-                    // 임시 텍스처 정리
-                    Object.DestroyImmediate(tempTexture);
-                }
-                finally
-                {
-                    // 원본 설정 복원
-                    importer.isReadable = originalReadable;
-                    importer.textureCompression = originalCompression;
-                    importer.SaveAndReimport();
-                }
+                File.Copy(texturePath, fullPath, true);
+                Debug.Log($"Copied sprite from {texturePath} to {fullPath}");
             }
             else
             {
-                Debug.LogError($"Could not get TextureImporter for sprite: {texturePath}");
+                // 원본 파일이 없는 경우에만 텍스처 변환 수행
+                TextureImporter importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+                if (importer != null)
+                {
+                    bool originalReadable = importer.isReadable;
+                    TextureImporterCompression originalCompression = importer.textureCompression;
+
+                    try
+                    {
+                        importer.isReadable = true;
+                        importer.textureCompression = TextureImporterCompression.Uncompressed;
+                        importer.SaveAndReimport();
+
+                        // 스프라이트의 실제 크기로 새 텍스처 생성
+                        Rect spriteRect = sprite.rect;
+                        Texture2D tempTexture = new Texture2D(
+                            (int)spriteRect.width,
+                            (int)spriteRect.height,
+                            TextureFormat.RGBA32,
+                            false);
+
+                        // 스프라이트의 픽셀 데이터 직접 복사
+                        var pixels = sprite.texture.GetPixels(
+                            (int)spriteRect.x,
+                            (int)spriteRect.y,
+                            (int)spriteRect.width,
+                            (int)spriteRect.height);
+                        tempTexture.SetPixels(pixels);
+                        tempTexture.Apply();
+
+                        byte[] bytes = tempTexture.EncodeToPNG();
+                        if (bytes != null && bytes.Length > 0)
+                        {
+                            File.WriteAllBytes(fullPath, bytes);
+                            Debug.Log($"Saved sprite to: {fullPath}");
+                        }
+                        else
+                        {
+                            Debug.LogError("Failed to encode texture to PNG");
+                        }
+
+                        Object.DestroyImmediate(tempTexture);
+                    }
+                    finally
+                    {
+                        // 원래 설정 복구
+                        importer.isReadable = originalReadable;
+                        importer.textureCompression = originalCompression;
+                        importer.SaveAndReimport();
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"Could not get TextureImporter for sprite: {texturePath}");
+                }
             }
 
             AssetDatabase.Refresh();
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error saving sprite: {e.Message}");
+            Debug.LogError($"Error saving sprite: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -189,13 +203,13 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
 
             string fullPath = $"{path}.prefab";
 
-            // 기존 프리팹이 있다면 삭제
+            // 프리팹 파일이 존재하면 삭제
             if (File.Exists(fullPath))
             {
                 AssetDatabase.DeleteAsset(fullPath);
             }
 
-            // 프리팹 저장
+            // 프리팹 인스턴스 생성
             GameObject prefabInstance = Object.Instantiate(prefab);
             bool success = PrefabUtility.SaveAsPrefabAsset(prefabInstance, fullPath, out bool prefabSuccess);
             Object.DestroyImmediate(prefabInstance);

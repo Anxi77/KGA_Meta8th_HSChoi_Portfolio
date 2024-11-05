@@ -1,24 +1,10 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEditor;
 
 public abstract class DataManager : MonoBehaviour
 {
-    protected ResourceManager<GameObject> prefabManager;
-    protected ResourceManager<Sprite> iconManager;
-    protected CSVManager<SkillStatData> statManager;
-    protected JSONManager<SkillData> jsonManager;
-    protected BackupManager backupManager;
-    protected DataValidator dataValidator;
-
-    protected const string RESOURCE_PATH = "SkillData";
-    protected const string PREFAB_PATH = "SkillData/Prefabs";
-    protected const string ICON_PATH = "SkillData/Icons";
-    protected const string STAT_PATH = "SkillData/Stats";
-    protected const string JSON_PATH = "SkillData/Json";
-
     protected bool isInitialized = false;
     public bool IsInitialized => isInitialized;
 
@@ -27,61 +13,54 @@ public abstract class DataManager : MonoBehaviour
         InitializeManagers();
     }
 
-    protected virtual void InitializeManagers()
+    protected abstract void InitializeManagers();
+
+    public virtual void InitializeDefaultData()
     {
-        CreateResourceFolders();
-
-        prefabManager = new ResourceManager<GameObject>(PREFAB_PATH);
-        iconManager = new ResourceManager<Sprite>(ICON_PATH);
-        statManager = new CSVManager<SkillStatData>(STAT_PATH);
-        jsonManager = new JSONManager<SkillData>(JSON_PATH);
-        backupManager = new BackupManager();
-        dataValidator = new DataValidator();
-
-        isInitialized = true;
-    }
-
-    private void CreateResourceFolders()
-    {
-        string resourcesPath = Path.Combine(Application.dataPath, "Resources");
-
-        string[] folders = new string[]
+        try
         {
-            Path.Combine(resourcesPath, RESOURCE_PATH),
-            Path.Combine(resourcesPath, PREFAB_PATH),
-            Path.Combine(resourcesPath, ICON_PATH),
-            Path.Combine(resourcesPath, STAT_PATH),
-            Path.Combine(resourcesPath, JSON_PATH)
-        };
+            Debug.Log($"Starting to initialize default data structure for {GetType().Name}...");
 
-        foreach (string folder in folders)
-        {
-            if (!Directory.Exists(folder))
+            if (!isInitialized)
             {
-                Directory.CreateDirectory(folder);
-                Debug.Log($"Created directory: {folder}");
+                InitializeManagers();
             }
-        }
 
-        AssetDatabase.Refresh();
+            if (!isInitialized)
+            {
+                throw new System.Exception("Manager initialization failed");
+            }
+
+            CreateResourceFolders();
+            CreateDefaultFiles();
+
+            Debug.Log($"Successfully initialized default data structure for {GetType().Name}");
+            isInitialized = true;
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error initializing default data: {e.Message}\n{e.StackTrace}");
+            isInitialized = false;
+        }
     }
+
+    protected abstract void CreateResourceFolders();
+    protected abstract void CreateDefaultFiles();
 
     public virtual void SaveWithBackup()
     {
-        backupManager.CreateBackup(Path.Combine(Application.dataPath, "Resources"));
+        string resourcePath = Path.Combine(Application.dataPath, "Resources");
+        GetBackupManager()?.CreateBackup(resourcePath);
     }
 
     public virtual bool RestoreFromBackup(string timestamp)
     {
-        return backupManager.RestoreFromBackup(timestamp);
+        return GetBackupManager()?.RestoreFromBackup(timestamp) ?? false;
     }
 
     public virtual void ClearAllData()
     {
-        prefabManager.ClearAll();
-        iconManager.ClearAll();
-        statManager.ClearAll();
-        jsonManager.ClearAll();
+        isInitialized = false;
     }
 
     protected virtual void OnDestroy()
@@ -128,4 +107,7 @@ public abstract class DataManager : MonoBehaviour
             return false;
         }
     }
+
+    // 각 매니저에서 구현해야 할 추상 메서드들
+    protected abstract BackupManager GetBackupManager();
 }

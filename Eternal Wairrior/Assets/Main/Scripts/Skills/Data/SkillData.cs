@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 
 [System.Serializable]
 public class SkillMetadata
@@ -18,54 +19,124 @@ public class SkillMetadata
 }
 
 [System.Serializable]
-public class SkillData
+public class SkillData : ISerializationCallbackReceiver
 {
     public SkillMetadata metadata;
+
+    // Dictionary를 직렬화 가능한 형태로 변환
+    [SerializeField]
+    private List<SerializableSkillStat> serializedStats = new List<SerializableSkillStat>();
+
     [System.NonSerialized]
     private Dictionary<int, ISkillStat> statsByLevel;
+
     public Sprite icon;
     public GameObject projectile;
     public GameObject[] prefabsByLevel;
 
-    // 기본 스탯들을 직렬화 가능하도록 수정
+    // 기본 스탯들
     public BaseSkillStat baseStats = new BaseSkillStat();
     public ProjectileSkillStat projectileStat = new ProjectileSkillStat();
     public AreaSkillStat areaStat = new AreaSkillStat();
     public PassiveSkillStat passiveStat = new PassiveSkillStat();
 
-    public SkillData()
+    // 에셋 레퍼런스 정보 저장
+    public ResourceReferenceData resourceReferences = new ResourceReferenceData();
+
+    [System.Serializable]
+    private class SerializableSkillStat
     {
-        metadata = new SkillMetadata();
+        public int level;
+        public string statJson;
+        public SkillType skillType;
+    }
+
+    void ISerializationCallbackReceiver.OnBeforeSerialize()
+    {
+        serializedStats.Clear();
+        if (statsByLevel != null)
+        {
+            foreach (var kvp in statsByLevel)
+            {
+                serializedStats.Add(new SerializableSkillStat
+                {
+                    level = kvp.Key,
+                    statJson = JsonUtility.ToJson(kvp.Value),
+                    skillType = metadata.Type
+                });
+            }
+        }
+
+        // 리소스 레퍼런스 저장
+        SaveResourceReferences();
+    }
+
+    void ISerializationCallbackReceiver.OnAfterDeserialize()
+    {
         statsByLevel = new Dictionary<int, ISkillStat>();
-        prefabsByLevel = new GameObject[0];
-
-        // 기본 스탯 초기화
-        baseStats = new BaseSkillStat
+        foreach (var stat in serializedStats)
         {
-            damage = 10f,
-            skillLevel = 1,
-            maxSkillLevel = 5,
-            elementalPower = 1f
-        };
+            ISkillStat skillStat = null;
+            switch (stat.skillType)
+            {
+                case SkillType.Projectile:
+                    skillStat = JsonUtility.FromJson<ProjectileSkillStat>(stat.statJson);
+                    break;
+                case SkillType.Area:
+                    skillStat = JsonUtility.FromJson<AreaSkillStat>(stat.statJson);
+                    break;
+                case SkillType.Passive:
+                    skillStat = JsonUtility.FromJson<PassiveSkillStat>(stat.statJson);
+                    break;
+            }
+            if (skillStat != null)
+            {
+                statsByLevel[stat.level] = skillStat;
+            }
+        }
+    }
 
-        projectileStat = new ProjectileSkillStat
-        {
-            baseStat = baseStats
-        };
+    private void SaveResourceReferences()
+    {
+        resourceReferences.Clear();
 
-        areaStat = new AreaSkillStat
+        // 아이콘 레퍼런스 저장
+        if (icon != null)
         {
-            baseStat = baseStats
-        };
+            string path = AssetDatabase.GetAssetPath(icon);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            resourceReferences.Add("icon", new AssetReference { guid = guid, path = path });
+        }
 
-        passiveStat = new PassiveSkillStat
+        // 프리팹 레퍼런스 저장
+        if (metadata.Prefab != null)
         {
-            baseStat = baseStats,
-            moveSpeedIncrease = 0f,
-            attackSpeedIncrease = 0f,
-            attackRangeIncrease = 0f,
-            hpRegenIncrease = 0f
-        };
+            string path = AssetDatabase.GetAssetPath(metadata.Prefab);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            resourceReferences.Add("prefab", new AssetReference { guid = guid, path = path });
+        }
+
+        // 프로젝타일 프리팹 레퍼런스 저장
+        if (projectile != null)
+        {
+            string path = AssetDatabase.GetAssetPath(projectile);
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            resourceReferences.Add("projectile", new AssetReference { guid = guid, path = path });
+        }
+
+        // 레벨별 프리팹 레퍼런스 저장
+        if (prefabsByLevel != null)
+        {
+            for (int i = 0; i < prefabsByLevel.Length; i++)
+            {
+                if (prefabsByLevel[i] != null)
+                {
+                    string path = AssetDatabase.GetAssetPath(prefabsByLevel[i]);
+                    string guid = AssetDatabase.AssetPathToGUID(path);
+                    resourceReferences.Add($"level_prefab_{i}", new AssetReference { guid = guid, path = path });
+                }
+            }
+        }
     }
 
     public ISkillStat GetStatsForLevel(int level)
@@ -205,6 +276,12 @@ public class ResourceReferenceData
     {
         keys.Add(key);
         values.Add(value);
+    }
+
+    public void Clear()
+    {
+        keys.Clear();
+        values.Clear();
     }
 
     public bool TryGetValue(string key, out AssetReference value)

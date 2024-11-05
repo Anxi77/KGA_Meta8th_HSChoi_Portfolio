@@ -56,24 +56,60 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
                 Directory.CreateDirectory(directory);
 
             var csv = new StringBuilder();
-            var properties = typeof(T).GetProperties();
+            var properties = typeof(T).GetProperties(System.Reflection.BindingFlags.Public |
+                                                   System.Reflection.BindingFlags.Instance);
+
+            // 실제 프로퍼티 목록 로깅
+            Debug.Log($"Found {properties.Length} properties for type {typeof(T).Name}:");
+            foreach (var prop in properties)
+            {
+                Debug.Log($"Property: {prop.Name}, Type: {prop.PropertyType}");
+            }
 
             // 헤더 작성
-            csv.AppendLine(string.Join(",", properties.Select(p => p.Name)));
+            var headerLine = string.Join(",", properties.Select(p => p.Name.ToLower()));
+            csv.AppendLine(headerLine);
+            Debug.Log($"Writing header: {headerLine}");
 
             // 데이터 작성
+            int count = 0;
             foreach (var data in dataList)
             {
+                if (data == null)
+                {
+                    Debug.LogWarning("Skipping null data entry");
+                    continue;
+                }
+
                 var values = properties.Select(p =>
                 {
                     var value = p.GetValue(data);
-                    return value?.ToString() ?? "";
+                    if (value == null) return "";
+
+                    // 콤마가 포함된 문자열은 따옴표로 감싸기
+                    if (value is string strValue && strValue.Contains(","))
+                        return $"\"{strValue}\"";
+
+                    // bool 값은 0 또는 1로 저장
+                    if (value is bool boolValue)
+                        return boolValue ? "1" : "0";
+
+                    return value.ToString();
                 });
-                csv.AppendLine(string.Join(",", values));
+
+                var line = string.Join(",", values);
+                csv.AppendLine(line);
+                count++;
+
+                Debug.Log($"Writing data line {count}: {line}");
             }
 
+            // 파일 저장
             File.WriteAllText(fullPath, csv.ToString());
-            Debug.Log($"Saved CSV data to: {fullPath}");
+            Debug.Log($"Successfully saved {count} entries to {fullPath}");
+            Debug.Log($"File contents:\n{csv.ToString()}");
+
+            AssetDatabase.Refresh();
         }
         catch (System.Exception e)
         {

@@ -226,15 +226,7 @@ public class SkillDataEditorWindow : EditorWindow
 
     private void CreateNewSkill()
     {
-        // SkillDataManager가 없으면 생성하고 초기화
-        var skillDataManager = FindObjectOfType<SkillDataManager>();
-        if (skillDataManager == null)
-        {
-            var go = new GameObject("SkillDataManager");
-            skillDataManager = go.AddComponent<SkillDataManager>();
-            skillDataManager.InitializeDefaultData();
-        }
-
+        // 새 스킬 생성 시에는 임시로 None ID 사용
         var newSkill = new SkillData
         {
             metadata = new SkillMetadata
@@ -242,7 +234,7 @@ public class SkillDataEditorWindow : EditorWindow
                 Name = "New Skill",
                 Description = "New skill description",
                 Type = SkillType.None,
-                ID = GetNextAvailableSkillID(),
+                ID = SkillID.None,  // 임시로 None 할당
                 Element = ElementType.None
             }
         };
@@ -285,15 +277,26 @@ public class SkillDataEditorWindow : EditorWindow
     private SkillID GetNextAvailableSkillID()
     {
         var existingIDs = editorData.skillList
+            .Where(s => s.metadata.ID != SkillID.None)  // None ID는 제외
             .Select(s => (int)s.metadata.ID)
             .ToList();
 
         var allIDs = System.Enum.GetValues(typeof(SkillID))
             .Cast<int>()
             .Where(id => id != (int)SkillID.None)
+            .OrderBy(id => id)
             .ToList();
 
-        return (SkillID)allIDs.FirstOrDefault(id => !existingIDs.Contains(id));
+        foreach (int id in allIDs)
+        {
+            if (!existingIDs.Contains(id))
+            {
+                return (SkillID)id;
+            }
+        }
+
+        Debug.LogError("No available SkillID found!");
+        return SkillID.None;
     }
 
     private void DeleteCurrentSkill()
@@ -355,16 +358,30 @@ public class SkillDataEditorWindow : EditorWindow
             return;
         }
 
-        if (editorData.skillList == null || editorData.skillList.Count == 0)
-        {
-            Debug.LogError("No skills to save in EditorData");
-            return;
-        }
-
         EditorUtility.DisplayProgressBar("Saving Data", "Initializing...", 0f);
 
         try
         {
+            // 저장 전에 None ID를 가진 스킬들에 대해 새로운 ID 할당
+            foreach (var skill in editorData.skillList)
+            {
+                if (skill.metadata.ID == SkillID.None)
+                {
+                    skill.metadata.ID = GetNextAvailableSkillID();
+
+                    // 관련된 스탯 데이터의 ID도 업데이트
+                    var stats = editorData.skillStats.Find(s => s.skillID == SkillID.None);
+                    if (stats != null)
+                    {
+                        stats.skillID = skill.metadata.ID;
+                        foreach (var stat in stats.levelStats)
+                        {
+                            stat.skillID = skill.metadata.ID;
+                        }
+                    }
+                }
+            }
+
             Debug.Log($"Attempting to save {editorData.skillList.Count} skills and {editorData.skillStats?.Count ?? 0} stat entries");
 
             // SkillDataManager 찾기 또는 생성
@@ -387,7 +404,7 @@ public class SkillDataEditorWindow : EditorWindow
 
             EditorUtility.DisplayProgressBar("Saving Data", "Saving skill data...", 0.4f);
 
-            // 데이터 유효성 검사
+            // 데이터 유효성 검사 및 직렬화 준비
             foreach (var skill in editorData.skillList)
             {
                 if (skill?.metadata == null)
@@ -395,6 +412,13 @@ public class SkillDataEditorWindow : EditorWindow
                     Debug.LogError($"Invalid skill data found");
                     continue;
                 }
+
+                // ISerializationCallbackReceiver 인터페이스 구현 확인 및 호출
+                if (skill is ISerializationCallbackReceiver receiver)
+                {
+                    receiver.OnBeforeSerialize();
+                }
+
                 Debug.Log($"Preparing to save skill: {skill.metadata.Name} (ID: {skill.metadata.ID})");
             }
 
@@ -673,6 +697,9 @@ public class SkillDataEditorWindow : EditorWindow
                 break;
             case SkillType.Passive:
                 DrawPassiveStats(stat);
+                break;
+            case SkillType.None:
+                EditorGUILayout.HelpBox("Please select a skill type", MessageType.Warning);
                 break;
         }
     }
