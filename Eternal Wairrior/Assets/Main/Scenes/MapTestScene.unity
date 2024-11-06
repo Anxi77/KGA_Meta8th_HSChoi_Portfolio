@@ -10386,6 +10386,7 @@ GameObject:
   - component: {fileID: 3079891130744897760}
   - component: {fileID: 6198208950512844042}
   - component: {fileID: 6198208950512844041}
+  - component: {fileID: 6198208950512844043}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -112023,29 +112024,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16b37abff5f8f804c9ebe6e30d9537ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseHp: 0
-  baseDamage: 0
-  baseSpeed: 0
-  baseDefense: 0
-  baseAttackSpeed: 0
-  baseAttackRange: 0
-  baseExpCollectionRadius: 0
-  baseHpRegenRate: 0
-  moveSpeed: 11
-  exp: 0
-  hp: 1234
-  defense: 2
-  defenseIncreasePerLevel: 1
-  damage: 12345
-  attackSpeed: 100
-  attackRange: 100
-  attackAngle: 120
-  expCollectionRadius: 100
-  hpRegenRate: 1
   level: 1
-  hpIncreasePerLevel: 20
-  damageIncreasePerLevel: 2
-  speedIncreasePerLevel: 0.5
+  exp: 0
   characterControl: {fileID: 1265479684213696393}
   skills: []
 --- !u!58 &6198208950512844042
@@ -112083,6 +112063,19 @@ CircleCollider2D:
   m_Offset: {x: 0, y: -0.18}
   serializedVersion: 2
   m_Radius: 0.4
+--- !u!114 &6198208950512844043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3656638812617177023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8be2415df463d00469a36a0365884a8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseData: {fileID: 11400000, guid: 44efebc6723615a4d95d46fc5742cf7a, type: 2}
 --- !u!114 &6239755644003956550
 MonoBehaviour:
   m_ObjectHideFlags: 0

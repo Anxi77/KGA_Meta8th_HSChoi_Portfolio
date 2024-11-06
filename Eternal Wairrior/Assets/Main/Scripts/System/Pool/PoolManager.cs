@@ -38,7 +38,7 @@ public class PoolManager : MonoBehaviour
         }
     }
 
-    private void InitializePool()
+    public void InitializePool()
     {
         if (objectPool == null)
         {
@@ -69,6 +69,14 @@ public class PoolManager : MonoBehaviour
         if (obj != null)
         {
             objectPool.Despawn(obj);
+        }
+    }
+
+    public void ClearAllPools()
+    {
+        if (objectPool != null)
+        {
+            objectPool.ClearAllPools();
         }
     }
 }

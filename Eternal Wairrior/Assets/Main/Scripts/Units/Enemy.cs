@@ -8,6 +8,7 @@ using Random = UnityEngine.Random;
 using static GameManager;
 using Lean.Pool;
 using Unity.Mathematics;
+using System.Linq;
 
 public class Enemy : MonoBehaviour
 {
@@ -39,6 +40,9 @@ public class Enemy : MonoBehaviour
     [SerializeField] private ExpParticle expParticlePrefab;
     [SerializeField] private int minExpParticles = 3;
     [SerializeField] private int maxExpParticles = 6;
+    [SerializeField] private string enemyType;
+    [SerializeField] private float dropRadiusMin = 0.5f;
+    [SerializeField] private float dropRadiusMax = 1.5f;
     #endregion
 
     #region References
@@ -753,7 +757,11 @@ public class Enemy : MonoBehaviour
             for (int i = 0; i < expParticleCount; i++)
             {
                 Vector3 spawnPosition = transform.position;
-                ExpParticle expParticle = PoolManager.Instance.Spawn<ExpParticle>(expParticlePrefab.gameObject, spawnPosition, quaternion.identity);
+                ExpParticle expParticle = PoolManager.Instance.Spawn<ExpParticle>(
+                    expParticlePrefab.gameObject,
+                    spawnPosition,
+                    Quaternion.identity
+                );
 
                 if (expParticle != null)
                 {
@@ -762,12 +770,43 @@ public class Enemy : MonoBehaviour
             }
         }
 
+        DropItems();
+
         if (GameManager.Instance?.enemies != null)
         {
             GameManager.Instance.enemies.Remove(this);
         }
 
-        PoolManager.Instance.Despawn<Enemy>(this);
+        PoolManager.Instance.Despawn(this);
+    }
+
+    private void DropItems()
+    {
+        float playerLuck = GameManager.Instance.player.GetComponent<PlayerStat>().GetStat(StatType.Luck);
+
+        var drops = ItemManager.Instance.GetDropsForEnemy(enemyType, 1f + playerLuck);
+
+        if (drops.Any())
+        {
+            foreach (var itemData in drops)
+            {
+                Vector2 dropPosition = CalculateDropPosition();
+                ItemManager.Instance.DropItem(itemData, dropPosition);
+            }
+        }
+    }
+
+    private Vector2 CalculateDropPosition()
+    {
+        float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        float radius = Random.Range(dropRadiusMin, dropRadiusMax);
+
+        Vector2 offset = new Vector2(
+            Mathf.Cos(angle) * radius,
+            Mathf.Sin(angle) * radius
+        );
+
+        return (Vector2)transform.position + offset;
     }
 
     private void Attack()

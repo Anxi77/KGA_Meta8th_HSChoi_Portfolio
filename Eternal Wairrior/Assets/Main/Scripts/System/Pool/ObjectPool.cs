@@ -128,6 +128,23 @@ public class ObjectPool : MonoBehaviour
         obj.transform.SetParent(transform);
         poolDictionary[tag].Enqueue(obj);
     }
+
+    public void ClearAllPools()
+    {
+        foreach (var pool in poolDictionary.Values)
+        {
+            while (pool.Count > 0)
+            {
+                var obj = pool.Dequeue();
+                if (obj != null)
+                {
+                    Destroy(obj.gameObject);
+                }
+            }
+        }
+        poolDictionary.Clear();
+        poolSettings.Clear();
+    }
 }
 
 public interface IPoolable
