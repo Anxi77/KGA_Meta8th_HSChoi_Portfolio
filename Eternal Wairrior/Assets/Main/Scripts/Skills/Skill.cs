@@ -9,6 +9,12 @@ public abstract class Skill : MonoBehaviour
 
     protected virtual void Awake()
     {
+        // Awake에서는 초기화를 하지 않음
+    }
+
+    // 새로운 초기화 메서드 추가
+    public virtual void Initialize()
+    {
         InitializeSkillData();
     }
 
@@ -131,9 +137,10 @@ public abstract class Skill : MonoBehaviour
             return false;
         }
 
-        if (newLevel != SkillLevel + 1)
+        // 새로운 스킬 생성 시에는 레벨 순차 검증을 건너뜀
+        if (newLevel < SkillLevel)
         {
-            Debug.LogError($"Invalid level increment. Current: {SkillLevel}, Attempted: {newLevel}");
+            Debug.LogError($"Cannot downgrade skill level. Current: {SkillLevel}, Attempted: {newLevel}");
             return false;
         }
 
@@ -167,16 +174,6 @@ public abstract class Skill : MonoBehaviour
 
             Debug.Log("Updating skill type stats...");
             UpdateSkillTypeStats(newStats);
-
-            // 검증
-            var updatedStats = GetSkillData()?.GetCurrentTypeStat();
-            Debug.Log($"Verification - Current Level: {SkillLevel}, Stats Level: {updatedStats?.baseStat?.skillLevel}");
-
-            if (updatedStats?.baseStat?.skillLevel != newLevel)
-            {
-                Debug.LogError($"Level update verification failed. Expected: {newLevel}, Got: {updatedStats?.baseStat?.skillLevel}");
-                return false;
-            }
 
             Debug.Log($"=== Successfully completed SkillLevelUpdate for {SkillName} ===");
             return true;

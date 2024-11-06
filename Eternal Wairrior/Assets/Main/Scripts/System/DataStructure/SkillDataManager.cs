@@ -164,7 +164,7 @@ public class SkillDataManager : DataManager
                 return;
             }
 
-            Debug.Log($"Loading stats for skill {skillId} from {statsFileName}");
+            //Debug.Log($"Loading stats for skill {skillId} from {statsFileName}");
 
             // Resources 폴더에서 CSV 파일 로드
             var textAsset = Resources.Load<TextAsset>($"{STAT_PATH}/{statsFileName}");
@@ -184,7 +184,6 @@ public class SkillDataManager : DataManager
             var headers = lines[0].Trim().Split(',');
             var stats = new Dictionary<int, SkillStatData>();
 
-            // 이미 해당 스킬의 스탯이 로드되어 있다면 재사용
             if (statDatabase.TryGetValue(skillId, out var existingStats))
             {
                 stats = existingStats;
@@ -204,22 +203,20 @@ public class SkillDataManager : DataManager
                     SetStatValue(statData, headers[j].ToLower(), values[j]);
                 }
 
-                // 스킬 ID와 타입이 모두 일치하는 경우에만 저장
                 if (statData.skillID == skillId)
                 {
-                    // 스�� 타입 검증 로직 수정
                     bool isValidType = type switch
                     {
-                        SkillType.Projectile => true,  // 프로젝타일 스킬은 모든 스탯이 유효
-                        SkillType.Area => true,        // 에어리어 스킬은 모든 스탯이 유효
-                        SkillType.Passive => true,     // 패시브 스킬은 모든 스탯이 유효
+                        SkillType.Projectile => true,
+                        SkillType.Area => true,
+                        SkillType.Passive => true,
                         _ => false
                     };
 
                     if (isValidType)
                     {
                         stats[statData.level] = statData;
-                        Debug.Log($"Loaded level {statData.level} stats for skill {skillId}");
+                        //Debug.Log($"Loaded level {statData.level} stats for skill {skillId}");
                     }
                 }
             }
@@ -244,10 +241,8 @@ public class SkillDataManager : DataManager
     {
         try
         {
-            // 필드 이름을 소문자로 변환하여 비교
             fieldName = fieldName.ToLower();
 
-            // 필드 이름과 프로퍼티 매핑
             string propertyName = fieldName switch
             {
                 "skillid" => "SkillID",
@@ -320,7 +315,7 @@ public class SkillDataManager : DataManager
                     }
 
                     property.SetValue(statData, convertedValue);
-                    Debug.Log($"Successfully set {propertyName} to {value}");
+                    //Debug.Log($"Successfully set {propertyName} to {value}");
                 }
                 catch (System.Exception e)
                 {
@@ -388,7 +383,6 @@ public class SkillDataManager : DataManager
 
     protected override void CreateDefaultFiles()
     {
-        // 스킬 타입별 CSV 파일 생성
         CreateDefaultCSVFiles();
     }
 
@@ -929,7 +923,7 @@ public class SkillDataManager : DataManager
                     if (levelPrefab != null)
                     {
                         skillData.prefabsByLevel[i] = levelPrefab;
-                        Debug.Log($"Loaded level {i + 1} prefab for skill {skillId}");
+                        //Debug.Log($"Loaded level {i + 1} prefab for skill {skillId}");
 
                         // 레벨별 프리팹 데이터베이스에도 저장
                         if (!levelPrefabDatabase.ContainsKey(skillId))
@@ -953,5 +947,17 @@ public class SkillDataManager : DataManager
         {
             Debug.LogError($"Error loading level prefabs for skill {skillId}: {e.Message}\n{e.StackTrace}");
         }
+    }
+
+    public GameObject GetLevelPrefab(SkillID skillId, int level)
+    {
+        if (levelPrefabDatabase.TryGetValue(skillId, out var levelPrefabs))
+        {
+            if (levelPrefabs.TryGetValue(level, out var prefab))
+            {
+                return prefab;
+            }
+        }
+        return null;
     }
 }

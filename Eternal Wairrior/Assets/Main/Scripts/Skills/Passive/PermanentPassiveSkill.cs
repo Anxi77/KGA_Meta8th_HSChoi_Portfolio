@@ -20,11 +20,6 @@ public abstract class PermanentPassiveSkill : PassiveSkills
         Debug.Log($"Applied permanent effect for {skillData?.metadata?.Name ?? "Unknown Skill"}");
     }
 
-    protected override void Start()
-    {
-        // Start는 제거하고 Awake의 코루틴으로 처리
-    }
-
     protected virtual void ApplyPermanentEffect()
     {
         if (GameManager.Instance?.player == null)
@@ -33,8 +28,7 @@ public abstract class PermanentPassiveSkill : PassiveSkills
             return;
         }
 
-        Player player = GameManager.Instance.player;
-        ApplyEffectToPlayer(player);
+        ApplyEffectToPlayer(GameManager.Instance.player);
         Debug.Log($"Successfully applied {skillData?.metadata?.Name ?? "Unknown Skill"} effect to player");
     }
 
@@ -45,30 +39,19 @@ public abstract class PermanentPassiveSkill : PassiveSkills
             RemoveEffectFromPlayer(GameManager.Instance.player);
             Debug.Log($"Removed permanent effect for {skillData?.metadata?.Name ?? "Unknown Skill"}");
         }
+        base.OnDestroy();
     }
 
     protected abstract void ApplyEffectToPlayer(Player player);
-
     protected abstract void RemoveEffectFromPlayer(Player player);
 
     public override bool SkillLevelUpdate(int newLevel)
     {
-        if (GameManager.Instance.player == null) return false;
+        if (GameManager.Instance?.player == null) return false;
 
-            Player player = GameManager.Instance.player;
-
-        RemoveEffectFromPlayer(player);
-
+        RemoveEffectFromPlayer(GameManager.Instance.player);
         bool success = base.SkillLevelUpdate(newLevel);
-
-        if (success)
-        {
-            ApplyEffectToPlayer(player);
-        }
-        else
-        {
-            ApplyEffectToPlayer(player);
-        }
+        ApplyEffectToPlayer(GameManager.Instance.player);
 
         return success;
     }

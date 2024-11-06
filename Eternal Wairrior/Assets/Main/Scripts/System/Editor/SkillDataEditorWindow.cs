@@ -42,11 +42,10 @@ public class SkillDataEditorWindow : EditorWindow
         {
             var go = new GameObject("SkillDataManager");
             skillDataManager = go.AddComponent<SkillDataManager>();
-            skillDataManager.InitializeDefaultData();  // 초기 데이터 구조 생성
+            skillDataManager.InitializeDefaultData();
             Debug.Log("Created and initialized new SkillDataManager");
         }
 
-        // 에디터 데이터 로드
         editorData = AssetDatabase.LoadAssetAtPath<SkillEditorDataContainer>(
             "Assets/Resources/SkillEditorData.asset"
         );
@@ -441,16 +440,6 @@ public class SkillDataEditorWindow : EditorWindow
         finally
         {
             EditorUtility.ClearProgressBar();
-
-            // 에디터 모드에서는 SkillDataManager를 제거
-            if (Application.isEditor && !Application.isPlaying)
-            {
-                var manager = FindObjectOfType<SkillDataManager>();
-                if (manager != null)
-                {
-                    DestroyImmediate(manager.gameObject);
-                }
-            }
         }
     }
 

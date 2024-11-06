@@ -8,10 +8,53 @@ public abstract class ProjectileSkills : Skill
     protected override void Awake()
     {
         base.Awake();
-        if (skillData == null)
+    }
+
+    public override void Initialize()
+    {
+        InitializeProjectileSkillData();
+    }
+
+    private void InitializeProjectileSkillData()
+    {
+        if (skillData == null) return;
+
+        var csvStats = SkillDataManager.Instance.GetSkillStatsForLevel(
+            skillData.metadata.ID,
+            SkillLevel,
+            SkillType.Projectile
+        ) as ProjectileSkillStat;
+
+        if (csvStats != null)
         {
-            skillData = new SkillData();
-            skillData.metadata.Type = SkillType.Projectile;
+            UpdateInspectorValues(csvStats);
+            skillData.SetStatsForLevel(SkillLevel, csvStats);
+        }
+        else
+        {
+            Debug.LogWarning($"No CSV data found for {skillData.metadata.Name}, using default values");
+            var defaultStats = new ProjectileSkillStat
+            {
+                baseStat = new BaseSkillStat
+                {
+                    damage = _damage,
+                    skillLevel = _skillLevel,
+                    maxSkillLevel = 5,
+                    element = skillData?.metadata.Element ?? ElementType.None,
+                    elementalPower = _elementalPower
+                },
+                projectileSpeed = _projectileSpeed,
+                projectileScale = _projectileScale,
+                shotInterval = _shotInterval,
+                pierceCount = _pierceCount,
+                attackRange = _attackRange,
+                homingRange = _homingRange,
+                isHoming = _isHoming,
+                explosionRad = _explosionRadius,
+                projectileCount = _projectileCount,
+                innerInterval = _innerInterval
+            };
+            skillData.SetStatsForLevel(SkillLevel, defaultStats);
         }
     }
 

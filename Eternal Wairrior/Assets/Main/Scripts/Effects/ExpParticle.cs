@@ -11,10 +11,11 @@ public class ExpParticle : MonoBehaviour, IContactable
     private Player player;
     private Vector2 velocity;
     private float spreadTime = 0f;
-
+    private PlayerStat playerStat;
     private void Awake()
     {
         player = GameManager.Instance?.player;
+        playerStat = GameManager.Instance.playerStat;
     }
 
     private void Start()
@@ -39,11 +40,11 @@ public class ExpParticle : MonoBehaviour, IContactable
             float currentSpreadSpeed = Mathf.Lerp(spreadSpeed, 0f, spreadProgress);
             transform.position += (Vector3)velocity * currentSpreadSpeed * Time.deltaTime;
         }
-        else if (distanceToPlayer <= player.expCollectionRadius)
+        else if (distanceToPlayer <= playerStat.GetStat(StatType.ExpCollectionRadius))
         {
             Vector2 direction = ((Vector2)player.transform.position - (Vector2)transform.position).normalized;
 
-            float distanceRatio = distanceToPlayer / player.expCollectionRadius;
+            float distanceRatio = distanceToPlayer / playerStat.GetStat(StatType.ExpCollectionRadius);
             float speedMultiplier = Mathf.Lerp(3f, 1f, distanceRatio);
             float exponentialMultiplier = 1f + Mathf.Pow((1f - distanceRatio), 2f) * 2f;
             float finalSpeed = moveSpeed * speedMultiplier * exponentialMultiplier;

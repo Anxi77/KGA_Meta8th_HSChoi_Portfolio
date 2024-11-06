@@ -78,7 +78,7 @@ public class ObjectPool : MonoBehaviour
                 initialSize = DEFAULT_POOL_SIZE
             };
             CreatePool(newPool);
-            Debug.Log($"Created new pool for {tag}");
+            //Debug.Log($"Created new pool for {tag}");
         }
 
         Queue<Component> pool = poolDictionary[tag];

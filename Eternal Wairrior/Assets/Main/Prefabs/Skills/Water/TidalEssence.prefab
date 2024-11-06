@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   skillData:
     metadata:
-      ID: 0
+      ID: 100000
       Name: 
       Description: 
       Type: 0
@@ -55,9 +55,17 @@ MonoBehaviour:
       Tags: []
       Prefab: {fileID: 0}
       Icon: {fileID: 0}
+    serializedStats: []
     icon: {fileID: 0}
     projectile: {fileID: 0}
     prefabsByLevel: []
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 0
+      elementalPower: 1
     projectileStat:
       projectileSpeed: 0
       projectileScale: 0
@@ -88,6 +96,9 @@ MonoBehaviour:
       attackSpeedIncrease: 0
       attackRangeIncrease: 0
       hpRegenIncrease: 0
+    resourceReferences:
+      keys: []
+      values: []
   _damage: 10
   _elementalPower: 1
   _effectDuration: 5
@@ -98,7 +109,8 @@ MonoBehaviour:
   _expAreaIncrease: 0
   _homingActivate: 0
   _hpIncrease: 0
-  _moveSpeedIncrease: 100
-  _attackSpeedIncrease: 100
+  _moveSpeedIncrease: 0
+  _attackSpeedIncrease: 0
   _attackRangeIncrease: 0
   _hpRegenIncrease: 0
+  skillID: 100000

@@ -1,4 +1,4 @@
-using UnityEngine;
+癤퓎sing UnityEngine;
 
 using System.Collections;
 
@@ -7,11 +7,48 @@ public abstract class AreaSkills : Skill
     protected override void Awake()
     {
         base.Awake();
+    }
 
-        if (skillData == null)
+    public override void Initialize()
+    {
+        InitializeAreaSkillData();
+    }
+
+    private void InitializeAreaSkillData()
+    {
+        if (skillData == null) return;
+
+        var csvStats = SkillDataManager.Instance.GetSkillStatsForLevel(
+            skillData.metadata.ID,
+            SkillLevel,
+            SkillType.Area
+        ) as AreaSkillStat;
+
+        if (csvStats != null)
         {
-            skillData = new SkillData();
-            skillData.metadata.Type = SkillType.Area;
+            UpdateInspectorValues(csvStats);
+            skillData.SetStatsForLevel(SkillLevel, csvStats);
+        }
+        else
+        {
+            Debug.LogWarning($"No CSV data found for {skillData.metadata.Name}, using default values");
+            var defaultStats = new AreaSkillStat
+            {
+                baseStat = new BaseSkillStat
+                {
+                    damage = _damage,
+                    skillLevel = _skillLevel,
+                    maxSkillLevel = 5,
+                    element = skillData?.metadata.Element ?? ElementType.None,
+                    elementalPower = _elementalPower
+                },
+                radius = _radius,
+                duration = _duration,
+                tickRate = _tickRate,
+                isPersistent = _isPersistent,
+                moveSpeed = _moveSpeed
+            };
+            skillData.SetStatsForLevel(SkillLevel, defaultStats);
         }
     }
 
@@ -81,10 +118,10 @@ public abstract class AreaSkills : Skill
 
         Debug.Log($"[AreaSkills] Before Update - Level: {_skillLevel}");
 
-        // 레벨 업데이트
-        _skillLevel = stats.baseStat.skillLevel;  // 인스펙터 값만 업데이트
+        // 트
+        _skillLevel = stats.baseStat.skillLevel;  // 館트
 
-        // 나머지 스탯 업데이트
+        // 
         _damage = stats.baseStat.damage;
         _elementalPower = stats.baseStat.elementalPower;
         _radius = stats.radius;

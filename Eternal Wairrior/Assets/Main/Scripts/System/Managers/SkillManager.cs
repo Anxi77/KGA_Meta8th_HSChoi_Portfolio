@@ -1,4 +1,4 @@
-using System.Collections;
+癤퓎sing System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -19,7 +19,7 @@ public class SkillManager : SingletonManager<SkillManager>
     {
         Debug.Log("Waiting for SkillDataManager initialization...");
 
-        float timeoutDuration = 5f; // 5초 타임아웃
+        float timeoutDuration = 5f; // 5 타曇틸
         float elapsedTime = 0f;
 
         while (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized)
@@ -70,89 +70,165 @@ public class SkillManager : SingletonManager<SkillManager>
         }
     }
 
+    public Skill GetPlayerSkill(SkillID skillId)
+    {
+        Debug.Log($"Looking for skill with ID: {skillId}");
+
+        if (GameManager.Instance.player == null)
+        {
+            Debug.LogError("Player is null");
+            return null;
+        }
+
+        if (GameManager.Instance.player.skills == null)
+        {
+            Debug.LogError("Player skills list is null");
+            return null;
+        }
+
+        Debug.Log($"Player has {GameManager.Instance.player.skills.Count} skills");
+
+        foreach (var skill in GameManager.Instance.player.skills)
+        {
+            Debug.Log($"Checking skill: {skill.SkillName} (ID: {skill.SkillID})");
+        }
+
+        var foundSkill = GameManager.Instance.player.skills.Find(s =>
+        {
+            Debug.Log($"Comparing {s.SkillID} with {skillId}");
+            return s.SkillID == skillId;
+        });
+
+        Debug.Log($"Found skill: {(foundSkill != null ? foundSkill.SkillName : "null")}");
+        return foundSkill;
+    }
+
+    private bool UpdateSkillStats(Skill skill, int targetLevel, out ISkillStat newStats)
+    {
+        Debug.Log($"Updating stats for skill {skill.SkillName} to level {targetLevel}");
+
+        newStats = SkillDataManager.Instance.GetSkillStatsForLevel(
+            skill.SkillID,
+            targetLevel,
+            skill.GetSkillData().metadata.Type);
+
+        if (newStats == null)
+        {
+            Debug.LogError($"Failed to get stats for level {targetLevel}");
+            return false;
+        }
+
+        Debug.Log($"Got new stats for level {targetLevel}");
+        skill.GetSkillData().SetStatsForLevel(targetLevel, newStats);
+
+        bool result = skill.SkillLevelUpdate(targetLevel);
+        Debug.Log($"SkillLevelUpdate result: {result}");
+
+        return result;
+    }
+
     public void AddOrUpgradeSkill(SkillData skillData)
     {
         if (GameManager.Instance.player == null || skillData == null) return;
 
-        Player player = GameManager.Instance.player;
-        Skill existingSkill = player.skills.Find(x => x.SkillID == skillData.metadata.ID);
-
         try
         {
+            Debug.Log($"Adding/Upgrading skill: {skillData.metadata.Name} (ID: {skillData.metadata.ID})");
+
+            var existingSkill = GetPlayerSkill(skillData.metadata.ID);
+            Debug.Log($"Existing skill check - Found: {existingSkill != null}");
+
             if (existingSkill != null)
             {
                 int nextLevel = existingSkill.SkillLevel + 1;
-                if (nextLevel > skillData.GetMaxLevel())
+                Debug.Log($"Current level: {existingSkill.SkillLevel}, Attempting upgrade to level: {nextLevel}");
+
+                GameObject levelPrefab = SkillDataManager.Instance.GetLevelPrefab(skillData.metadata.ID, nextLevel);
+                if (levelPrefab != null)
                 {
-                    Debug.LogWarning($"Skill {skillData.metadata.Name} is already at max level");
-                    return;
-                }
-
-                // 레벨별 프리팹 확인
-                GameObject newPrefab = null;
-                if (skillData.prefabsByLevel != null && nextLevel <= skillData.prefabsByLevel.Length)
-                {
-                    newPrefab = skillData.prefabsByLevel[nextLevel - 1];
-                    Debug.Log($"Found level {nextLevel} prefab for {skillData.metadata.Name}");
-                }
-
-                if (newPrefab != null)
-                {
-                    // 기존 스킬의 Transform 정보 저장
-                    Vector3 position = existingSkill.transform.position;
-                    Quaternion rotation = existingSkill.transform.rotation;
-                    Transform parent = existingSkill.transform.parent;
-
-                    // 기존 스킬 제거
-                    player.skills.Remove(existingSkill);
-                    activeSkills.Remove(existingSkill);
-                    Destroy(existingSkill.gameObject);
-
-                    // 새 레벨의 프리팹으로 스킬 생성
-                    GameObject newSkillObj = Instantiate(newPrefab, position, rotation, parent);
-                    if (newSkillObj.TryGetComponent<Skill>(out Skill newSkill))
-                    {
-                        newSkill.SetSkillData(skillData);
-                        player.skills.Add(newSkill);
-                        activeSkills.Add(newSkill);
-                        bool success = newSkill.SkillLevelUpdate(nextLevel);
-                        Debug.Log($"Upgraded {skillData.metadata.Name} to level {nextLevel}, success: {success}");
-                    }
+                    Debug.Log($"Found level {nextLevel} prefab, replacing skill");
+                    ReplaceSkillWithNewPrefab(existingSkill, levelPrefab, skillData, nextLevel);
                 }
                 else
                 {
-                    // 프리팹이 없으면 기존 스킬의 레벨만 업데이트
-                    bool success = existingSkill.SkillLevelUpdate(nextLevel);
-                    Debug.Log($"Updated {skillData.metadata.Name} to level {nextLevel} without prefab change, success: {success}");
+                    Debug.Log($"No level {nextLevel} prefab found, updating stats");
+                    if (UpdateSkillStats(existingSkill, nextLevel, out _))
+                    {
+                        Debug.Log($"Successfully upgraded skill to level {nextLevel}");
+                    }
                 }
             }
             else
             {
-                // 새 스킬 추가
-                GameObject prefabToUse = (skillData.prefabsByLevel != null && skillData.prefabsByLevel.Length > 0)
-                    ? skillData.prefabsByLevel[0]
-                    : skillData.metadata.Prefab;
+                GameObject prefab = SkillDataManager.Instance.GetLevelPrefab(skillData.metadata.ID, 1)
+                    ?? skillData.metadata.Prefab;
 
-                if (prefabToUse != null)
+                if (prefab != null)
                 {
-                    GameObject skillObj = Instantiate(prefabToUse, player.transform);
-                    if (skillObj.TryGetComponent<Skill>(out Skill newSkill))
+                    var tempObj = Instantiate(prefab);
+                    tempObj.SetActive(false);
+
+                    if (tempObj.TryGetComponent<Skill>(out var skillComponent))
                     {
-                        newSkill.SetSkillData(skillData);
-                        player.skills.Add(newSkill);
-                        activeSkills.Add(newSkill);
-                        Debug.Log($"Added new skill: {skillData.metadata.Name}");
+                        skillComponent.SetSkillData(skillData);
+                        skillComponent.Initialize();
+
+                        tempObj.transform.SetParent(GameManager.Instance.player.transform);
+                        tempObj.SetActive(true);
+                        GameManager.Instance.player.skills.Add(skillComponent);
+                        Debug.Log($"Successfully added new skill: {skillData.metadata.Name}");
                     }
-                }
-                else
-                {
-                    Debug.LogError($"No prefab found for skill: {skillData.metadata.Name}");
                 }
             }
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error in AddOrUpgradeSkill: {e.Message}\n{e.StackTrace}");
+        }
+    }
+
+    private void ReplaceSkillWithNewPrefab(Skill existingSkill, GameObject newPrefab, SkillData skillData, int targetLevel)
+    {
+        Vector3 position = existingSkill.transform.position;
+        Quaternion rotation = existingSkill.transform.rotation;
+        Transform parent = existingSkill.transform.parent;
+
+        GameManager.Instance.player.skills.Remove(existingSkill);
+        Destroy(existingSkill.gameObject);
+
+        var newObj = Instantiate(newPrefab, position, rotation, parent);
+        if (newObj.TryGetComponent<Skill>(out var newSkill))
+        {
+            skillData.GetCurrentTypeStat().baseStat.skillLevel = targetLevel;
+            newSkill.SetSkillData(skillData);
+            newSkill.Initialize();
+            GameManager.Instance.player.skills.Add(newSkill);
+            Debug.Log($"Successfully replaced skill with level {targetLevel} prefab");
+        }
+    }
+
+    private void CreateNewSkill(SkillData skillData, Transform parent)
+    {
+        GameObject prefab = SkillDataManager.Instance.GetLevelPrefab(skillData.metadata.ID, 1)
+            ?? skillData.metadata.Prefab;
+
+        if (prefab != null)
+        {
+            GameObject skillObj = Instantiate(prefab, parent);
+            if (skillObj.TryGetComponent<Skill>(out Skill newSkill))
+            {
+                InitializeNewSkill(newSkill, skillData, 1);
+            }
+        }
+    }
+
+    private void InitializeNewSkill(Skill skill, SkillData skillData, int targetLevel)
+    {
+        if (UpdateSkillStats(skill, targetLevel, out _))
+        {
+            GameManager.Instance.player.skills.Add(skill);
+            activeSkills.Add(skill);
+            Debug.Log($"Successfully initialized skill {skillData.metadata.Name} at level {targetLevel}");
         }
     }
 
@@ -258,5 +334,21 @@ public class SkillManager : SingletonManager<SkillManager>
         }
 
         return selectedSkills;
+    }
+
+    public List<SkillData> GetAvailableSkillChoices(int count)
+    {
+        var playerSkills = GameManager.Instance.player?.skills ?? new List<Skill>();
+        return GetRandomSkills(count)
+            .Where(skillData => IsSkillAvailable(skillData, playerSkills))
+            .ToList();
+    }
+
+    private bool IsSkillAvailable(SkillData skillData, List<Skill> playerSkills)
+    {
+        if (skillData?.metadata == null) return false;
+
+        var existingSkill = playerSkills.Find(s => s.SkillID == skillData.metadata.ID);
+        return existingSkill == null || existingSkill.SkillLevel < existingSkill.MaxSkillLevel;
     }
 }

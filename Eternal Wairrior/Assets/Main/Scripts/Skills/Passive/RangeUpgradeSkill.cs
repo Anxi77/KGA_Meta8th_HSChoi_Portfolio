@@ -2,36 +2,6 @@ using UnityEngine;
 
 public class RangeUpgradeSkill : PermanentPassiveSkill
 {
-    protected override void ApplyEffectToPlayer(Player player)
-    {
-        if (_attackRangeIncrease > 0)
-        {
-            player.IncreaseAttackRange(_attackRangeIncrease);
-            Debug.Log($"Applied permanent attack range increase: {_attackRangeIncrease}%");
-        }
-
-        if (_expAreaIncrease > 0)
-        {
-            player.IncreaseExpArea(_expAreaIncrease);
-            Debug.Log($"Applied permanent exp collection range increase: {_expAreaIncrease}%");
-        }
-    }
-
-    protected override void RemoveEffectFromPlayer(Player player)
-    {
-        if (_attackRangeIncrease > 0)
-        {
-            player.IncreaseAttackRange(-_attackRangeIncrease);
-            Debug.Log($"Removed attack range increase: {_attackRangeIncrease}%");
-        }
-
-        if (_expAreaIncrease > 0)
-        {
-            player.IncreaseExpArea(-_expAreaIncrease);
-            Debug.Log($"Removed exp collection range increase: {_expAreaIncrease}%");
-        }
-    }
-
     protected override void UpdateInspectorValues(PassiveSkillStat stats)
     {
         if (stats == null)
@@ -41,7 +11,8 @@ public class RangeUpgradeSkill : PermanentPassiveSkill
         }
 
         base.UpdateInspectorValues(stats);
-        LogCurrentStats();
+        _attackRangeIncrease = stats.attackRangeIncrease;
+        _expAreaIncrease = stats.expAreaIncrease;
 
         if (GameManager.Instance?.player != null)
         {
@@ -50,30 +21,24 @@ public class RangeUpgradeSkill : PermanentPassiveSkill
         }
     }
 
-    // 스킬 설명을 위한 오버라이드
-    protected override SkillData CreateDefaultSkillData()
-    {
-        var data = base.CreateDefaultSkillData();
-        data.metadata.Name = "Range Mastery";
-        data.metadata.Description = GetDetailedDescription();
-        data.metadata.Type = SkillType.Passive;
-        return data;
-    }
-
-    // 상세 설명을 위한 public 메서드
     public override string GetDetailedDescription()
     {
-        string baseDesc = "Permanently increases attack range and experience collection range";
+        var playerStat = GameManager.Instance.playerStat;
+        string baseDesc = "Permanently increases attack range and experience collection radius";
+
         if (skillData?.GetCurrentTypeStat() != null)
         {
+            float currentRange = playerStat.GetStat(StatType.AttackRange);
+            float currentExpRadius = playerStat.GetStat(StatType.ExpCollectionRadius);
+
             baseDesc += $"\n\nCurrent Effects:" +
-                       $"\nAttack Range: +{_attackRangeIncrease:F1}%" +
-                       $"\nExp Collection Range: +{_expAreaIncrease:F1}%";
+                       $"\nAttack Range: +{_attackRangeIncrease:F1}% (Current: {currentRange:F1})" +
+                       $"\nExp Collection Radius: +{_expAreaIncrease:F1}% (Current: {currentExpRadius:F1})";
         }
         return baseDesc;
     }
 
     protected override string GetDefaultSkillName() => "Range Mastery";
-    protected override string GetDefaultDescription() => "Permanently increases attack range and experience collection range";
+    protected override string GetDefaultDescription() => "Permanently increases attack range and experience collection radius";
     protected override SkillType GetSkillType() => SkillType.Passive;
 }

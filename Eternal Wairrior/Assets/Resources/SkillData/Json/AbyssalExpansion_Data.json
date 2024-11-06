@@ -1,41 +1,41 @@
 {
     "metadata": {
         "ID": 100009,
-        "Name": "New Skill",
+        "Name": "Abyssal Expanxsion",
         "Description": "New skill description",
         "Type": 3,
         "Element": 1,
         "Tier": 0,
         "Tags": [],
         "Prefab": {
-            "instanceID": 26708
+            "instanceID": 25884
         },
         "Icon": {
-            "instanceID": 92254
+            "instanceID": 25886
         }
     },
     "serializedStats": [],
     "icon": {
-        "instanceID": 92254
+        "instanceID": 25886
     },
     "projectile": {
         "instanceID": 0
     },
     "prefabsByLevel": [
         {
-            "instanceID": 26708
+            "instanceID": 25884
         },
         {
-            "instanceID": 26708
+            "instanceID": 25884
         },
         {
-            "instanceID": 26708
+            "instanceID": 25884
         },
         {
-            "instanceID": 26708
+            "instanceID": 25884
         },
         {
-            "instanceID": 26708
+            "instanceID": 25884
         }
     ],
     "baseStats": {

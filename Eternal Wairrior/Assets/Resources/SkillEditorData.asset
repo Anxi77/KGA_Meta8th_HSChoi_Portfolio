@@ -15,23 +15,23 @@ MonoBehaviour:
   skillList:
   - metadata:
       ID: 100009
-      Name: New Skill
-      Description: New skill description
+      Name: Abyssal Expanxsion
+      Description: Expands Player's Exp Area , Attack Range
       Type: 3
       Element: 1
       Tier: 0
       Tags: []
-      Prefab: {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+      Prefab: {fileID: 3565315168923045082, guid: b27865ffd0914544f933e40984b74479, type: 3}
       Icon: {fileID: 21300000, guid: 9e771bb2207c7ae40b316f9dd66e6a7f, type: 3}
     serializedStats: []
     icon: {fileID: 21300000, guid: 9e771bb2207c7ae40b316f9dd66e6a7f, type: 3}
     projectile: {fileID: 0}
     prefabsByLevel:
-    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
-    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
-    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
-    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
-    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 3565315168923045082, guid: b27865ffd0914544f933e40984b74479, type: 3}
+    - {fileID: 3565315168923045082, guid: b27865ffd0914544f933e40984b74479, type: 3}
+    - {fileID: 3565315168923045082, guid: b27865ffd0914544f933e40984b74479, type: 3}
+    - {fileID: 3565315168923045082, guid: b27865ffd0914544f933e40984b74479, type: 3}
+    - {fileID: 3565315168923045082, guid: b27865ffd0914544f933e40984b74479, type: 3}
     baseStats:
       damage: 10
       skillName: 
@@ -81,21 +81,19 @@ MonoBehaviour:
       values:
       - guid: 9e771bb2207c7ae40b316f9dd66e6a7f
         path: Assets/Fantasy Icons + UI/Sprites/Icons/Necro/256/Necro_256_6.png
-      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
-        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
-      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
-        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
-      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
-        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
-      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
-        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
-      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
-        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
-      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
-        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: b27865ffd0914544f933e40984b74479
+        path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
+      - guid: b27865ffd0914544f933e40984b74479
+        path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
+      - guid: b27865ffd0914544f933e40984b74479
+        path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
+      - guid: b27865ffd0914544f933e40984b74479
+        path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
+      - guid: b27865ffd0914544f933e40984b74479
+        path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
+      - guid: b27865ffd0914544f933e40984b74479
+        path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
   skillStats:
-  - skillID: 100000
-    levelStats: []
   - skillID: 100009
     levelStats: []
   lastSelectedSkillID: 100009

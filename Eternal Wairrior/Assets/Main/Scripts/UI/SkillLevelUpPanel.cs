@@ -103,41 +103,27 @@ public class SkillLevelUpPanel : MonoBehaviour
     {
         try
         {
-            Skill updatedSkill = existingSkill != null
-                ? UpgradeExistingSkill(existingSkill)
-                : AddNewSkill(skillData);
-
-            if (updatedSkill != null)
+            if (existingSkill != null)
             {
+                GameManager.Instance.player.AddOrUpgradeSkill(skillData);
+                var updatedSkill = GameManager.Instance.player.skills.Find(s => s.SkillID == skillData.metadata.ID);
                 skillSelectedCallback?.Invoke(updatedSkill);
-                LevelUpPanelClose();
             }
+            else
+            {
+                if (GameManager.Instance.player.AddOrUpgradeSkill(skillData))
+                {
+                    var newSkill = GameManager.Instance.player.skills.Find(s => s.SkillID == skillData.metadata.ID);
+                    skillSelectedCallback?.Invoke(newSkill);
+                }
+            }
+            LevelUpPanelClose();
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error in skill selection: {e.Message}");
             ShowError("Failed to process skill selection");
         }
-    }
-
-    private Skill UpgradeExistingSkill(Skill skill)
-    {
-        int nextLevel = skill.SkillLevel + 1;
-        if (!skill.SkillLevelUpdate(nextLevel))
-        {
-            throw new System.Exception($"Failed to upgrade {skill.SkillName} to level {nextLevel}");
-        }
-        return skill;
-    }
-
-    private Skill AddNewSkill(SkillData skillData)
-    {
-        var player = GameManager.Instance.player;
-        if (!player.AddOrUpgradeSkill(skillData))
-        {
-            throw new System.Exception($"Failed to add new skill {skillData.metadata.Name}");
-        }
-        return player.skills.Find(s => s.SkillID == skillData.metadata.ID);
     }
 
     private void ShowNoSkillsAvailable()

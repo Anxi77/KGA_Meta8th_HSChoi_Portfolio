@@ -1,43 +1,136 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
-
-
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     #region Members
-   
+
     private static GameManager instance;
 
     public static GameManager Instance => instance;
 
-    internal List<Enemy> enemies = new List<Enemy>(); //¾À¿¡ Á¸ÀçÇÏ´Â ÀüÃ¼ Àû List
+    internal List<Enemy> enemies = new List<Enemy>(); //Ï´  Ã¼ List
 
     internal Player player;
 
+    [SerializeField] private PlayerStatData playerStatData;
+    public PlayerStat playerStat { get; private set; }
+
     #endregion
-    
+
     #region Unity Message Methods
-    
+
     private void Awake()
     {
         if (instance == null)
         {
             instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            // PlayerStatDataëŠ” Inspectorì—ì„œ í• ë‹¹
+            playerStat = new PlayerStat(player, playerStatData);
         }
         else
         {
-            DestroyImmediate(this);
-            return;
+            Destroy(gameObject);
         }
-        DontDestroyOnLoad(gameObject);
     }
 
     public void Update()
     {
         //PlayerStatusCheck();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // ì”¬ ì´ë¦„ì´ë‚˜ ë¹Œë“œ ì¸ë±ìŠ¤ì— ë”°ë¼ ë‹¤ë¥´ê²Œ ì²˜ë¦¬
+        switch (scene.name)
+        {
+            case "MainMenu":
+                ResetAllStats();
+                break;
+            case "GameScene":
+                LoadPlayerStats();
+                break;
+            case "BossStage":
+                // ë³´ìŠ¤ì „ì—ì„œëŠ” íŠ¹ì • ìŠ¤íƒ¯ë§Œ ì´ˆê¸°í™”í•˜ê±°ë‚˜ ë²„í”„ ì ìš©
+                playerStat.RemoveStatsBySource(SourceType.Buff);
+                playerStat.RemoveStatsBySource(SourceType.Debuff);
+                break;
+        }
+    }
+
+    // ëª¨ë“  ìŠ¤íƒ¯ ì´ˆê¸°í™”
+    public void ResetAllStats()
+    {
+        playerStat.ResetToBase();
+    }
+
+    // íŠ¹ì • ì˜êµ¬ íš¨ê³¼ë§Œ ìœ ì§€í•˜ê³  ë‚˜ë¨¸ì§€ ì´ˆê¸°í™”
+    public void ResetTemporaryStats()
+    {
+        playerStat.RemoveStatsBySource(SourceType.Buff);
+        playerStat.RemoveStatsBySource(SourceType.Debuff);
+        playerStat.RemoveStatsBySource(SourceType.Active);
+    }
+
+    // ì¥ë¹„ì™€ íŒ¨ì‹œë¸Œ ìŠ¤í‚¬ íš¨ê³¼ëŠ” ìœ ì§€í•˜ë©´ì„œ ì´ˆê¸°í™”
+    public void ResetButKeepPermanentStats()
+    {
+        var equipment = new List<StatContainer>();
+        var passives = new List<StatContainer>();
+
+        // ì˜êµ¬ì ì¸ íš¨ê³¼ë“¤ ì„ì‹œ ì €ì¥
+        foreach (SourceType source in System.Enum.GetValues(typeof(SourceType)))
+        {
+            if (source.ToString().StartsWith("Equipment_"))
+            {
+                equipment.AddRange(playerStat.GetActiveEffects(source));
+            }
+            else if (source == SourceType.Passive)
+            {
+                passives.AddRange(playerStat.GetActiveEffects(source));
+            }
+        }
+
+        // ì „ì²´ ì´ˆê¸°í™”
+        playerStat.ResetToBase();
+
+        // ì˜êµ¬ì ì¸ íš¨ê³¼ë“¤ ë‹¤ì‹œ ì ìš©
+        foreach (var stat in equipment)
+        {
+            playerStat.AddStatModifier(stat.statType, stat.buffType, stat.incType, stat.amount);
+        }
+        foreach (var stat in passives)
+        {
+            playerStat.AddStatModifier(stat.statType, stat.buffType, stat.incType, stat.amount);
+        }
+    }
+
+    // ê²Œì„ ì €ì¥/ë¡œë“œ
+    public void SavePlayerStats()
+    {
+        // PlayerStatDataì— í˜„ì¬ ì˜êµ¬ì ì¸ íš¨ê³¼ë“¤ ì €ì¥
+        playerStatData.SavePermanentStats();
+    }
+
+    public void LoadPlayerStats()
+    {
+        // PlayerStatDataì—ì„œ ì €ì¥ëœ ì˜êµ¬ì ì¸ íš¨ê³¼ë“¤ ë¡œë“œ
+        playerStat = new PlayerStat(player, playerStatData);
     }
 
     #endregion
@@ -55,7 +148,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void Resume() 
+    public void Resume()
     {
         Time.timeScale = 1;
     }
@@ -63,104 +156,3 @@ public class GameManager : MonoBehaviour
     #endregion
 
 }
-
-#region Tutorials
-
-/*MyClass myClass = MyClass.GetMyClass();//°´Ã¼ »ı¼º
-        //±âº» »ı¼ºÀÚ°¡ privateÀÌ¹Ç·Î GetMyClass·Î¸¸ ÀÎ½ºÅÏ½º¿¡ Á¢±ÙÇÒ¼ö ÀÖ´Ù.                                
-        //ÇÊ¿¬ÀûÀ¸·Î ½Ì±ÛÅæÀ» »ç¿ëÇÒ¶§´Â ½ºÅÂÆ½ º¯¼ö¸¦ ÇÏ³ª ¸¸µé¾î µ¥ÀÌÅÍ¿µ¿ª¿¡ µÎ¾î ÂüÁ¶¸¦ ÀÒÁö ¾Êµµ·Ï
-        //¸¸¾à myClass°¡ ÇÊ¿ä ¾ø¾îÁ®¼­ nullÀ» ´ëÀÔÇÏ´Â µî ÂüÁ¶¸¦ ÀÒÀ¸¸é
-        //GC¿¡ ÀÇÇØ °´Ã¼°¡ »èÁ¦µÈ´Ù.
-*/
-
-/*ÀüÇüÀûÀÎ C#ÀÇ ½Ì±ÛÅæ °´Ã¼ Çü½Ä
-public class DefaultSingleton
-{
-    //ÇöÀç ÇÁ·Î¼¼½º ³»¿¡ ´ÜÀÏ Ã¥ÀÓÀ» Áø ÀÎ½ºÅÏ½º¸¦ ÀúÀåÇÒ º¯¼ö
-    private static DefaultSingleton instance;
-
-    private DefaultSingleton() { } //¿ÜºÎ¿¡¼­ »ı¼ºÀÚ¸¦ È£ÃâÇÒ ¼ö ¾øµµ·Ï ±âº» »ı¼ºÀÚ Á¢±ÙÀ» ¸·´Â´Ù.
-
-    //¿ÜºÎ¿¡¼­´Â ´ÜÀÏ »ı¼ºµÈ ÀÎ½ºÅÏ½º¿¡ Á¢±ÙÇÏ¿© °ªÀ» °¡Á®¿Ã ¼ö¸¸ ÀÖÀ½(´Ù¸¥ °ªÀ¸·Î ´ëÀÔ ºÒ°¡)
-    public static DefaultSingleton Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                instance = new DefaultSingleton();
-                return instance;
-            }
-            return instance;
-        }
-    }
-    /*
-    //ÇöÀç ÇÁ·Î¼¼½º ³»¿¡ ´ÜÀÏ Ã¥ÀÓÀ» Áø ÀÎ½ºÅÏ½º¸¦ ÀúÀåÇÒ º¯¼ö
-    private static DefaultSingleton _Instance;
-
-    private DefaultSingleton() {}
-
-    public DefaultSingleton Instance 
-    { 
-        get 
-        { 
-            if (_Instance == null) 
-            { 
-                _Instance = new DefaultSingleton(); 
-                return _Instance;
-            }
-            return _Instance;
-        }
-    }
-}
-    */
-
-/*±âº»ÀûÀÎ °´Ã¼ÁöÇâÀû ¾ğ¾î¿¡¼­ ½Ì±ÛÅæ °´Ã¼¸¦ ¸¸µå´Â ¹æ¹ı
-public class MyClass
-{
-    private static MyClass nonCollectableMyClass; //ÂüÁ¶¸¦ ÀÒÀ¸¸é ¾ÈµÇ´Â myclass ÀÎ½ºÅÏ½º¸¦ ÀúÀå.
-
-    private MyClass() { }
-
-    public int processCount;//Àü¿ªº¯¼ö(non-static)
-
-    public static MyClass GetMyClass()
-    {
-        if (nonCollectableMyClass == null)//GetMyClass°¡ ÃÖÃÊ È£Ãâ‰çÀ» °æ¿ì¿¡¸¸ True 
-        {
-            nonCollectableMyClass = new MyClass();
-            return nonCollectableMyClass;
-        }
-        else
-        {
-            return nonCollectableMyClass;
-        }
-    }
-}
-*/
-
-#region EventHandler
-//private void HandleBombExploded()
-//{
-//    Bomb.OnBombExploded += HandleBombExploded;
-//    Enemy.OnEnemyKilled += HandleEnemyKilled;
-//    if (player != null && enemies != null)
-//    {
-//        foreach (Enemy enemy in enemies)
-//        {
-//            Destroy(enemy.gameObject);
-//        }
-//        enemies.Clear();
-//    }
-//}
-
-//private void HandleEnemyKilled(Enemy enemy, float exp) 
-//{
-//    player.GainExperience(exp);
-//    player.killCount++;
-//    enemies.Remove(enemy);
-//    Destroy(enemy.gameObject);
-//}
-#endregion
-
-#endregion

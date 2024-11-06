@@ -83,7 +83,6 @@ public class SkillStatData
 
     public SkillStatData()
     {
-        // ⺻ ʱȭ
         skillID = SkillID.None;
         level = 1;
         damage = 10f;
@@ -91,7 +90,6 @@ public class SkillStatData
         element = ElementType.None;
         elementalPower = 1f;
 
-        // Projectile ⺻
         projectileSpeed = 10f;
         projectileScale = 1f;
         shotInterval = 1f;
@@ -103,14 +101,12 @@ public class SkillStatData
         projectileCount = 1;
         innerInterval = 0.1f;
 
-        // Area ⺻
         radius = 5f;
         duration = 3f;
         tickRate = 1f;
         isPersistent = false;
         moveSpeed = 0f;
 
-        // Passive ⺻
         effectDuration = 5f;
         cooldown = 10f;
         triggerChance = 100f;

@@ -1,4 +1,4 @@
-using UnityEngine;
+癤퓎sing UnityEngine;
 using System.Collections;
 using Unity.VisualScripting;
 
@@ -7,19 +7,32 @@ public abstract class PassiveSkills : Skill
     protected override void Awake()
     {
         base.Awake();
+    }
+
+    public override void Initialize()
+    {
         InitializePassiveSkillData();
     }
 
     private void InitializePassiveSkillData()
     {
-        if (skillData == null)
-        {
-            skillData = CreateDefaultSkillData();
-        }
+        if (skillData == null) return;
 
-        if (skillData.GetStatsForLevel(SkillLevel) == null)
+        var csvStats = SkillDataManager.Instance.GetSkillStatsForLevel(
+            skillData.metadata.ID,
+            SkillLevel,
+            SkillType.Passive
+        ) as PassiveSkillStat;
+
+        if (csvStats != null)
         {
-            var stats = new PassiveSkillStat
+            UpdateInspectorValues(csvStats);
+            skillData.SetStatsForLevel(SkillLevel, csvStats);
+        }
+        else
+        {
+            Debug.LogWarning($"No CSV data found for {skillData.metadata.Name}, using default values");
+            var defaultStats = new PassiveSkillStat
             {
                 baseStat = new BaseSkillStat
                 {
@@ -29,21 +42,18 @@ public abstract class PassiveSkills : Skill
                     element = ElementType.None,
                     elementalPower = _elementalPower
                 },
+                moveSpeedIncrease = _moveSpeedIncrease,
                 effectDuration = _effectDuration,
                 cooldown = _cooldown,
                 triggerChance = _triggerChance,
                 damageIncrease = _damageIncrease,
                 defenseIncrease = _defenseIncrease,
                 expAreaIncrease = _expAreaIncrease,
-                homingActivate = _homingActivate,
+                homingActivate  = _homingActivate,
                 hpIncrease = _hpIncrease,
-                moveSpeedIncrease = _moveSpeedIncrease,
-                attackSpeedIncrease = _attackSpeedIncrease,
-                attackRangeIncrease = _attackRangeIncrease,
-                hpRegenIncrease = _hpRegenIncrease
+              
             };
-            skillData.SetStatsForLevel(SkillLevel, stats);
-            Debug.Log($"Initialized default stats for {GetType().Name} at level {SkillLevel}");
+            skillData.SetStatsForLevel(SkillLevel, defaultStats);
         }
     }
 
@@ -111,12 +121,12 @@ public abstract class PassiveSkills : Skill
         {
             var currentStats = TypedStats;
 
-            // Base Stats 업데이트
+            // Base Stats 트
             currentStats.baseStat.damage = _damage;
             currentStats.baseStat.skillLevel = _skillLevel;
             currentStats.baseStat.elementalPower = _elementalPower;
 
-            // Passive Stats 업데이트
+            // Passive Stats 트
             currentStats.effectDuration = _effectDuration;
             currentStats.cooldown = _cooldown;
             currentStats.triggerChance = _triggerChance;
@@ -130,7 +140,7 @@ public abstract class PassiveSkills : Skill
             currentStats.attackRangeIncrease = _attackRangeIncrease;
             currentStats.hpRegenIncrease = _hpRegenIncrease;
 
-            // 값 동기화
+            //  화
             _damage = currentStats.baseStat.damage;
             _skillLevel = currentStats.baseStat.skillLevel;
             _elementalPower = currentStats.baseStat.elementalPower;
@@ -184,7 +194,7 @@ public abstract class PassiveSkills : Skill
         if (_defenseIncrease > 0) player.IncreaseDefense(_defenseIncrease);
         if (_expAreaIncrease > 0) player.IncreaseExpArea(_expAreaIncrease);
         if (_homingActivate) player.ActivateHoming(true);
-        if (_hpIncrease > 0) player.IncreaseMaxHP(_hpIncrease);
+        if (_hpIncrease > 0) player.IncreaseHP(_hpIncrease);
 
         yield return new WaitForSeconds(_effectDuration);
 
@@ -192,7 +202,7 @@ public abstract class PassiveSkills : Skill
         if (_defenseIncrease > 0) player.IncreaseDefense(-_defenseIncrease);
         if (_expAreaIncrease > 0) player.IncreaseExpArea(-_expAreaIncrease);
         if (_homingActivate) player.ActivateHoming(false);
-        if (_hpIncrease > 0) player.IncreaseMaxHP(-_hpIncrease);
+        if (_hpIncrease > 0) player.IncreaseHP(-_hpIncrease);
     }
 
     protected override void UpdateSkillTypeStats(ISkillStat newStats)
@@ -213,10 +223,8 @@ public abstract class PassiveSkills : Skill
 
         Debug.Log($"[PassiveSkills] Before Update - Level: {_skillLevel}");
 
-        // 레벨 업데이트
-        _skillLevel = stats.baseStat.skillLevel;  // 인스펙터 값만 업데이트
+        _skillLevel = stats.baseStat.skillLevel;
 
-        // 나머지 스탯 업데이트
         _damage = stats.baseStat.damage;
         _elementalPower = stats.baseStat.elementalPower;
         _effectDuration = stats.effectDuration;
@@ -260,7 +268,7 @@ public abstract class PassiveSkills : Skill
             if (_defenseIncrease > 0) player.IncreaseDefense(-_defenseIncrease);
             if (_expAreaIncrease > 0) player.IncreaseExpArea(-_expAreaIncrease);
             if (_homingActivate) player.ActivateHoming(false);
-            if (_hpIncrease > 0) player.IncreaseMaxHP(-_hpIncrease);
+            if (_hpIncrease > 0) player.IncreaseHP(-_hpIncrease);
             if (_moveSpeedIncrease > 0) player.IncreaseMoveSpeed(-_moveSpeedIncrease);
             if (_attackSpeedIncrease > 0) player.IncreaseAttackSpeed(-_attackSpeedIncrease);
             if (_attackRangeIncrease > 0) player.IncreaseAttackRange(-_attackRangeIncrease);

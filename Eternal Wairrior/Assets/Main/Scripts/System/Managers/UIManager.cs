@@ -94,16 +94,22 @@ public class UIManager : SingletonManager<UIManager>
     {
         try
         {
-            playerAtkText.text = $"ATK : {player.damage:F1}";
-            playerDefText.text = $"DEF : {player.defense:F1}";
+            PlayerStat playerStat = GameManager.Instance.playerStat;
+
+            playerAtkText.text = $"ATK : {playerStat.GetStat(StatType.Damage):F1}";
+            playerDefText.text = $"DEF : {playerStat.GetStat(StatType.Defense):F1}";
             levelText.text = $"LEVEL : {player.level}";
-            playerMSText.text = $"MoveSpeed : {player.moveSpeed:F1}";
-            hpText.text = $"{player.hp:F0} / {player.maxHp:F0}";
-            hpBarImage.value = player.hp / player.maxHp;
-            expCollectRadText.text = $"ExpRad : {player.expCollectionRadius:F1}";
-            playerHpRegenText.text = $"HPRegen : {player.hpRegenMultiplier:F1}x";
-            playerAttackRangeText.text = $"AR : {player.attackRange:F1}";
-            playerAttackSpeedText.text = $"AS : {player.attackSpeed:F1}/s";
+            playerMSText.text = $"MoveSpeed : {playerStat.GetStat(StatType.MoveSpeed):F1}";
+
+            float currentHp = playerStat.GetStat(StatType.CurrentHp);
+            float maxHp = playerStat.GetStat(StatType.MaxHp);
+            hpText.text = $"{currentHp:F0} / {maxHp:F0}";
+            hpBarImage.value = currentHp / maxHp;
+
+            expCollectRadText.text = $"ExpRad : {playerStat.GetStat(StatType.ExpCollectionRadius):F1}";
+            playerHpRegenText.text = $"HPRegen : {playerStat.GetStat(StatType.HpRegenRate):F1}/s";
+            playerAttackRangeText.text = $"AR : {playerStat.GetStat(StatType.AttackRange):F1}";
+            playerAttackSpeedText.text = $"AS : {playerStat.GetStat(StatType.AttackSpeed):F1}/s";
 
             if (player.level >= player._expList.Count)
             {
@@ -117,8 +123,6 @@ public class UIManager : SingletonManager<UIManager>
 
                 expText.text = $"EXP : {currentExp:F0}/{requiredExp:F0}";
                 expBarImage.value = currentExp / requiredExp;
-
-                Debug.Log($"Level: {player.level}, Total Exp: {player.exp}, Current Level Exp: {currentExp}, Required Exp: {requiredExp}");
             }
         }
         catch (System.Exception e)

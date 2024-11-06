@@ -12,7 +12,7 @@ public class DefenseUpgradeSkill : PermanentPassiveSkill
 
         if (_hpIncrease > 0)
         {
-            player.IncreaseMaxHP(_hpIncrease);
+            player.IncreaseHP(_hpIncrease);
             Debug.Log($"Applied permanent max HP increase: {_hpIncrease}%");
         }
     }
@@ -27,7 +27,7 @@ public class DefenseUpgradeSkill : PermanentPassiveSkill
 
         if (_hpIncrease > 0)
         {
-            player.IncreaseMaxHP(-_hpIncrease);
+            player.IncreaseHP(-_hpIncrease);
             Debug.Log($"Removed max HP increase: {_hpIncrease}%");
         }
     }
@@ -41,7 +41,8 @@ public class DefenseUpgradeSkill : PermanentPassiveSkill
         }
 
         base.UpdateInspectorValues(stats);
-        LogCurrentStats();
+        _defenseIncrease = stats.defenseIncrease;
+        _hpIncrease = stats.hpIncrease;
 
         if (GameManager.Instance?.player != null)
         {
@@ -56,12 +57,17 @@ public class DefenseUpgradeSkill : PermanentPassiveSkill
 
     public override string GetDetailedDescription()
     {
+        var playerStat = GameManager.Instance.playerStat;
         string baseDesc = "Permanently increases defense and maximum HP";
+
         if (skillData?.GetCurrentTypeStat() != null)
         {
+            float currentDefense = playerStat.GetStat(StatType.Defense);
+            float currentMaxHp = playerStat.GetStat(StatType.MaxHp);
+
             baseDesc += $"\n\nCurrent Effects:" +
-                       $"\nDefense: +{_defenseIncrease:F1}%" +
-                       $"\nMax HP: +{_hpIncrease:F1}%";
+                       $"\nDefense: +{_defenseIncrease:F1}% (Current: {currentDefense:F1})" +
+                       $"\nMax HP: +{_hpIncrease:F1}% (Current: {currentMaxHp:F0})";
         }
         return baseDesc;
     }
