@@ -46,6 +46,9 @@ public class StageManager : MonoBehaviour
             case "BossStage":
                 InitializeBossStage();
                 break;
+            case "TestScene":
+                InitializeTestStage();
+                break;
         }
     }
 
@@ -86,6 +89,22 @@ public class StageManager : MonoBehaviour
         {
             // 임시 효과만 제거
             PlayerUnitManager.Instance.ClearTemporaryEffects();
+        }
+    }
+
+    private void InitializeTestStage()
+    {
+        var player = GameManager.Instance?.player;
+        if (player != null)
+        {
+            // 테스트용 스탯 설정
+            PlayerUnitManager.Instance.InitializeTestPlayer();
+
+            // 스킬 초기화
+            SkillManager.Instance.ResetForNewStage();
+
+            // 아이템 초기화
+            InitializeStageItems();
         }
     }
 
@@ -183,6 +202,16 @@ public class StageManager : MonoBehaviour
                 break;
         }
         return rewards;
+    }
+
+    public void LoadTestScene()
+    {
+        StartCoroutine(LoadStageAsync("TestScene"));
+    }
+
+    public void ReturnToMainStage()
+    {
+        StartCoroutine(LoadStageAsync("GameScene"));
     }
 }
 

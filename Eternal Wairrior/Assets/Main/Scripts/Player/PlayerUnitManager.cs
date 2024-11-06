@@ -19,6 +19,47 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>
         ClearTemporaryEffects();
     }
 
+    public void InitializeTestPlayer()
+    {
+        if (playerStat != null)
+        {
+            // 테스트용 기본 스탯 설정
+            playerStat.ResetToBase();
+            playerStat.level = 10;  // 테스트용 레벨
+            playerStat.currentExp = 0;
+
+            // 테스트용 강화된 스탯
+            playerStat.AddStatModifier(StatType.MaxHp, SourceType.Base, IncreaseType.Add, 500f);
+            playerStat.AddStatModifier(StatType.Damage, SourceType.Base, IncreaseType.Add, 50f);
+            playerStat.AddStatModifier(StatType.Defense, SourceType.Base, IncreaseType.Add, 20f);
+            playerStat.AddStatModifier(StatType.MoveSpeed, SourceType.Base, IncreaseType.Add, 2f);
+            playerStat.AddStatModifier(StatType.AttackSpeed, SourceType.Base, IncreaseType.Add, 1f);
+            playerStat.AddStatModifier(StatType.ExpCollectionRadius, SourceType.Base, IncreaseType.Add, 3f);
+
+            playerStat.RestoreFullHealth();
+        }
+
+        // 테스트용 아이템 지급
+        if (inventory != null)
+        {
+            var testItems = GetTestItems();
+            foreach (var item in testItems)
+            {
+                inventory.AddItem(item);
+            }
+        }
+    }
+
+    private List<ItemData> GetTestItems()
+    {
+        return new List<ItemData>
+        {
+            ItemManager.Instance.GetItem("test_sword"),
+            ItemManager.Instance.GetItem("test_armor"),
+            ItemManager.Instance.GetItem("test_accessory")
+        };
+    }
+
     public void InitializeNewPlayer()
     {
         // 새 플레이어 기본 설정
