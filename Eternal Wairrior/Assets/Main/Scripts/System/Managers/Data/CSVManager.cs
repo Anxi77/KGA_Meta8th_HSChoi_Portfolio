@@ -39,7 +39,7 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
         cache[key] = data;
     }
 
-    public void SaveBulkData(string key, IEnumerable<T> dataList)
+    public void SaveBulkData(string key, IEnumerable<T> dataList, bool overwrite = true)
     {
         try
         {
@@ -59,17 +59,9 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
             var properties = typeof(T).GetProperties(System.Reflection.BindingFlags.Public |
                                                    System.Reflection.BindingFlags.Instance);
 
-            // 실제 프로퍼티 목록 로깅
-            Debug.Log($"Found {properties.Length} properties for type {typeof(T).Name}:");
-            foreach (var prop in properties)
-            {
-                Debug.Log($"Property: {prop.Name}, Type: {prop.PropertyType}");
-            }
-
-            // 헤더 작성
+            // 헤더 작성 (한 번만)
             var headerLine = string.Join(",", properties.Select(p => p.Name.ToLower()));
             csv.AppendLine(headerLine);
-            Debug.Log($"Writing header: {headerLine}");
 
             // 데이터 작성
             int count = 0;
@@ -86,11 +78,9 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
                     var value = p.GetValue(data);
                     if (value == null) return "";
 
-                    // 콤마가 포함된 문자열은 따옴표로 감싸기
                     if (value is string strValue && strValue.Contains(","))
                         return $"\"{strValue}\"";
 
-                    // bool 값은 0 또는 1로 저장
                     if (value is bool boolValue)
                         return boolValue ? "1" : "0";
 
@@ -100,14 +90,11 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
                 var line = string.Join(",", values);
                 csv.AppendLine(line);
                 count++;
-
-                Debug.Log($"Writing data line {count}: {line}");
             }
 
             // 파일 저장
             File.WriteAllText(fullPath, csv.ToString());
             Debug.Log($"Successfully saved {count} entries to {fullPath}");
-            Debug.Log($"File contents:\n{csv.ToString()}");
 
             AssetDatabase.Refresh();
         }
@@ -206,7 +193,7 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
         }
     }
 
-    public void CreateDefaultFile(string fileName, string[] headers)
+    public void CreateDefaultFile(string fileName, string headers)
     {
         try
         {
@@ -218,17 +205,13 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
                 Directory.CreateDirectory(directory);
             }
 
-            // 헤더만 있는 CSV 파일 생성 (기존 파일 덮어쓰기)
-            StringBuilder csv = new StringBuilder();
-            foreach (var header in headers)
+            // 이미 파일이 존재하면 덮어쓰지 않음
+            if (!File.Exists(fullPath))
             {
-                csv.AppendLine(header);
+                File.WriteAllText(fullPath, headers + "\n");  // 새 줄 문자 추가
+                Debug.Log($"Created new CSV file: {fullPath}");
+                AssetDatabase.Refresh();
             }
-
-            File.WriteAllText(fullPath, csv.ToString());
-            Debug.Log($"Created/Updated CSV file: {fullPath}");
-
-            AssetDatabase.Refresh();
         }
         catch (System.Exception e)
         {

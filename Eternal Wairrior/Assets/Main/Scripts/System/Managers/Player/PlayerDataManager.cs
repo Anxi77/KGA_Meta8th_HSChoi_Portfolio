@@ -5,6 +5,26 @@ using UnityEngine.SceneManagement;
 
 public class PlayerDataManager : DataManager
 {
+    private static PlayerDataManager instance;
+    public static PlayerDataManager Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                GameObject go = new GameObject("PlayerDataManager");
+                instance = go.AddComponent<PlayerDataManager>();
+                DontDestroyOnLoad(go);
+            }
+            return instance;
+        }
+    }
+
+    protected override void Awake()
+    {
+        base.Awake();
+    }
+
     private JSONManager<PlayerSaveData> saveManager;
     private BackupManager backupManager;
     private const string SAVE_PATH = "PlayerData";
@@ -85,17 +105,24 @@ public class PlayerDataManager : DataManager
 
     protected override void CreateResourceFolders()
     {
-        string resourcePath = Path.Combine(Application.dataPath, "Resources", SAVE_PATH);
-        if (!Directory.Exists(resourcePath))
+        string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH);
+        if (!Directory.Exists(savePath))
         {
-            Directory.CreateDirectory(resourcePath);
+            Directory.CreateDirectory(savePath);
+            Debug.Log($"Created save directory at: {savePath}");
         }
     }
 
     protected override void CreateDefaultFiles()
     {
-        currentPlayerStatData = ScriptableObject.CreateInstance<PlayerStatData>();
-        // 기본값 설정
+        var defaultStatData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
+        if (defaultStatData == null)
+        {
+            Debug.LogWarning("Default player stats not found in Resources folder");
+            defaultStatData = ScriptableObject.CreateInstance<PlayerStatData>();
+        }
+
+        currentPlayerStatData = Instantiate(defaultStatData);
         var defaultSave = new PlayerSaveData
         {
             stats = currentPlayerStatData,
@@ -103,6 +130,7 @@ public class PlayerDataManager : DataManager
             level = 1,
             exp = 0
         };
+
         saveManager.SaveData("DefaultSave", defaultSave);
     }
 
@@ -120,6 +148,16 @@ public class PlayerDataManager : DataManager
         base.ClearAllData();
     }
 
+    private void EnsureDirectoryExists()
+    {
+        string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH);
+        if (!Directory.Exists(savePath))
+        {
+            Directory.CreateDirectory(savePath);
+            Debug.Log($"Created directory: {savePath}");
+        }
+    }
+
     public void SaveLevelData(int level, float exp)
     {
         currentLevelData.level = level;
@@ -127,9 +165,11 @@ public class PlayerDataManager : DataManager
 
         try
         {
+            EnsureDirectoryExists();
             string json = JsonUtility.ToJson(currentLevelData);
             string path = Path.Combine(Application.persistentDataPath, SAVE_PATH, "level.json");
             File.WriteAllText(path, json);
+            Debug.Log($"Successfully saved level data to: {path}");
         }
         catch (System.Exception e)
         {
@@ -165,9 +205,11 @@ public class PlayerDataManager : DataManager
         currentInventoryData = data;
         try
         {
+            EnsureDirectoryExists();
             string json = JsonUtility.ToJson(data);
             string path = Path.Combine(Application.persistentDataPath, SAVE_PATH, "inventory.json");
             File.WriteAllText(path, json);
+            Debug.Log($"Successfully saved inventory data to: {path}");
         }
         catch (System.Exception e)
         {

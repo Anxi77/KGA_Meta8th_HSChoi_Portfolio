@@ -3,6 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor.PackageManager.Requests;
 
+public enum FireMode
+{
+    Manual,     // 마우스 클릭으로 발사
+    Auto,       // 자동 발사
+    AutoHoming  // 자동 호밍 발사
+}
+
 public abstract class ProjectileSkills : Skill
 {
     protected override void Awake()
@@ -121,53 +128,100 @@ public abstract class ProjectileSkills : Skill
     public int ProjectileCount => _projectileCount;
     public float InnerInterval => _innerInterval;
 
+    protected bool isInitialized = false;
+
+    protected FireMode currentFireMode = FireMode.Manual;
+    protected bool canFire = false;
+    protected float fireTimer = 0f;
+
     protected virtual void Start()
     {
-        StartCoroutine(FireCoroutine());
+        StartCoroutine(WaitForInitialization());
+    }
+
+    private IEnumerator WaitForInitialization()
+    {
+        yield return new WaitUntil(() =>
+            GameManager.Instance != null &&
+            SkillDataManager.Instance != null &&
+            SkillDataManager.Instance.IsInitialized &&
+            skillData != null);
+
+        InitializeProjectileSkillData();
+        isInitialized = true;
+        canFire = true;
     }
 
     protected virtual void Update()
     {
+        if (!isInitialized || !canFire) return;
+
         CalcDirection();
-        if (Input.GetMouseButtonDown(0) && !IsHoming)
-        {
-            Fire();
-        }
+        UpdateFiring();
     }
 
-    #region Fire
-    protected virtual IEnumerator FireCoroutine()
+    protected virtual void UpdateFiring()
     {
-        while (true)
+        switch (currentFireMode)
         {
-            if (GameManager.Instance.enemies != null)
-            {
-                if (AreEnemiesInRange() && IsHoming)
+            case FireMode.Manual:
+                if (Input.GetMouseButtonDown(0))
                 {
-                    for (int i = 0; i < ProjectileCount; i++)
+                    Fire();
+                }
+                break;
+
+            case FireMode.Auto:
+            case FireMode.AutoHoming:
+                fireTimer += Time.deltaTime;
+                if (fireTimer >= ShotInterval)
+                {
+                    if (currentFireMode == FireMode.AutoHoming)
                     {
                         if (AreEnemiesInRange())
                         {
-                            Fire();
-                            yield return new WaitForSeconds(InnerInterval);
-                        }
-                        else
-                        {
-                            break;
+                            FireMultiple();
                         }
                     }
+                    else
+                    {
+                        Fire();
+                    }
+                    fireTimer = 0f;
                 }
+                break;
+        }
+    }
+
+    protected virtual void FireMultiple()
+    {
+        StartCoroutine(FireMultipleCoroutine());
+    }
+
+    protected virtual IEnumerator FireMultipleCoroutine()
+    {
+        for (int i = 0; i < ProjectileCount; i++)
+        {
+            if (AreEnemiesInRange())
+            {
+                Fire();
+                yield return new WaitForSeconds(InnerInterval);
             }
-            yield return new WaitForSeconds(ShotInterval);
+            else
+            {
+                break;
+            }
         }
     }
 
     protected virtual void Fire()
     {
+        if (!isInitialized) return;
+
         Vector3 spawnPosition = transform.position + transform.up * 0.5f;
 
         var pool = GetComponent<ObjectPool>();
-        if (pool != null)
+        if (pool != null && skillData?.projectile != null)
         {
             Projectile proj = pool.Spawn<Projectile>(
                 skillData.projectile,
@@ -195,9 +249,9 @@ public abstract class ProjectileSkills : Skill
 
         proj.SetInitialTarget(FindNearestEnemy());
     }
-    #endregion
 
     #region Enemy Searching Methods
+
     protected virtual void CalcDirection()
     {
         Vector2 mousePos = Input.mousePosition;
@@ -240,6 +294,7 @@ public abstract class ProjectileSkills : Skill
     public virtual void UpdateHomingState(bool activate)
     {
         _isHoming = activate;
+        currentFireMode = activate ? FireMode.AutoHoming : FireMode.Manual;
 
         if (!activate)
         {
@@ -317,10 +372,30 @@ public abstract class ProjectileSkills : Skill
 
     protected override void OnValidate()
     {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
         base.OnValidate();
-        if (Application.isPlaying && skillData != null)
+
+        if (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized)
+        {
+            return;
+        }
+
+        if (skillData == null)
+        {
+            return;
+        }
+
+        try
         {
             var currentStats = TypedStats;
+            if (currentStats == null || currentStats.baseStat == null)
+            {
+                return;
+            }
 
             currentStats.baseStat.damage = _damage;
             currentStats.baseStat.skillLevel = _skillLevel;
@@ -353,5 +428,17 @@ public abstract class ProjectileSkills : Skill
             skillData.SetStatsForLevel(SkillLevel, currentStats);
             Debug.Log($"Updated stats for {GetType().Name} from inspector");
         }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Error in OnValidate for {GetType().Name}: {e.Message}");
+        }
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        canFire = false;
+        isInitialized = false;
+        StopAllCoroutines();
     }
 }

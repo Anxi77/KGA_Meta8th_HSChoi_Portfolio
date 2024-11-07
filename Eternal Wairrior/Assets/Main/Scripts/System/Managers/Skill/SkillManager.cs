@@ -5,12 +5,15 @@ using UnityEngine;
 
 public class SkillManager : SingletonManager<SkillManager>
 {
+    public bool IsInitialized { get; private set; }
+
     private List<SkillData> availableSkills = new List<SkillData>();
     private List<Skill> activeSkills = new List<Skill>();
 
     protected override void Awake()
     {
         base.Awake();
+        IsInitialized = false;
         Initialize();
     }
 
@@ -19,11 +22,22 @@ public class SkillManager : SingletonManager<SkillManager>
         try
         {
             Debug.Log("Initializing SkillManager...");
+
+            // SkillDataManager가 초기화될 때까지 대기
+            if (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized)
+            {
+                Debug.LogWarning("Waiting for SkillDataManager to initialize...");
+                return;
+            }
+
             LoadSkillData();
+            IsInitialized = true;
+            Debug.Log("SkillManager initialized successfully");
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error initializing SkillManager: {e.Message}");
+            IsInitialized = false;
         }
     }
 
@@ -141,7 +155,7 @@ public class SkillManager : SingletonManager<SkillManager>
 
                 if (prefab != null)
                 {
-                    var tempObj = Instantiate(prefab);
+                    var tempObj = Instantiate(prefab, GameManager.Instance.player.transform.position, Quaternion.identity);
                     tempObj.SetActive(false);
 
                     if (tempObj.TryGetComponent<Skill>(out var skillComponent))
@@ -150,9 +164,13 @@ public class SkillManager : SingletonManager<SkillManager>
                         skillComponent.Initialize();
 
                         tempObj.transform.SetParent(GameManager.Instance.player.transform);
+                        tempObj.transform.localPosition = Vector3.zero;
+                        tempObj.transform.localRotation = Quaternion.identity;
+                        tempObj.transform.localScale = Vector3.one;
+
                         tempObj.SetActive(true);
                         GameManager.Instance.player.skills.Add(skillComponent);
-                        Debug.Log($"Successfully added new skill: {skillData.metadata.Name}");
+                        Debug.Log($"Successfully added new skill: {skillData.metadata.Name} at position {tempObj.transform.localPosition}");
                     }
                 }
             }
@@ -175,6 +193,10 @@ public class SkillManager : SingletonManager<SkillManager>
         var newObj = Instantiate(newPrefab, position, rotation, parent);
         if (newObj.TryGetComponent<Skill>(out var newSkill))
         {
+            newObj.transform.localPosition = Vector3.zero;
+            newObj.transform.localRotation = Quaternion.identity;
+            newObj.transform.localScale = Vector3.one;
+
             skillData.GetCurrentTypeStat().baseStat.skillLevel = targetLevel;
             newSkill.SetSkillData(skillData);
             newSkill.Initialize();

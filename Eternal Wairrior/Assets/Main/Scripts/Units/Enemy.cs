@@ -769,8 +769,10 @@ public class Enemy : MonoBehaviour
                 }
             }
         }
-
-        DropItems();
+        //if(ItemManager.Instance.GetDropsForEnemy(enemyType, 1f).Count > 0) 
+        //{
+        //    DropItems();
+        //}
 
         if (GameManager.Instance?.enemies != null)
         {

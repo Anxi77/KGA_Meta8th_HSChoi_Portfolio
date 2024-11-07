@@ -65,7 +65,7 @@ public abstract class DataManager : MonoBehaviour
 
     protected virtual void OnDestroy()
     {
-        ClearAllData();
+        //ClearAllData();
     }
 
     protected string GetResourcePath(string fullPath)

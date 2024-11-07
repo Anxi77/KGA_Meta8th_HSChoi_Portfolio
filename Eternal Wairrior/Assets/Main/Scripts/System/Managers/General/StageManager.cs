@@ -66,18 +66,19 @@ public class StageManager : MonoBehaviour
         ClearAllPools();
     }
 
-    private void InitializeMainStage()
+    private IEnumerator InitializeMainStage()
     {
+        // 매니저들이 초기화될 때까지 대기
+        yield return new WaitUntil(() =>
+            GameManager.Instance != null &&
+            SkillDataManager.Instance != null &&
+            SkillDataManager.Instance.IsInitialized);
+
         var player = GameManager.Instance?.player;
         if (player != null)
         {
-            // 스탯 초기화
             PlayerUnitManager.Instance.LoadGameState();
-
-            // 스킬 초기화
             SkillManager.Instance.ResetForNewStage();
-
-            // 아이템 초기화
             InitializeStageItems();
         }
     }
@@ -167,11 +168,22 @@ public class StageManager : MonoBehaviour
             yield return null;
         }
 
-        // 4. 새 씬 초기화
-        switch (sceneName)
+        // 4. 새 씬 초기화 - 이벤트 기반으로 변경
+        PlayerUnitManager.Instance.OnGameStateLoaded += OnGameStateLoaded;
+        PlayerUnitManager.Instance.LoadGameState();
+    }
+
+    private void OnGameStateLoaded()
+    {
+        // 이벤트 구독 해제
+        PlayerUnitManager.Instance.OnGameStateLoaded -= OnGameStateLoaded;
+
+        // 씬별 초기화 진행
+        switch (SceneManager.GetActiveScene().name)
         {
             case "GameScene":
                 InitializeMainStage();
+                StartCoroutine(InitializeMonsterSpawn());
                 break;
             case "BossStage":
                 InitializeBossStage();

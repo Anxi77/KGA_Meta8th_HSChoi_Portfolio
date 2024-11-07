@@ -179,16 +179,16 @@ public class ItemDataManager : DataManager
     protected override void CreateDefaultFiles()
     {
         // 기본 아이템 스탯 CSV 파일 생성
-        var headers = new string[]
-        {
-            "id,name,type,rarity,droprate," +
+        var headers = string.Join(",",
+            "id", "name", "type", "rarity", "droprate",
             // 기본 스탯
-            "damage,defense,hp,movespeed,attackspeed,attackrange,hpregen,expgainrate,goldgainrate," +
+            "damage", "defense", "hp", "movespeed", "attackspeed", "attackrange", "hpregen", "expgainrate", "goldgainrate",
             // 특수 스탯
-            "criticalchance,criticaldamage,lifesteal,reflectdamage,dodgechance," +
+            "criticalchance", "criticaldamage", "lifesteal", "reflectdamage", "dodgechance",
             // 저항 스탯
-            "fireresistance,iceresistance,lightningresistance,poisonresistance,stunresistance,slowresistance"
-        };
+            "fireresistance", "iceresistance", "lightningresistance", "poisonresistance", "stunresistance", "slowresistance"
+        );
+
         statManager.CreateDefaultFile("ItemStats", headers);
 
         // 기본 드롭테이블 생성
@@ -251,7 +251,6 @@ public class ItemDataManager : DataManager
         enemyDropTables.Clear();
     }
 
-    // 에디터 전용 메서드들
 #if UNITY_EDITOR
     public void CreateNewItem(ItemData itemData)
     {

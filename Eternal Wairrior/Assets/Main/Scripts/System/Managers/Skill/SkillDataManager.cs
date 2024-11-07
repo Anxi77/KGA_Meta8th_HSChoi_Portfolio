@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using System.Linq;
+using System.Text;
 
 public class SkillDataManager : DataManager
 {
@@ -62,13 +63,11 @@ public class SkillDataManager : DataManager
             // 모든 스킬 데이터 로드
             LoadAllSkillData();
 
-            isInitialized = true;
             Debug.Log("SkillDataManager initialized for runtime");
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error initializing SkillDataManager for runtime: {e.Message}\n{e.StackTrace}");
-            isInitialized = false;
         }
     }
 
@@ -339,6 +338,9 @@ public class SkillDataManager : DataManager
         {
             Debug.Log("Initializing SkillDataManager managers...");
 
+            // 각 매니저 초기화 전에 폴더 생성 확인
+            CreateResourceFolders();
+
             prefabManager = new ResourceManager<GameObject>(PREFAB_PATH);
             iconManager = new ResourceManager<Sprite>(ICON_PATH);
             statManager = new CSVManager<SkillStatData>(STAT_PATH);
@@ -346,13 +348,19 @@ public class SkillDataManager : DataManager
             backupManager = new BackupManager();
             dataValidator = new DataValidator();
 
+            // 데이터베이스 초기화
+            skillDatabase = new Dictionary<SkillID, SkillData>();
+            statDatabase = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
+            levelPrefabDatabase = new Dictionary<SkillID, Dictionary<int, GameObject>>();
+
             isInitialized = true;
             Debug.Log("SkillDataManager managers initialized successfully");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Failed to initialize SkillDataManager managers: {e.Message}\n{e.StackTrace}");
             isInitialized = false;
+            Debug.LogError($"Failed to initialize SkillDataManager managers: {e.Message}\n{e.StackTrace}");
+            throw;
         }
     }
 
@@ -388,32 +396,79 @@ public class SkillDataManager : DataManager
 
     private void CreateDefaultCSVFiles()
     {
-        // 프로젝타일 스킬 CSV
-        var projectileHeaders = new string[]
+        try
         {
-            "skillid,level,damage,maxskilllevel,element,elementalpower," +
-            "projectilespeed,projectilescale,shotinterval,piercecount,attackrange," +
-            "homingrange,ishoming,explosionrad,projectilecount,innerinterval"
-        };
-        statManager.CreateDefaultFile("ProjectileSkillStats", projectileHeaders);
+            Debug.Log("Creating default CSV files...");
 
-        // 에어리어 스킬 CSV
-        var areaHeaders = new string[]
-        {
-            "skillid,level,damage,maxskilllevel,element,elementalpower," +
-            "radius,duration,tickrate,ispersistent,movespeed"
-        };
-        statManager.CreateDefaultFile("AreaSkillStats", areaHeaders);
+            if (statManager == null)
+            {
+                Debug.LogWarning("StatManager was null, initializing...");
+                statManager = new CSVManager<SkillStatData>(STAT_PATH);
+            }
 
-        // 패시브 스킬 CSV
-        var passiveHeaders = new string[]
+            // 각 스킬 타입별 고유한 헤더 정의
+            var baseHeaders = new string[] {
+                "skillid",
+                "level",
+                "damage",
+                "maxskilllevel",
+                "element",
+                "elementalpower"
+            };
+
+            var projectileHeaders = baseHeaders.Concat(new string[] {
+                "projectilespeed",
+                "projectilescale",
+                "shotinterval",
+                "piercecount",
+                "attackrange",
+                "homingrange",
+                "ishoming",
+                "explosionrad",
+                "projectilecount",
+                "innerinterval"
+            });
+
+            var areaHeaders = baseHeaders.Concat(new string[] {
+                "radius",
+                "duration",
+                "tickrate",
+                "ispersistent",
+                "movespeed"
+            });
+
+            var passiveHeaders = baseHeaders.Concat(new string[] {
+                "effectduration",
+                "cooldown",
+                "triggerchance",
+                "damageincrease",
+                "defenseincrease",
+                "expareaincrease",
+                "homingactivate",
+                "hpincrease",
+                "movespeedincrease",
+                "attackspeedincrease",
+                "attackrangeincrease",
+                "hpregenincrease"
+            });
+
+            // 헤더를 직접 문자열로 전달
+            Debug.Log("Creating ProjectileSkillStats file...");
+            statManager.CreateDefaultFile("ProjectileSkillStats", string.Join(",", projectileHeaders));
+
+            Debug.Log("Creating AreaSkillStats file...");
+            statManager.CreateDefaultFile("AreaSkillStats", string.Join(",", areaHeaders));
+
+            Debug.Log("Creating PassiveSkillStats file...");
+            statManager.CreateDefaultFile("PassiveSkillStats", string.Join(",", passiveHeaders));
+
+            Debug.Log("Successfully created all default CSV files");
+        }
+        catch (System.Exception e)
         {
-            "skillid,level,damage,maxskilllevel,element,elementalpower," +
-            "effectduration,cooldown,triggerchance,damageincrease,defenseincrease," +
-            "expareaincrease,homingactivate,hpincrease,movespeedincrease," +
-            "attackspeedincrease,attackrangeincrease,hpregenincrease"
-        };
-        statManager.CreateDefaultFile("PassiveSkillStats", passiveHeaders);
+            Debug.LogError($"Error creating default CSV files: {e.Message}\n{e.StackTrace}");
+            throw;
+        }
     }
 
     protected override BackupManager GetBackupManager()
@@ -524,159 +579,56 @@ public class SkillDataManager : DataManager
             {
                 if (skillData?.metadata == null) continue;
 
-                // OnBeforeSerialize 호출하여 직렬화 준비
-                if (skillData is ISerializationCallbackReceiver receiver)
-                {
-                    receiver.OnBeforeSerialize();
-                }
-
-                // JSON 데이터 저장 (pretty print 적용)
-                string jsonData = JsonUtility.ToJson(skillData, true);
-                string jsonPath = Path.Combine(Application.dataPath, "Resources", JSON_PATH, $"{skillData.metadata.ID}_Data.json");
-
-                // 디렉토리가 없다면 생성
-                Directory.CreateDirectory(Path.GetDirectoryName(jsonPath));
-
-                // JSON 파일 저장
-                File.WriteAllText(jsonPath, jsonData);
-                Debug.Log($"Saved JSON data for skill: {skillData.metadata.Name} to {jsonPath}");
-
                 // 리소스 파일들 저장
                 SaveSkillResources(skillData);
+
+                // JSON 데이터 저장
+                string jsonPath = Path.Combine(Application.dataPath, "Resources", JSON_PATH, $"{skillData.metadata.ID}_Data.json");
+                Directory.CreateDirectory(Path.GetDirectoryName(jsonPath));
+                string jsonData = JsonUtility.ToJson(skillData, true);
+                File.WriteAllText(jsonPath, jsonData);
+                Debug.Log($"Saved JSON data for skill: {skillData.metadata.Name}");
             }
 
             // 스킬 스탯 데이터 저장
-            Debug.Log($"Processing {skillStats?.Count ?? 0} skill stat entries...");
-
-            var projectileStats = new List<SkillStatData>();
-            var areaStats = new List<SkillStatData>();
-            var passiveStats = new List<SkillStatData>();
-
             if (skillStats != null)
             {
+                var projectileStats = new List<SkillStatData>();
+                var areaStats = new List<SkillStatData>();
+                var passiveStats = new List<SkillStatData>();
+
+                // 스킬 타입별로 스탯 데이터 분류
                 foreach (var skillStatEntry in skillStats)
                 {
-                    if (skillStatEntry == null)
-                    {
-                        Debug.LogError("Null skillStatEntry found");
-                        continue;
-                    }
+                    if (skillStatEntry == null) continue;
 
                     var skillData = skillDataList.Find(s => s.metadata.ID == skillStatEntry.skillID);
-                    if (skillData == null)
+                    if (skillData == null) continue;
+
+                    foreach (var statData in skillStatEntry.GetSkillStatDataList())
                     {
-                        Debug.LogError($"Could not find skill data for ID: {skillStatEntry.skillID}");
-                        continue;
-                    }
+                        statData.skillID = skillData.metadata.ID;
+                        statData.element = skillData.metadata.Element;
 
-                    Debug.Log($"Processing stats for skill: {skillData.metadata.Name} (Type: {skillData.metadata.Type})");
-
-                    if (skillStatEntry.levelStats == null || skillStatEntry.levelStats.Count == 0)
-                    {
-                        Debug.LogError($"No level stats found for skill: {skillData.metadata.Name}");
-                        continue;
-                    }
-
-                    foreach (var stat in skillStatEntry.levelStats)
-                    {
-                        if (stat == null)
+                        switch (skillData.metadata.Type)
                         {
-                            Debug.LogError($"Null stat data found for skill {skillData.metadata.Name}");
-                            continue;
-                        }
-
-                        // 스탯 데이터 복사 및 설정
-                        var statCopy = stat.Clone();  // Clone 메서드를 사용하여 깊은 복사
-                        statCopy.skillID = skillData.metadata.ID;
-                        statCopy.element = skillData.metadata.Element;
-
-                        // 현재 스킬의 타입별 스탯 값들을 복사
-                        var currentTypeStat = skillData.GetCurrentTypeStat();
-                        if (currentTypeStat != null)
-                        {
-                            switch (skillData.metadata.Type)
-                            {
-                                case SkillType.Projectile:
-                                    var projStat = currentTypeStat as ProjectileSkillStat;
-                                    if (projStat != null)
-                                    {
-                                        statCopy.projectileSpeed = projStat.projectileSpeed;
-                                        statCopy.projectileScale = projStat.projectileScale;
-                                        statCopy.shotInterval = projStat.shotInterval;
-                                        statCopy.pierceCount = projStat.pierceCount;
-                                        statCopy.attackRange = projStat.attackRange;
-                                        statCopy.homingRange = projStat.homingRange;
-                                        statCopy.isHoming = projStat.isHoming;
-                                        statCopy.explosionRad = projStat.explosionRad;
-                                        statCopy.projectileCount = projStat.projectileCount;
-                                        statCopy.innerInterval = projStat.innerInterval;
-                                    }
-                                    projectileStats.Add(statCopy);
-                                    break;
-
-                                case SkillType.Area:
-                                    var areaStat = currentTypeStat as AreaSkillStat;
-                                    if (areaStat != null)
-                                    {
-                                        statCopy.radius = areaStat.radius;
-                                        statCopy.duration = areaStat.duration;
-                                        statCopy.tickRate = areaStat.tickRate;
-                                        statCopy.isPersistent = areaStat.isPersistent;
-                                        statCopy.moveSpeed = areaStat.moveSpeed;
-                                    }
-                                    areaStats.Add(statCopy);
-                                    break;
-
-                                case SkillType.Passive:
-                                    var passiveStat = currentTypeStat as PassiveSkillStat;
-                                    if (passiveStat != null)
-                                    {
-                                        statCopy.effectDuration = passiveStat.effectDuration;
-                                        statCopy.cooldown = passiveStat.cooldown;
-                                        statCopy.triggerChance = passiveStat.triggerChance;
-                                        statCopy.damageIncrease = passiveStat.damageIncrease;
-                                        statCopy.defenseIncrease = passiveStat.defenseIncrease;
-                                        statCopy.expAreaIncrease = passiveStat.expAreaIncrease;
-                                        statCopy.homingActivate = passiveStat.homingActivate;
-                                        statCopy.hpIncrease = passiveStat.hpIncrease;
-                                        statCopy.moveSpeedIncrease = passiveStat.moveSpeedIncrease;
-                                        statCopy.attackSpeedIncrease = passiveStat.attackSpeedIncrease;
-                                        statCopy.attackRangeIncrease = passiveStat.attackRangeIncrease;
-                                        statCopy.hpRegenIncrease = passiveStat.hpRegenIncrease;
-                                    }
-                                    passiveStats.Add(statCopy);
-                                    break;
-                            }
-
-                            Debug.Log($"Added level {statCopy.level} stats for {skillData.metadata.Name}");
-                        }
-                        else
-                        {
-                            Debug.LogError($"Failed to get current type stat for {skillData.metadata.Name}");
+                            case SkillType.Projectile:
+                                projectileStats.Add(statData);
+                                break;
+                            case SkillType.Area:
+                                areaStats.Add(statData);
+                                break;
+                            case SkillType.Passive:
+                                passiveStats.Add(statData);
+                                break;
                         }
                     }
                 }
 
-                // CSV 파로 스탯 저장
-                if (projectileStats.Count > 0)
-                {
-                    Debug.Log($"Saving {projectileStats.Count} projectile stats...");
-                    statManager?.SaveBulkData("ProjectileSkillStats", projectileStats);
-                }
-                if (areaStats.Count > 0)
-                {
-                    Debug.Log($"Saving {areaStats.Count} area stats...");
-                    statManager?.SaveBulkData("AreaSkillStats", areaStats);
-                }
-                if (passiveStats.Count > 0)
-                {
-                    Debug.Log($"Saving {passiveStats.Count} passive stats...");
-                    statManager?.SaveBulkData("PassiveSkillStats", passiveStats);
-                }
-            }
-            else
-            {
-                Debug.LogError("skillStats is null");
+                // 각 타입별로 CSV 파일 직접 생성
+                SaveSkillStatsToCSV("ProjectileSkillStats", projectileStats);
+                SaveSkillStatsToCSV("AreaSkillStats", areaStats);
+                SaveSkillStatsToCSV("PassiveSkillStats", passiveStats);
             }
 
             AssetDatabase.Refresh();
@@ -688,36 +640,107 @@ public class SkillDataManager : DataManager
         }
     }
 
+    private void SaveSkillStatsToCSV(string fileName, List<SkillStatData> stats)
+    {
+        if (stats == null || stats.Count == 0) return;
+
+        try
+        {
+            string fullPath = Path.Combine(Application.dataPath, "Resources", STAT_PATH, $"{fileName}.csv");
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
+
+            // 대문자로 시작하는 프로퍼티만 선택 (소문자 버전 제외)
+            var properties = typeof(SkillStatData).GetProperties()
+                .Where(p => p.CanRead && p.CanWrite && char.IsUpper(p.Name[0]))
+                .ToArray();
+
+            var sb = new StringBuilder();
+
+            // 헤더 작성 (한 번만, 소문자로 변환)
+            sb.AppendLine(string.Join(",", properties.Select(p => p.Name.ToLower())));
+
+            // 데이터 작성
+            foreach (var stat in stats.OrderBy(s => s.SkillID).ThenBy(s => s.Level))
+            {
+                var values = properties.Select(p =>
+                {
+                    var value = p.GetValue(stat);
+                    if (value == null) return "";
+                    if (value is bool b) return b ? "1" : "0";
+                    return value.ToString();
+                });
+                sb.AppendLine(string.Join(",", values));
+            }
+
+            File.WriteAllText(fullPath, sb.ToString());
+            Debug.Log($"Saved {stats.Count} entries to {fileName}.csv");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error saving CSV file {fileName}: {e.Message}");
+        }
+    }
+
     private void SaveSkillResources(SkillData skillData)
     {
-        // 아이콘 저장
-        if (skillData.icon != null)
+        try
         {
-            iconManager?.SaveData($"{skillData.metadata.ID}_Icon", skillData.icon);
-        }
+            string prefabPath = Path.Combine(Application.dataPath, "Resources", PREFAB_PATH);
+            string iconPath = Path.Combine(Application.dataPath, "Resources", ICON_PATH);
 
-        // 프리팹 저장
-        if (skillData.metadata.Prefab != null)
-        {
-            prefabManager?.SaveData($"{skillData.metadata.ID}_Prefab", skillData.metadata.Prefab);
-        }
+            Directory.CreateDirectory(prefabPath);
+            Directory.CreateDirectory(iconPath);
 
-        // 프로젝타일 프리 저장
-        if (skillData.metadata.Type == SkillType.Projectile && skillData.projectile != null)
-        {
-            prefabManager?.SaveData($"{skillData.metadata.ID}_Projectile", skillData.projectile);
-        }
-
-        // 레벨별 프리팹 저장
-        if (skillData.prefabsByLevel != null)
-        {
-            for (int i = 0; i < skillData.prefabsByLevel.Length; i++)
+            // 아이콘 저장
+            if (skillData.icon != null)
             {
-                if (skillData.prefabsByLevel[i] != null)
+                string iconAssetPath = AssetDatabase.GetAssetPath(skillData.icon);
+                if (!string.IsNullOrEmpty(iconAssetPath))
                 {
-                    prefabManager?.SaveData($"{skillData.metadata.ID}_Level_{i + 1}", skillData.prefabsByLevel[i]);
+                    string destPath = Path.Combine(iconPath, $"{skillData.metadata.ID}_Icon.png");
+                    AssetDatabase.CopyAsset(iconAssetPath, "Assets/Resources/" + ICON_PATH + $"/{skillData.metadata.ID}_Icon.png");
                 }
             }
+
+            // 프리팹 저장
+            if (skillData.metadata.Prefab != null)
+            {
+                string prefabAssetPath = AssetDatabase.GetAssetPath(skillData.metadata.Prefab);
+                if (!string.IsNullOrEmpty(prefabAssetPath))
+                {
+                    AssetDatabase.CopyAsset(prefabAssetPath, "Assets/Resources/" + PREFAB_PATH + $"/{skillData.metadata.ID}_Prefab.prefab");
+                }
+            }
+
+            // 프로젝타일 프리팹 저장
+            if (skillData.metadata.Type == SkillType.Projectile && skillData.projectile != null)
+            {
+                string projectileAssetPath = AssetDatabase.GetAssetPath(skillData.projectile);
+                if (!string.IsNullOrEmpty(projectileAssetPath))
+                {
+                    AssetDatabase.CopyAsset(projectileAssetPath, "Assets/Resources/" + PREFAB_PATH + $"/{skillData.metadata.ID}_Projectile.prefab");
+                }
+            }
+
+            // 레벨별 프리팹 저장
+            if (skillData.prefabsByLevel != null)
+            {
+                for (int i = 0; i < skillData.prefabsByLevel.Length; i++)
+                {
+                    if (skillData.prefabsByLevel[i] != null)
+                    {
+                        string levelPrefabPath = AssetDatabase.GetAssetPath(skillData.prefabsByLevel[i]);
+                        if (!string.IsNullOrEmpty(levelPrefabPath))
+                        {
+                            AssetDatabase.CopyAsset(levelPrefabPath, "Assets/Resources/" + PREFAB_PATH + $"/{skillData.metadata.ID}_Level_{i + 1}.prefab");
+                        }
+                    }
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error saving resources for skill {skillData.metadata.Name}: {e.Message}");
         }
     }
 
@@ -799,21 +822,23 @@ public class SkillDataManager : DataManager
         {
             Debug.Log("Initializing SkillDataManager for Editor mode...");
 
-            skillDatabase = new Dictionary<SkillID, SkillData>();
-            statDatabase = new Dictionary<SkillID, Dictionary<int, SkillStatData>>();
-            levelPrefabDatabase = new Dictionary<SkillID, Dictionary<int, GameObject>>();
-
+            // 매니저 초기화
             InitializeManagers();
-            CreateResourceFolders();
-            CreateDefaultFiles();
 
-            isInitialized = true;
+            if (!isInitialized)
+            {
+                throw new System.Exception("Failed to initialize managers");
+            }
+
+            // 리소스 폴더 생성
+            CreateResourceFolders();
+
             Debug.Log("SkillDataManager initialized for Editor mode");
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error initializing SkillDataManager for Editor: {e.Message}\n{e.StackTrace}");
-            isInitialized = false;
+            throw;
         }
     }
 

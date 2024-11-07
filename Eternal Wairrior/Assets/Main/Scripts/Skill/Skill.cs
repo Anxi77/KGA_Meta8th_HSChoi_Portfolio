@@ -54,6 +54,13 @@ public abstract class Skill : MonoBehaviour
 
     protected bool IsValidSkillData(SkillData data)
     {
+        // SkillDataManager와 SkillManager 모두 초기화되지 않은 경우 검증을 건너뜀
+        if (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized ||
+            SkillManager.Instance == null || !SkillManager.Instance.IsInitialized)
+        {
+            return true;
+        }
+
         if (data.metadata == null) return false;
         if (data.metadata.Type == SkillType.None) return false;
         if (string.IsNullOrEmpty(data.metadata.Name)) return false;
@@ -164,11 +171,9 @@ public abstract class Skill : MonoBehaviour
 
             Debug.Log($"New stats received - Level: {newStats.baseStat?.skillLevel}, Damage: {newStats.baseStat?.damage}");
 
-            // 명시적으로 레벨 설정
             newStats.baseStat.skillLevel = newLevel;
-            SkillLevel = newLevel;  // 내부 필드도 업데이트
+            SkillLevel = newLevel;
 
-            // 스탯 업데이트
             Debug.Log("Setting new stats...");
             skillData.SetStatsForLevel(newLevel, newStats);
 
@@ -196,7 +201,8 @@ public abstract class Skill : MonoBehaviour
 
     protected virtual void OnValidate()
     {
-        if (Application.isPlaying)
+        // Application.isPlaying 체크를 제거하고, 초기화가 완료된 경우에만 검증하도록 수정
+        if (SkillDataManager.Instance != null && SkillDataManager.Instance.IsInitialized)
         {
             if (skillData == null)
             {

@@ -14,55 +14,74 @@ public class GravityProjectileSkill : ProjectileSkills
     [SerializeField] private GravityProjectile gravityProjectilePrefab;
     [SerializeField] private KeyCode homingTriggerKey = KeyCode.LeftShift;
 
-    private float autoFireTimer = 0f;
-
     protected override void Start()
     {
+        currentFireMode = FireMode.Auto;
         base.Start();
+    }
 
-        if (skillData == null)
+    private void OnEnable()
+    {
+        if (isInitialized)
         {
-            skillData = new SkillData();
+            currentFireMode = FireMode.Auto;
+        }
+    }
+
+    protected override void Update()
+    {
+        if (!isInitialized || !canFire) return;
+
+        CalcDirection();
+
+        if (Input.GetKeyDown(homingTriggerKey))
+        {
+            UpdateHomingState(!IsHoming);
         }
 
-        if (gravityProjectilePrefab != null && skillData.projectile == null)
-        {
-            skillData.projectile = gravityProjectilePrefab.gameObject;
-        }
+        UpdateFiring();
     }
 
     protected override void Fire()
     {
-        if (skillData?.projectile == null)
+        if (!isInitialized || skillData?.projectile == null)
         {
-            Debug.LogError("Projectile prefab is not assigned!");
+            Debug.LogWarning("Cannot fire: not initialized or missing projectile");
             return;
         }
 
-        Enemy nearestEnemy = FindNearestEnemy();
-        if (nearestEnemy == null) return;
+        Vector3 spawnPosition = transform.position + transform.up * 0.5f;
 
-        Vector3 spawnPosition = transform.position + transform.forward * 1f;
-
-        fireDir = ((Vector2)(nearestEnemy.transform.position - spawnPosition)).normalized;
-
-        var proj = PoolManager.Instance.Spawn<GravityProjectile>(gravityProjectilePrefab.gameObject,
-            spawnPosition, Quaternion.identity);
+        var proj = PoolManager.Instance.Spawn<GravityProjectile>(
+            skillData.projectile,
+            spawnPosition,
+            Quaternion.identity
+        );
 
         if (proj != null)
         {
             InitializeProjectile(proj);
-            proj.SetDirection(fireDir);
+            SetProjectileDirection(proj);
+            Debug.Log("Gravity projectile fired");
+        }
+    }
 
-            if (_isHoming)
+    private void SetProjectileDirection(GravityProjectile proj)
+    {
+        if (IsHoming)
+        {
+            Enemy target = FindNearestEnemy();
+            if (target != null)
             {
-                proj.SetTarget(nearestEnemy);
+                proj.SetTarget(target);
                 proj.SetHoming(true);
+                Vector2 dirToTarget = (target.transform.position - proj.transform.position).normalized;
+                proj.SetDirection(dirToTarget);
             }
         }
         else
         {
-            Debug.LogError("Failed to spawn GravityProjectile!");
+            proj.SetDirection(fireDir);
         }
     }
 
@@ -98,14 +117,6 @@ public class GravityProjectileSkill : ProjectileSkills
             gravityProj.SetSizeParameters(_startSize, _endSize, _growthDuration);
             gravityProj.SetMaxTravelDistance(AttackRange);
             gravityProj.SetProjectileSpeed(ProjectileSpeed);
-
-            var gravityForceField = gravityProj.GetType().GetField("_gravityForce",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var gravityDamageIntervalField = gravityProj.GetType().GetField("_gravityDamageInterval",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-            if (gravityForceField != null) gravityForceField.SetValue(gravityProj, _gravityForce);
-            if (gravityDamageIntervalField != null) gravityDamageIntervalField.SetValue(gravityProj, _gravityDamageInterval);
         }
     }
 
@@ -116,32 +127,6 @@ public class GravityProjectileSkill : ProjectileSkills
         {
             skillData = new SkillData();
             skillData.metadata.Type = SkillType.Projectile;
-        }
-    }
-
-    protected override void Update()
-    {
-        base.Update();
-
-        if (Input.GetKeyDown(homingTriggerKey))
-        {
-            _isHoming = !_isHoming;
-            Debug.Log($"Homing mode: {_isHoming}");
-        }
-
-        if (autoFireTimer >= ShotInterval)
-        {
-            Enemy nearestEnemy = FindNearestEnemy();
-            if (nearestEnemy != null && Vector2.Distance(transform.position, nearestEnemy.transform.position) <= AttackRange)
-            {
-                Fire();
-                autoFireTimer = 0f;
-            }
-            autoFireTimer = 0f;
-        }
-        else
-        {
-            autoFireTimer += Time.deltaTime;
         }
     }
 
@@ -182,4 +167,26 @@ public class GravityProjectileSkill : ProjectileSkills
     protected override string GetDefaultDescription() => "Creates gravity wells that pull and damage enemies";
     protected override SkillType GetSkillType() => SkillType.Projectile;
 
+    public override void UpdateHomingState(bool activate)
+    {
+        _isHoming = activate;
+        currentFireMode = activate ? FireMode.AutoHoming : FireMode.Auto;
+
+        if (!activate)
+        {
+            _homingRange = 0f;
+        }
+        else
+        {
+            _homingRange = TypedStats.homingRange;
+        }
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        canFire = false;
+        isInitialized = false;
+        StopAllCoroutines();
+    }
 }

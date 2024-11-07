@@ -24,6 +24,18 @@ public class GameManager : MonoBehaviour
 
             // 데이터 매니저 초기화
             playerDataManager = new PlayerDataManager();
+
+            // DefaultPlayerStats 로드
+            var defaultStatData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
+            if (defaultStatData == null)
+            {
+                Debug.LogError("DefaultPlayerStats not found in Resources folder!");
+            }
+            else
+            {
+                playerDataManager.LoadPlayerStatData(Instantiate(defaultStatData));
+            }
+
             playerDataManager.InitializeDefaultData();
         }
         else
@@ -31,6 +43,8 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+
 
     public void InitializePlayer(Player newPlayer)
     {
@@ -48,7 +62,12 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                // 새 게임 시작 시 기본 데이터 설정
+                // 새 게임 시작 시 기본 데이터로 초기화
+                var defaultStatData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
+                if (defaultStatData != null)
+                {
+                    playerDataManager.LoadPlayerStatData(Instantiate(defaultStatData));
+                }
                 PlayerUnitManager.Instance.InitializeNewPlayer();
             }
         }

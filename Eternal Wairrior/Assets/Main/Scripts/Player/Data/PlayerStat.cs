@@ -73,11 +73,11 @@ public enum EquipmentSlot
 [System.Serializable]
 public struct StatContainer
 {
-    public StatType statType;      //  
-    public SourceType buffType;    //  ȿ
-    public IncreaseType incType;   // ϱ ϱ
-    public float amount;           // ġ
-    public EquipmentSlot equipSlot;  //  ߰
+    public StatType statType;     
+    public SourceType buffType;    
+    public IncreaseType incType;   
+    public float amount;          
+    public EquipmentSlot equipSlot; 
 
     public StatContainer(StatType statType, SourceType buffType, IncreaseType incType, float amount, EquipmentSlot slot = EquipmentSlot.None)
     {
@@ -106,11 +106,39 @@ public class PlayerStat : MonoBehaviour
     private void Awake()
     {
         player = GetComponent<Player>();
+
+        // baseData가 null일 때 GameManager에서 가져오기
         if (baseData == null)
         {
-            baseData = GameManager.Instance.PlayerStatData;
+            baseData = GameManager.Instance?.PlayerStatData;
+            if (baseData == null)
+            {
+                Debug.LogWarning("PlayerStatData is null, loading from Resources...");
+                baseData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
+
+                if (baseData == null)
+                {
+                    Debug.LogError("Could not load DefaultPlayerStats, creating new instance with default values");
+                    baseData = ScriptableObject.CreateInstance<PlayerStatData>();
+                    SetDefaultValues(baseData);
+                }
+            }
         }
+
         InitializeStats();
+    }
+
+    private void SetDefaultValues(PlayerStatData data)
+    {
+        data.baseHp = 100f;
+        data.baseDamage = 10f;
+        data.baseDefense = 5f;
+        data.baseSpeed = 5f;
+        data.baseAttackSpeed = 1f;
+        data.baseAttackRange = 2f;
+        data.baseAttackAngle = 120f;
+        data.baseExpCollectionRadius = 3f;
+        data.baseHpRegenRate = 1f;
     }
 
     private void OnEnable()
@@ -153,8 +181,15 @@ public class PlayerStat : MonoBehaviour
 
     public void InitializeStats()
     {
+        // Dictionary 초기화 전에 먼저 비우기
+        currentStats.Clear();
+        activeEffects.Clear();
+
+        Debug.Log($"Initializing stats with baseHp: {baseData.baseHp}");
+
+        // 기본 스탯 설정
         currentStats[StatType.MaxHp] = baseData.baseHp;
-        currentStats[StatType.CurrentHp] = baseData.baseHp;
+        currentStats[StatType.CurrentHp] = baseData.baseHp;  // CurrentHp도 MaxHp와 동일하게 설정
         currentStats[StatType.Damage] = baseData.baseDamage;
         currentStats[StatType.MoveSpeed] = baseData.baseSpeed;
         currentStats[StatType.Defense] = baseData.baseDefense;
@@ -164,20 +199,15 @@ public class PlayerStat : MonoBehaviour
         currentStats[StatType.ExpCollectionRadius] = baseData.baseExpCollectionRadius;
         currentStats[StatType.HpRegenRate] = baseData.baseHpRegenRate;
 
-        currentStats[StatType.ExpGainRate] = baseData.baseExpGainRate;
-        currentStats[StatType.GoldGainRate] = baseData.baseGoldGainRate;
-        currentStats[StatType.CriticalChance] = baseData.baseCriticalChance;
-        currentStats[StatType.CriticalDamage] = baseData.baseCriticalDamage;
-        currentStats[StatType.FireResistance] = baseData.baseFireResistance;
-        currentStats[StatType.IceResistance] = baseData.baseIceResistance;
-        currentStats[StatType.LightningResistance] = baseData.baseLightningResistance;
-        currentStats[StatType.PoisonResistance] = baseData.basePoisonResistance;
-        currentStats[StatType.StunResistance] = baseData.baseStunResistance;
-        currentStats[StatType.SlowResistance] = baseData.baseSlowResistance;
-        currentStats[StatType.Luck] = baseData.baseLuck;
-        currentStats[StatType.DodgeChance] = baseData.baseDodgeChance;
-        currentStats[StatType.ReflectDamage] = baseData.baseReflectDamage;
-        currentStats[StatType.LifeSteal] = baseData.baseLifeSteal;
+        Debug.Log($"After initialization - MaxHp: {currentStats[StatType.MaxHp]}, CurrentHp: {currentStats[StatType.CurrentHp]}");
+
+        foreach (StatType statType in System.Enum.GetValues(typeof(StatType)))
+        {
+            if (!currentStats.ContainsKey(statType))
+            {
+                currentStats[statType] = 0f;  // 기본값 0으로 설정
+            }
+        }
 
         foreach (var effect in baseData.GetAllPermanentStats())
         {
@@ -188,6 +218,8 @@ public class PlayerStat : MonoBehaviour
         }
 
         RecalculateStats();
+
+        Debug.Log($"After RecalculateStats - MaxHp: {currentStats[StatType.MaxHp]}, CurrentHp: {currentStats[StatType.CurrentHp]}");
     }
 
     public void AddStatModifier(StatType statType, SourceType source, IncreaseType incType, float amount)
@@ -215,7 +247,14 @@ public class PlayerStat : MonoBehaviour
                source == SourceType.Equipment_Special;
     }
 
-    public float GetStat(StatType type) => currentStats[type];
+    public float GetStat(StatType type)
+    {
+        if (!currentStats.ContainsKey(type))
+        {
+            currentStats[type] = 0f;  // 없는 스탯은 0으로 초기화
+        }
+        return currentStats[type];
+    }
 
     private void RecalculateStats()
     {
@@ -322,15 +361,18 @@ public class PlayerStat : MonoBehaviour
 
     public void ResetToBase()
     {
+        // 모든 효과 제거
         activeEffects.Clear();
-        foreach (SourceType source in System.Enum.GetValues(typeof(SourceType)))
-        {
-            if (IsPermanentSource(source))
-            {
-                baseData.RemovePermanentStatsBySource(source);
-            }
-        }
+        equippedItems.Clear();
+
+        // 기본 스탯으로 초기화
         InitializeStats();
+
+        // 체력을 최대치로 설정
+        float maxHp = GetStat(StatType.MaxHp);
+        SetCurrentHp(maxHp);
+
+        Debug.Log($"After ResetToBase - MaxHp: {maxHp}, CurrentHp: {currentStats[StatType.CurrentHp]}");
     }
 
     public void SetCurrentHp(float value)

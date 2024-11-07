@@ -85,11 +85,11 @@ public class OrbDamage : MonoBehaviour
 {
     public float damage;
 
-    private void OnCollisionEnter2D(Collision2D other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.collider.CompareTag("Enemy"))
+        if (other.CompareTag("Enemy"))
         {
-            Enemy enemy = other.collider.GetComponent<Enemy>();
+            Enemy enemy = other.GetComponent<Enemy>();
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);

@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 32
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -93,10 +93,946 @@ MonoBehaviour:
         path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
       - guid: b27865ffd0914544f933e40984b74479
         path: Assets/Main/Prefabs/Skills/Dark/AbyssalExpansion.prefab
+  - metadata:
+      ID: 100008
+      Name: Event Horizon
+      Description: Fires Gravity Projectile
+      Type: 1
+      Element: 1
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 2443622026231539355, guid: bc5599e09c86aae43bbd79fc51a473d7, type: 3}
+      Icon: {fileID: 21300000, guid: 58064d0a1762df149bb52462a20772a9, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 58064d0a1762df149bb52462a20772a9, type: 3}
+    projectile: {fileID: 1057853428604620, guid: 046f24ff77ef1f847b80e6bb334e9cd9, type: 3}
+    prefabsByLevel:
+    - {fileID: 2443622026231539355, guid: bc5599e09c86aae43bbd79fc51a473d7, type: 3}
+    - {fileID: 2443622026231539355, guid: bc5599e09c86aae43bbd79fc51a473d7, type: 3}
+    - {fileID: 2443622026231539355, guid: bc5599e09c86aae43bbd79fc51a473d7, type: 3}
+    - {fileID: 2443622026231539355, guid: bc5599e09c86aae43bbd79fc51a473d7, type: 3}
+    - {fileID: 2443622026231539355, guid: bc5599e09c86aae43bbd79fc51a473d7, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 1
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - projectile
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 58064d0a1762df149bb52462a20772a9
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Necro/256/Necro_256_21.png
+      - guid: bc5599e09c86aae43bbd79fc51a473d7
+        path: Assets/Main/Prefabs/Skills/Dark/EventHorizon.prefab
+      - guid: 046f24ff77ef1f847b80e6bb334e9cd9
+        path: Assets/Main/Prefabs/Projectiles/BlackHole.prefab
+      - guid: bc5599e09c86aae43bbd79fc51a473d7
+        path: Assets/Main/Prefabs/Skills/Dark/EventHorizon.prefab
+      - guid: bc5599e09c86aae43bbd79fc51a473d7
+        path: Assets/Main/Prefabs/Skills/Dark/EventHorizon.prefab
+      - guid: bc5599e09c86aae43bbd79fc51a473d7
+        path: Assets/Main/Prefabs/Skills/Dark/EventHorizon.prefab
+      - guid: bc5599e09c86aae43bbd79fc51a473d7
+        path: Assets/Main/Prefabs/Skills/Dark/EventHorizon.prefab
+      - guid: bc5599e09c86aae43bbd79fc51a473d7
+        path: Assets/Main/Prefabs/Skills/Dark/EventHorizon.prefab
+  - metadata:
+      ID: 100007
+      Name: Shadow Waltz
+      Description: Dark Orb Rotates Around Player
+      Type: 2
+      Element: 1
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+      Icon: {fileID: 21300000, guid: 475be4f561405574387b976eb90cae1e, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 475be4f561405574387b976eb90cae1e, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+    - {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+    - {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+    - {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+    - {fileID: 1218040929348265035, guid: d11ac4e9ec5d9df44b32bc61f56908dd, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 1
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 475be4f561405574387b976eb90cae1e
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Necro/256/Necro_256_65.png
+      - guid: d11ac4e9ec5d9df44b32bc61f56908dd
+        path: Assets/Main/Prefabs/Skills/Dark/Shadow Waltz.prefab
+      - guid: d11ac4e9ec5d9df44b32bc61f56908dd
+        path: Assets/Main/Prefabs/Skills/Dark/Shadow Waltz.prefab
+      - guid: d11ac4e9ec5d9df44b32bc61f56908dd
+        path: Assets/Main/Prefabs/Skills/Dark/Shadow Waltz.prefab
+      - guid: d11ac4e9ec5d9df44b32bc61f56908dd
+        path: Assets/Main/Prefabs/Skills/Dark/Shadow Waltz.prefab
+      - guid: d11ac4e9ec5d9df44b32bc61f56908dd
+        path: Assets/Main/Prefabs/Skills/Dark/Shadow Waltz.prefab
+      - guid: d11ac4e9ec5d9df44b32bc61f56908dd
+        path: Assets/Main/Prefabs/Skills/Dark/Shadow Waltz.prefab
+  - metadata:
+      ID: 100002
+      Name: Earth Rift
+      Description: Fires Earth Shard Which has Area Damage
+      Type: 1
+      Element: 4
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 65340770106118967, guid: d6f4cd9ede19fb14e923ad14ac13607b, type: 3}
+      Icon: {fileID: 21300000, guid: 15743b33bbbbe6c41968fa68771873ba, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 15743b33bbbbe6c41968fa68771873ba, type: 3}
+    projectile: {fileID: 5367269600100238616, guid: 54c61bb0999022b49bcaa64c82212734, type: 3}
+    prefabsByLevel:
+    - {fileID: 65340770106118967, guid: d6f4cd9ede19fb14e923ad14ac13607b, type: 3}
+    - {fileID: 65340770106118967, guid: d6f4cd9ede19fb14e923ad14ac13607b, type: 3}
+    - {fileID: 65340770106118967, guid: d6f4cd9ede19fb14e923ad14ac13607b, type: 3}
+    - {fileID: 65340770106118967, guid: d6f4cd9ede19fb14e923ad14ac13607b, type: 3}
+    - {fileID: 65340770106118967, guid: d6f4cd9ede19fb14e923ad14ac13607b, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 4
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - projectile
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 15743b33bbbbe6c41968fa68771873ba
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Earth/256/Earth_256_11.png
+      - guid: d6f4cd9ede19fb14e923ad14ac13607b
+        path: Assets/Main/Prefabs/Skills/Earth/EarthRift.prefab
+      - guid: 54c61bb0999022b49bcaa64c82212734
+        path: Assets/Main/Prefabs/Projectiles/EarthShard.prefab
+      - guid: d6f4cd9ede19fb14e923ad14ac13607b
+        path: Assets/Main/Prefabs/Skills/Earth/EarthRift.prefab
+      - guid: d6f4cd9ede19fb14e923ad14ac13607b
+        path: Assets/Main/Prefabs/Skills/Earth/EarthRift.prefab
+      - guid: d6f4cd9ede19fb14e923ad14ac13607b
+        path: Assets/Main/Prefabs/Skills/Earth/EarthRift.prefab
+      - guid: d6f4cd9ede19fb14e923ad14ac13607b
+        path: Assets/Main/Prefabs/Skills/Earth/EarthRift.prefab
+      - guid: d6f4cd9ede19fb14e923ad14ac13607b
+        path: Assets/Main/Prefabs/Skills/Earth/EarthRift.prefab
+  - metadata:
+      ID: 100001
+      Name: Vine
+      Description: Summons Vines Which Withers Monster
+      Type: 2
+      Element: 4
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 5294012045876086830, guid: 360a07736bd00c44299bc226ab80cbb4, type: 3}
+      Icon: {fileID: 21300000, guid: 9724f2d9adefc8b4c862d724f75f5ce7, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 9724f2d9adefc8b4c862d724f75f5ce7, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 5294012045876086830, guid: 360a07736bd00c44299bc226ab80cbb4, type: 3}
+    - {fileID: 5294012045876086830, guid: 360a07736bd00c44299bc226ab80cbb4, type: 3}
+    - {fileID: 5294012045876086830, guid: 360a07736bd00c44299bc226ab80cbb4, type: 3}
+    - {fileID: 5294012045876086830, guid: 360a07736bd00c44299bc226ab80cbb4, type: 3}
+    - {fileID: 5294012045876086830, guid: 360a07736bd00c44299bc226ab80cbb4, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 4
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 9724f2d9adefc8b4c862d724f75f5ce7
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Earth/256/Earth_256_14.png
+      - guid: 360a07736bd00c44299bc226ab80cbb4
+        path: Assets/Main/Prefabs/Skills/Earth/Vine.prefab
+      - guid: 360a07736bd00c44299bc226ab80cbb4
+        path: Assets/Main/Prefabs/Skills/Earth/Vine.prefab
+      - guid: 360a07736bd00c44299bc226ab80cbb4
+        path: Assets/Main/Prefabs/Skills/Earth/Vine.prefab
+      - guid: 360a07736bd00c44299bc226ab80cbb4
+        path: Assets/Main/Prefabs/Skills/Earth/Vine.prefab
+      - guid: 360a07736bd00c44299bc226ab80cbb4
+        path: Assets/Main/Prefabs/Skills/Earth/Vine.prefab
+      - guid: 360a07736bd00c44299bc226ab80cbb4
+        path: Assets/Main/Prefabs/Skills/Earth/Vine.prefab
+  - metadata:
+      ID: 100003
+      Name: Gaia's Grace
+      Description: Increase Player's Defense , MaxHP
+      Type: 3
+      Element: 4
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 1244215486090983455, guid: 459ed8ca70a65a140b56224682178fb9, type: 3}
+      Icon: {fileID: 21300000, guid: 905d972096adf3a4caf053d3d03cfc84, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 905d972096adf3a4caf053d3d03cfc84, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 1244215486090983455, guid: 459ed8ca70a65a140b56224682178fb9, type: 3}
+    - {fileID: 1244215486090983455, guid: 459ed8ca70a65a140b56224682178fb9, type: 3}
+    - {fileID: 1244215486090983455, guid: 459ed8ca70a65a140b56224682178fb9, type: 3}
+    - {fileID: 1244215486090983455, guid: 459ed8ca70a65a140b56224682178fb9, type: 3}
+    - {fileID: 1244215486090983455, guid: 459ed8ca70a65a140b56224682178fb9, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 4
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 905d972096adf3a4caf053d3d03cfc84
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Earth/256/Earth_256_58.png
+      - guid: 459ed8ca70a65a140b56224682178fb9
+        path: Assets/Main/Prefabs/Skills/Earth/GaiasGrace.prefab
+      - guid: 459ed8ca70a65a140b56224682178fb9
+        path: Assets/Main/Prefabs/Skills/Earth/GaiasGrace.prefab
+      - guid: 459ed8ca70a65a140b56224682178fb9
+        path: Assets/Main/Prefabs/Skills/Earth/GaiasGrace.prefab
+      - guid: 459ed8ca70a65a140b56224682178fb9
+        path: Assets/Main/Prefabs/Skills/Earth/GaiasGrace.prefab
+      - guid: 459ed8ca70a65a140b56224682178fb9
+        path: Assets/Main/Prefabs/Skills/Earth/GaiasGrace.prefab
+      - guid: 459ed8ca70a65a140b56224682178fb9
+        path: Assets/Main/Prefabs/Skills/Earth/GaiasGrace.prefab
+  - metadata:
+      ID: 100010
+      Name: Flame
+      Description: Shoots Flame Projectile
+      Type: 1
+      Element: 3
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 5171985812420462071, guid: d9384d0f4a5036047a1c26bf6ccf1126, type: 3}
+      Icon: {fileID: 21300000, guid: 6c8a5faf00dff864391fec31163619fe, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 6c8a5faf00dff864391fec31163619fe, type: 3}
+    projectile: {fileID: 5498325870557180919, guid: 65a818cb6a19bf845b11fb41490d2938, type: 3}
+    prefabsByLevel:
+    - {fileID: 5171985812420462071, guid: d9384d0f4a5036047a1c26bf6ccf1126, type: 3}
+    - {fileID: 5171985812420462071, guid: d9384d0f4a5036047a1c26bf6ccf1126, type: 3}
+    - {fileID: 5171985812420462071, guid: d9384d0f4a5036047a1c26bf6ccf1126, type: 3}
+    - {fileID: 5171985812420462071, guid: d9384d0f4a5036047a1c26bf6ccf1126, type: 3}
+    - {fileID: 5171985812420462071, guid: d9384d0f4a5036047a1c26bf6ccf1126, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 3
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - projectile
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 6c8a5faf00dff864391fec31163619fe
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Fire/256/Fire_256_38.png
+      - guid: d9384d0f4a5036047a1c26bf6ccf1126
+        path: Assets/Main/Prefabs/Skills/Fire/Flame.prefab
+      - guid: 65a818cb6a19bf845b11fb41490d2938
+        path: Assets/Main/Prefabs/Projectiles/FlameProjectile.prefab
+      - guid: d9384d0f4a5036047a1c26bf6ccf1126
+        path: Assets/Main/Prefabs/Skills/Fire/Flame.prefab
+      - guid: d9384d0f4a5036047a1c26bf6ccf1126
+        path: Assets/Main/Prefabs/Skills/Fire/Flame.prefab
+      - guid: d9384d0f4a5036047a1c26bf6ccf1126
+        path: Assets/Main/Prefabs/Skills/Fire/Flame.prefab
+      - guid: d9384d0f4a5036047a1c26bf6ccf1126
+        path: Assets/Main/Prefabs/Skills/Fire/Flame.prefab
+      - guid: d9384d0f4a5036047a1c26bf6ccf1126
+        path: Assets/Main/Prefabs/Skills/Fire/Flame.prefab
+  - metadata:
+      ID: 100011
+      Name: Fire Ring
+      Description: Summons FireOrbs Rotates Around Player
+      Type: 2
+      Element: 3
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 1218040929348265035, guid: f92876a8ead425b4699176938e40e790, type: 3}
+      Icon: {fileID: 21300000, guid: 80c2e9cb740539a4f870ea221529bca4, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 80c2e9cb740539a4f870ea221529bca4, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 1218040929348265035, guid: f92876a8ead425b4699176938e40e790, type: 3}
+    - {fileID: 1218040929348265035, guid: f92876a8ead425b4699176938e40e790, type: 3}
+    - {fileID: 1218040929348265035, guid: f92876a8ead425b4699176938e40e790, type: 3}
+    - {fileID: 1218040929348265035, guid: f92876a8ead425b4699176938e40e790, type: 3}
+    - {fileID: 1218040929348265035, guid: f92876a8ead425b4699176938e40e790, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 3
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 80c2e9cb740539a4f870ea221529bca4
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Fire/256/Fire_256_42.png
+      - guid: f92876a8ead425b4699176938e40e790
+        path: Assets/Main/Prefabs/Skills/Fire/FireRing.prefab
+      - guid: f92876a8ead425b4699176938e40e790
+        path: Assets/Main/Prefabs/Skills/Fire/FireRing.prefab
+      - guid: f92876a8ead425b4699176938e40e790
+        path: Assets/Main/Prefabs/Skills/Fire/FireRing.prefab
+      - guid: f92876a8ead425b4699176938e40e790
+        path: Assets/Main/Prefabs/Skills/Fire/FireRing.prefab
+      - guid: f92876a8ead425b4699176938e40e790
+        path: Assets/Main/Prefabs/Skills/Fire/FireRing.prefab
+      - guid: f92876a8ead425b4699176938e40e790
+        path: Assets/Main/Prefabs/Skills/Fire/FireRing.prefab
+  - metadata:
+      ID: 100012
+      Name: Thermal Elevation
+      Description: Increase Player's Damage , Health Regen Rate
+      Type: 3
+      Element: 3
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 747497025530046260, guid: 65d7446ee33b00749be7a1a7d79ae427, type: 3}
+      Icon: {fileID: 21300000, guid: d7c267748f2bff84c90506c5b8e4b4cd, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: d7c267748f2bff84c90506c5b8e4b4cd, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 747497025530046260, guid: 65d7446ee33b00749be7a1a7d79ae427, type: 3}
+    - {fileID: 747497025530046260, guid: 65d7446ee33b00749be7a1a7d79ae427, type: 3}
+    - {fileID: 747497025530046260, guid: 65d7446ee33b00749be7a1a7d79ae427, type: 3}
+    - {fileID: 747497025530046260, guid: 65d7446ee33b00749be7a1a7d79ae427, type: 3}
+    - {fileID: 747497025530046260, guid: 65d7446ee33b00749be7a1a7d79ae427, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 3
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: d7c267748f2bff84c90506c5b8e4b4cd
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Fire/256/Fire_256_7.png
+      - guid: 65d7446ee33b00749be7a1a7d79ae427
+        path: Assets/Main/Prefabs/Skills/Fire/ThermalElevation.prefab
+      - guid: 65d7446ee33b00749be7a1a7d79ae427
+        path: Assets/Main/Prefabs/Skills/Fire/ThermalElevation.prefab
+      - guid: 65d7446ee33b00749be7a1a7d79ae427
+        path: Assets/Main/Prefabs/Skills/Fire/ThermalElevation.prefab
+      - guid: 65d7446ee33b00749be7a1a7d79ae427
+        path: Assets/Main/Prefabs/Skills/Fire/ThermalElevation.prefab
+      - guid: 65d7446ee33b00749be7a1a7d79ae427
+        path: Assets/Main/Prefabs/Skills/Fire/ThermalElevation.prefab
+      - guid: 65d7446ee33b00749be7a1a7d79ae427
+        path: Assets/Main/Prefabs/Skills/Fire/ThermalElevation.prefab
+  - metadata:
+      ID: 100005
+      Name: Frost Hunt
+      Description: Shoots Multiple Ice Shards
+      Type: 1
+      Element: 2
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 5094542854804590399, guid: aa216f1c2845f2944a6932adf6a497a4, type: 3}
+      Icon: {fileID: 21300000, guid: cb4362f098fd70140ac0407f1bf49304, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: cb4362f098fd70140ac0407f1bf49304, type: 3}
+    projectile: {fileID: 386763069966558345, guid: 40817c4eba2031347b629e33e0edfc72, type: 3}
+    prefabsByLevel:
+    - {fileID: 5094542854804590399, guid: aa216f1c2845f2944a6932adf6a497a4, type: 3}
+    - {fileID: 5094542854804590399, guid: aa216f1c2845f2944a6932adf6a497a4, type: 3}
+    - {fileID: 5094542854804590399, guid: aa216f1c2845f2944a6932adf6a497a4, type: 3}
+    - {fileID: 5094542854804590399, guid: aa216f1c2845f2944a6932adf6a497a4, type: 3}
+    - {fileID: 5094542854804590399, guid: aa216f1c2845f2944a6932adf6a497a4, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - projectile
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: cb4362f098fd70140ac0407f1bf49304
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Frost/256/Frost_256_10.png
+      - guid: aa216f1c2845f2944a6932adf6a497a4
+        path: Assets/Main/Prefabs/Skills/Water/FrostHunt.prefab
+      - guid: 40817c4eba2031347b629e33e0edfc72
+        path: Assets/Main/Prefabs/Projectiles/IceArrow.prefab
+      - guid: aa216f1c2845f2944a6932adf6a497a4
+        path: Assets/Main/Prefabs/Skills/Water/FrostHunt.prefab
+      - guid: aa216f1c2845f2944a6932adf6a497a4
+        path: Assets/Main/Prefabs/Skills/Water/FrostHunt.prefab
+      - guid: aa216f1c2845f2944a6932adf6a497a4
+        path: Assets/Main/Prefabs/Skills/Water/FrostHunt.prefab
+      - guid: aa216f1c2845f2944a6932adf6a497a4
+        path: Assets/Main/Prefabs/Skills/Water/FrostHunt.prefab
+      - guid: aa216f1c2845f2944a6932adf6a497a4
+        path: Assets/Main/Prefabs/Skills/Water/FrostHunt.prefab
+  - metadata:
+      ID: 100004
+      Name: Frost Tide
+      Description: Summons Frost Zone Which Damages Monster and Slows
+      Type: 2
+      Element: 2
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 5380147658258602202, guid: 17bafc3e9b644a9428345b47cdc04d27, type: 3}
+      Icon: {fileID: 21300000, guid: 9e9342b3e851aa540922465d404d4457, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 9e9342b3e851aa540922465d404d4457, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 5380147658258602202, guid: 17bafc3e9b644a9428345b47cdc04d27, type: 3}
+    - {fileID: 5380147658258602202, guid: 17bafc3e9b644a9428345b47cdc04d27, type: 3}
+    - {fileID: 5380147658258602202, guid: 17bafc3e9b644a9428345b47cdc04d27, type: 3}
+    - {fileID: 5380147658258602202, guid: 17bafc3e9b644a9428345b47cdc04d27, type: 3}
+    - {fileID: 5380147658258602202, guid: 17bafc3e9b644a9428345b47cdc04d27, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 9e9342b3e851aa540922465d404d4457
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Frost/256/Frost_256_55.png
+      - guid: 17bafc3e9b644a9428345b47cdc04d27
+        path: Assets/Main/Prefabs/Skills/Water/FrostTide.prefab
+      - guid: 17bafc3e9b644a9428345b47cdc04d27
+        path: Assets/Main/Prefabs/Skills/Water/FrostTide.prefab
+      - guid: 17bafc3e9b644a9428345b47cdc04d27
+        path: Assets/Main/Prefabs/Skills/Water/FrostTide.prefab
+      - guid: 17bafc3e9b644a9428345b47cdc04d27
+        path: Assets/Main/Prefabs/Skills/Water/FrostTide.prefab
+      - guid: 17bafc3e9b644a9428345b47cdc04d27
+        path: Assets/Main/Prefabs/Skills/Water/FrostTide.prefab
+      - guid: 17bafc3e9b644a9428345b47cdc04d27
+        path: Assets/Main/Prefabs/Skills/Water/FrostTide.prefab
+  - metadata:
+      ID: 100006
+      Name: Tidal Essence
+      Description: Increase Player's Attack Speed, Move Speed
+      Type: 3
+      Element: 2
+      Tier: 0
+      Tags: []
+      Prefab: {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+      Icon: {fileID: 21300000, guid: 2f5a3b883321a4543a7d740b52373ce8, type: 3}
+    serializedStats: []
+    icon: {fileID: 21300000, guid: 2f5a3b883321a4543a7d740b52373ce8, type: 3}
+    projectile: {fileID: 0}
+    prefabsByLevel:
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    - {fileID: 384281064531624666, guid: 72bd3d9f9944c3c4c923bfe7ec962e77, type: 3}
+    baseStats:
+      damage: 10
+      skillName: 
+      skillLevel: 1
+      maxSkillLevel: 5
+      element: 2
+      elementalPower: 1
+    projectileStat:
+      projectileSpeed: 0
+      projectileScale: 0
+      shotInterval: 0
+      pierceCount: 0
+      attackRange: 0
+      homingRange: 0
+      isHoming: 0
+      explosionRad: 0
+      projectileCount: 0
+      innerInterval: 0
+    areaStat:
+      radius: 0
+      duration: 0
+      tickRate: 0
+      isPersistent: 0
+      moveSpeed: 0
+    passiveStat:
+      effectDuration: 5
+      cooldown: 10
+      triggerChance: 100
+      damageIncrease: 0
+      defenseIncrease: 0
+      expAreaIncrease: 0
+      homingActivate: 0
+      hpIncrease: 0
+      moveSpeedIncrease: 0
+      attackSpeedIncrease: 0
+      attackRangeIncrease: 0
+      hpRegenIncrease: 0
+    resourceReferences:
+      keys:
+      - icon
+      - prefab
+      - level_prefab_0
+      - level_prefab_1
+      - level_prefab_2
+      - level_prefab_3
+      - level_prefab_4
+      values:
+      - guid: 2f5a3b883321a4543a7d740b52373ce8
+        path: Assets/Fantasy Icons + UI/Sprites/Icons/Frost/256/Frost_256_97.png
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
+      - guid: 72bd3d9f9944c3c4c923bfe7ec962e77
+        path: Assets/Main/Prefabs/Skills/Water/TidalEssence.prefab
   skillStats:
   - skillID: 100009
     levelStats: []
-  lastSelectedSkillID: 100009
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100008
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100007
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100002
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100001
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100003
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100010
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100011
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100012
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100005
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100004
+    levelStats: []
+  - skillID: 100000
+    levelStats: []
+  - skillID: 100006
+    levelStats: []
+  lastSelectedSkillID: 100008
   scrollPosition: {x: 0, y: 0}
   showBaseStats: 1
   showLevelStats: 1

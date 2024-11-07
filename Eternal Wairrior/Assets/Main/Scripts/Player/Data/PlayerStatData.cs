@@ -90,7 +90,6 @@ public class PlayerStatData : ScriptableObject
 
         permanentStats[stat.buffType].Add(stat);
 
-        // serialized Ʈ Ʈ
         var serializedList = serializedPermanentStats.Find(x => x.sourceType == stat.buffType);
         if (serializedList != null)
         {
@@ -104,7 +103,6 @@ public class PlayerStatData : ScriptableObject
         {
             permanentStats[source].Clear();
 
-            // serialized Ʈ Ʈ
             var serializedList = serializedPermanentStats.Find(x => x.sourceType == source);
             if (serializedList != null)
             {

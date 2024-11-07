@@ -30,7 +30,7 @@ public class Inventory : MonoBehaviour
         slots = new List<InventorySlot>(data.slots);
         gold = data.gold;
 
-        // 장착된 아이템 복원은 ItemManager를 통해 처리
+        //  ItemManager 에서 Item 가져오기
         foreach (var kvp in data.equippedItems)
         {
             var itemData = ItemManager.Instance.GetItem(kvp.Value);
@@ -104,13 +104,13 @@ public class Inventory : MonoBehaviour
 
     public void SaveInventoryState()
     {
-        // 현재 인벤토리 상태를 저장
+        // 저장된 상태 저장
         savedState = GetInventoryData();
     }
 
     public void SaveEquippedItems()
     {
-        // 장착된 아이템 상태만 저장
+        // 장착된 아이템 저장
         if (savedState == null)
         {
             savedState = new InventoryData();
@@ -126,13 +126,13 @@ public class Inventory : MonoBehaviour
     {
         if (savedState?.equippedItems == null) return;
 
-        // 기존 장착 아이템 해제
+        // 장착된 아이템 해제
         foreach (var slot in equippedItems.Keys.ToList())
         {
             UnequipFromSlot(slot);
         }
 
-        // 저장된 장착 아이템 복원
+        // 장착된 아이템 재설정
         foreach (var kvp in savedState.equippedItems)
         {
             var itemData = ItemManager.Instance.GetItem(kvp.Value);
@@ -148,7 +148,24 @@ public class Inventory : MonoBehaviour
         if (savedState != null)
         {
             LoadInventoryData(savedState);
-            savedState = null; // 복원 후 임시 저장 데이터 정리
+            savedState = null; // 저장된 상태 초기화
         }
+    }
+
+    public void ClearInventory()
+    {
+        // 모든 장착 아이템 해제
+        foreach (var slot in equippedItems.Keys.ToList())
+        {
+            UnequipFromSlot(slot);
+        }
+
+        // 인벤토리 슬롯 초기화
+        slots.Clear();
+        equippedItems.Clear();
+        gold = 0;
+
+        // 저장된 상태도 초기화
+        savedState = null;
     }
 }

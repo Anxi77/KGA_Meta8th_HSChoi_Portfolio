@@ -1,14 +1,9 @@
-﻿using JetBrains.Annotations;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-using UnityEngine.UIElements;
 using static GameManager;
 
 public class Player : MonoBehaviour
@@ -54,21 +49,178 @@ public class Player : MonoBehaviour
 
     #endregion
 
+    public event System.Action OnInitialized;
+    private bool isInitialized = false;
+
     #region Unity Message Methods
 
     private void Awake()
     {
+        InitializeComponents();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        StartCombatSystems();
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        StopAllCoroutines();
+    }
+
+    private void Start()
+    {
+        InitializePlayer();
+        StartCombatSystems();
+    }
+
+    private void InitializeComponents()
+    {
+        // 컴포넌트 초기화
         playerStat = GetComponent<PlayerStat>();
         if (playerStat == null)
         {
             playerStat = gameObject.AddComponent<PlayerStat>();
         }
+
+        rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody2D>();
+            rb.gravityScale = 0f;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
+
+        if (characterControl == null)
+        {
+            characterControl = GetComponent<SPUM_Prefabs>();
+            if (characterControl == null)
+            {
+                Debug.LogError("SPUM_Prefabs component is missing on Player!");
+            }
+        }
     }
 
-    private void Start()
+    private void InitializePlayer()
     {
-        GameManager.Instance.player = this;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.player = this;
+        }
+
+        PlayerUnitManager.Instance.OnPlayerInitialized += OnPlayerInitialized;
+        PlayerUnitManager.Instance.Initialize(this);
+    }
+
+    private void OnPlayerInitialized()
+    {
+        PlayerUnitManager.Instance.OnPlayerInitialized -= OnPlayerInitialized;
+
         ResetAllStats();
+        isInitialized = true;
+        OnInitialized?.Invoke();
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        PlayerUnitManager.Instance.OnGameStateLoaded += OnGameStateLoaded;
+
+        switch (scene.name)
+        {
+            case "MainMenu":
+                ResetAllStats();
+                break;
+            case "GameScene":
+            case "BossStage":
+                PlayerUnitManager.Instance.LoadGameState();
+                break;
+            case "TestScene":
+                PlayerUnitManager.Instance.InitializeTestPlayer();
+                break;
+        }
+    }
+
+    private void OnGameStateLoaded()
+    {
+        PlayerUnitManager.Instance.OnGameStateLoaded -= OnGameStateLoaded;
+
+        if (playerStatus != Status.Dead)
+        {
+            RestartCombatSystems();
+        }
+    }
+
+    private void RestartCombatSystems()
+    {
+        StopAllCoroutines();
+        StartCombatSystems();
+    }
+
+    private void StartCombatSystems()
+    {
+        // 필요한 컴포넌트들이 모두 있는지 확인
+        if (playerStatus != Status.Dead && characterControl != null && playerStat != null)
+        {
+            StartHealthRegeneration();
+            StartAutoAttack();
+        }
+        else
+        {
+            Debug.LogWarning("Cannot start combat systems - missing components or player is dead");
+        }
+    }
+
+    private void StartAutoAttack()
+    {
+        if (autoAttackCoroutine != null)
+        {
+            StopCoroutine(autoAttackCoroutine);
+        }
+
+        Debug.Log("Starting Auto Attack Coroutine");
+
+        autoAttackCoroutine = StartCoroutine(AutoAttackCoroutine());
+    }
+
+    private IEnumerator AutoAttackCoroutine()
+    {
+        Debug.Log("Auto Attack Coroutine Started");
+
+        // null 체크 추가
+        if (characterControl == null)
+        {
+            Debug.LogError("Character Control is null!");
+            yield break;
+        }
+
+        while (playerStatus != Status.Dead)
+        {
+            if (velocity == Vector2.zero)
+            {
+                Enemy nearestEnemy = FindNearestEnemy();
+                if (nearestEnemy != null)
+                {
+                    Debug.Log($"Found enemy at distance: {Vector2.Distance(transform.position, nearestEnemy.transform.position)}");
+                    yield return PerformAttack(nearestEnemy);
+                }
+                else
+                {
+                    playerStatus = Status.Alive;
+                    if (characterControl != null) // 안전 체크 추가
+                    {
+                        characterControl.PlayAnimation(PlayerState.IDLE, 0);
+                    }
+                }
+            }
+
+            float attackSpeed = playerStat.GetStat(StatType.AttackSpeed);
+            yield return new WaitForSeconds(1f / attackSpeed);
+        }
+
+        Debug.Log("Auto Attack Coroutine Ended");
     }
 
     private void FixedUpdate()
@@ -88,13 +240,15 @@ public class Player : MonoBehaviour
     #region Move&Skills
     public void Move()
     {
+        if (rb == null) return;  // 안전 체크 추가
+
         Vector2 input = new Vector2(x, y).normalized;
         float moveSpeed = playerStat.GetStat(StatType.MoveSpeed);
         velocity = input * moveSpeed;
 
         rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime);
 
-        if (playerStatus != Status.Attacking)
+        if (characterControl != null && playerStatus != Status.Attacking)  // null 체크 추가
         {
             if (velocity != Vector2.zero)
             {
@@ -250,40 +404,11 @@ public class Player : MonoBehaviour
     private Coroutine autoAttackCoroutine;
     private float attackAngle = 120f;  // 공격 각도는 상수로 유지하거나 PlayerStatData로 이동 가능
 
-    private void StartAutoAttack()
-    {
-        if (autoAttackCoroutine != null)
-            StopCoroutine(autoAttackCoroutine);
-
-        autoAttackCoroutine = StartCoroutine(AutoAttackCoroutine());
-    }
-
-    private IEnumerator AutoAttackCoroutine()
-    {
-        while (true)
-        {
-            if (velocity == Vector2.zero)  // 멈춰있을 때만 공격
-            {
-                Enemy nearestEnemy = FindNearestEnemy();
-                if (nearestEnemy != null)
-                {
-                    yield return PerformAttack(nearestEnemy);
-                }
-                else
-                {
-                    playerStatus = Status.Alive;
-                    characterControl.PlayAnimation(PlayerState.IDLE, 0);
-                }
-            }
-
-            // 공격 속도에 따른 대기
-            float attackSpeed = playerStat.GetStat(StatType.AttackSpeed);
-            yield return new WaitForSeconds(1f / attackSpeed);
-        }
-    }
 
     private IEnumerator PerformAttack(Enemy targetEnemy)
     {
+        if (characterControl == null) yield break; // 안전 체크 추가
+
         Vector2 directionToTarget = (targetEnemy.transform.position - transform.position).normalized;
 
         // 캐릭터 방향 설정
@@ -295,9 +420,9 @@ public class Player : MonoBehaviour
         characterControl.PlayAnimation(PlayerState.ATTACK, 0);
 
         // 공격 딜레이
-        yield return new WaitForSeconds(0.2f);
+        //yield return new WaitForSeconds(0.2f);
 
-        // 범위 내 적 찾기 및 데미지 적용
+        // 범위 내 적 찾기  데미지 적용
         float attackRange = playerStat.GetStat(StatType.AttackRange);
         float damage = playerStat.GetStat(StatType.Damage);
 
@@ -329,34 +454,6 @@ public class Player : MonoBehaviour
             .FirstOrDefault();
     }
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        StartHealthRegeneration();
-        StartAutoAttack();  // 자동 공격 시작
-    }
-
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-        if (healthRegenCoroutine != null)
-            StopCoroutine(healthRegenCoroutine);
-        if (autoAttackCoroutine != null)
-            StopCoroutine(autoAttackCoroutine);
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        // 씬 전환 후 필요한 초기화
-        InitializeAfterSceneLoad();
-    }
-
-    private void InitializeAfterSceneLoad()
-    {
-        // 코루틴 재시작
-        StartHealthRegeneration();
-        StartAutoAttack();
-    }
     #endregion
 
     #region Passive Skill Effects
@@ -390,8 +487,14 @@ public class Player : MonoBehaviour
 
         while (true)
         {
-            float regenAmount = playerStat.GetStat(StatType.HpRegenRate);
-            TakeHeal(regenAmount);
+            if (playerStat != null)
+            {
+                float regenAmount = playerStat.GetStat(StatType.HpRegenRate);
+                if (regenAmount > 0)
+                {
+                    TakeHeal(regenAmount);
+                }
+            }
             yield return wait;
         }
     }
@@ -430,4 +533,6 @@ public class Player : MonoBehaviour
         }
     }
     #endregion
+
+    public bool IsInitialized() => isInitialized;
 }

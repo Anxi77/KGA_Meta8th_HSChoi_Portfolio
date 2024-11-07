@@ -24,9 +24,11 @@ public class GravityProjectile : Projectile
     private new float maxTravelDistance;
     private Vector3 startPosition;
     private bool hasReachedDestination = false;
-    private new Vector3 direction;
+    private Vector3 projectileDirection;
     private float projectileSpeed = 10f;
     [SerializeField] private float homingStrength = 5f;
+
+    private bool hasStartedGrowth = false;
 
     protected override void Awake()
     {
@@ -37,41 +39,64 @@ public class GravityProjectile : Projectile
     public override void OnSpawnFromPool()
     {
         base.OnSpawnFromPool();
-        startPosition = transform.position;
-        hasReachedDestination = false;
-        currentSize = _startSize;
-        growthTimer = 0f;
-        UpdateSize(currentSize);
+        ResetProjectile();
     }
 
     protected override void Update()
     {
         if (!hasReachedDestination)
         {
-            if (isHoming && targetEnemy != null && targetEnemy.gameObject.activeSelf)
-            {
-                Vector2 directionToTarget = (targetEnemy.transform.position - transform.position).normalized;
-                direction = Vector3.Lerp(direction, directionToTarget, Time.deltaTime * homingStrength);
-            }
-
-            transform.position += direction * projectileSpeed * Time.deltaTime;
-
-            float distanceTraveled = Vector3.Distance(startPosition, transform.position);
-            if (distanceTraveled >= maxTravelDistance)
-            {
-                hasReachedDestination = true;
-            }
+            MoveAndCheckTarget();
+        }
+        else if (!hasStartedGrowth)
+        {
+            hasStartedGrowth = true;
+            StartGrowthPhase();
         }
         else
         {
-            UpdateGrowth();
-            ApplyGravityEffect();
-            ApplyDamageOverTime();
+            UpdateGrowthAndEffects();
         }
+    }
+
+    private void MoveAndCheckTarget()
+    {
+        if (isHoming && targetEnemy != null && targetEnemy.gameObject.activeSelf)
+        {
+            Vector2 directionToTarget = (targetEnemy.transform.position - transform.position).normalized;
+            projectileDirection = Vector3.Lerp(projectileDirection, directionToTarget, Time.deltaTime * homingStrength);
+
+            float distanceToTarget = Vector2.Distance(transform.position, targetEnemy.transform.position);
+            if (distanceToTarget <= 0.5f)
+            {
+                hasReachedDestination = true;
+                return;
+            }
+        }
+
+        transform.position += projectileDirection * projectileSpeed * Time.deltaTime;
+    }
+
+    private void StartGrowthPhase()
+    {
+        currentSize = _startSize;
+        growthTimer = 0f;
+        UpdateSize(currentSize);
+    }
+
+    private void UpdateGrowthAndEffects()
+    {
+        UpdateGrowth();
+        ApplyGravityEffect();
+        ApplyDamageOverTime();
     }
 
     protected override void OnTriggerEnter2D(Collider2D other)
     {
+        if (other.TryGetComponent<Enemy>(out _))
+        {
+            hasReachedDestination = true;
+        }
     }
 
     private void UpdateGrowth()
@@ -156,7 +181,7 @@ public class GravityProjectile : Projectile
             {
                 if (enemy != null && enemy.gameObject.activeSelf)
                 {
-                    enemy.TakeDamage(damage/10);
+                    enemy.TakeDamage(damage / 10);
                 }
             }
             damageTimer = 0f;
@@ -179,6 +204,7 @@ public class GravityProjectile : Projectile
     {
         base.ResetProjectile();
         hasReachedDestination = false;
+        hasStartedGrowth = false;
         affectedEnemies.Clear();
         damageTimer = 0f;
         growthTimer = 0f;
@@ -186,8 +212,8 @@ public class GravityProjectile : Projectile
         isShrinking = false;
         currentSize = _startSize;
         UpdateSize(_startSize);
-        targetEnemy = null;
-        isHoming = false;
+        startPosition = transform.position;
+        projectileDirection = Vector2.zero;
     }
 
     public void SetSizeParameters(float startSize, float endSize, float duration)
@@ -204,7 +230,7 @@ public class GravityProjectile : Projectile
 
     public override void SetDirection(Vector2 dir)
     {
-        direction = dir.normalized;
+        projectileDirection = dir.normalized;
     }
 
     public void SetProjectileSpeed(float speed)
@@ -231,6 +257,18 @@ public class GravityProjectile : Projectile
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, _finalDamageRadius);
+        }
+    }
+
+    public override void CheckTravelDistance()
+    {
+        if (!hasReachedDestination)
+        {
+            float distanceTraveled = Vector2.Distance(transform.position, startPosition);
+            if (distanceTraveled >= maxTravelDistance)
+            {
+                hasReachedDestination = true;
+            }
         }
     }
 }

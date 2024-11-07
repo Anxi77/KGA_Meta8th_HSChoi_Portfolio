@@ -150,11 +150,30 @@ public abstract class AreaSkills : Skill
 
     protected override void OnValidate()
     {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
         base.OnValidate();
 
-        if (Application.isPlaying && skillData != null)
+        if (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized)
+        {
+            return;
+        }
+
+        if (skillData == null)
+        {
+            return;
+        }
+
+        try
         {
             var currentStats = TypedStats;
+            if (currentStats == null || currentStats.baseStat == null)
+            {
+                return;
+            }
 
             currentStats.baseStat.damage = _damage;
             currentStats.baseStat.skillLevel = _skillLevel;
@@ -175,8 +194,11 @@ public abstract class AreaSkills : Skill
             _moveSpeed = currentStats.moveSpeed;
 
             skillData.SetStatsForLevel(SkillLevel, currentStats);
-
             Debug.Log($"Updated stats for {GetType().Name} from inspector");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Error in OnValidate for {GetType().Name}: {e.Message}");
         }
     }
 }
