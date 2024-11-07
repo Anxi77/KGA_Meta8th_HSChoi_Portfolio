@@ -73,11 +73,11 @@ public enum EquipmentSlot
 [System.Serializable]
 public struct StatContainer
 {
-    public StatType statType;     
-    public SourceType buffType;    
-    public IncreaseType incType;   
-    public float amount;          
-    public EquipmentSlot equipSlot; 
+    public StatType statType;      //  
+    public SourceType buffType;    //  ȿ
+    public IncreaseType incType;   // ϱ ϱ
+    public float amount;           // ġ
+    public EquipmentSlot equipSlot;  //  ߰
 
     public StatContainer(StatType statType, SourceType buffType, IncreaseType incType, float amount, EquipmentSlot slot = EquipmentSlot.None)
     {
@@ -516,5 +516,43 @@ public class PlayerStat : MonoBehaviour
                 x.amount == amount);
             RecalculateStats();
         }
+    }
+
+    // GetStatData 메서드 추가
+    public PlayerStatData GetStatData()
+    {
+        // 현재 스탯 데이터의 복사본을 생성
+        PlayerStatData newData = ScriptableObject.CreateInstance<PlayerStatData>();
+
+        // 기본 스탯 값들을 복사
+        newData.baseHp = baseData.baseHp;
+        newData.baseDamage = baseData.baseDamage;
+        newData.baseDefense = baseData.baseDefense;
+        newData.baseSpeed = baseData.baseSpeed;
+        newData.baseAttackSpeed = baseData.baseAttackSpeed;
+        newData.baseAttackRange = baseData.baseAttackRange;
+        newData.baseAttackAngle = baseData.baseAttackAngle;
+        newData.baseExpCollectionRadius = baseData.baseExpCollectionRadius;
+        newData.baseHpRegenRate = baseData.baseHpRegenRate;
+
+        // 레벨당 증가량 복사
+        newData.hpIncreasePerLevel = baseData.hpIncreasePerLevel;
+        newData.damageIncreasePerLevel = baseData.damageIncreasePerLevel;
+        newData.speedIncreasePerLevel = baseData.speedIncreasePerLevel;
+        newData.defenseIncreasePerLevel = baseData.defenseIncreasePerLevel;
+
+        // 영구적인 스탯 효과들 복사
+        foreach (var effect in activeEffects)
+        {
+            if (IsPermanentSource(effect.Key))
+            {
+                foreach (var stat in effect.Value)
+                {
+                    newData.AddPermanentStat(stat);
+                }
+            }
+        }
+
+        return newData;
     }
 }

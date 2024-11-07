@@ -1,9 +1,10 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using System.Linq;
 
 public class MonsterManager : SingletonManager<MonsterManager>
 {
@@ -11,10 +12,10 @@ public class MonsterManager : SingletonManager<MonsterManager>
 
     #region Stats
 
-    [Tooltip("ÇÑ¹ø¿¡ ½ºÆùµÉ ÀûÀÇ ¼ö. \nX : ÃÖ¼Ò , Y : ÃÖ´ë")]
+    [Tooltip("Ñ¹ Ö¼ , Y : Ö´")]
     public Vector2Int minMaxCount;
 
-    [Tooltip("½ºÆùµÉ ¶§ ÇÃ·¹ÀÌ¾î·ÎºÎÅÍÀÇ ÃÖ´ë/ÃÖ¼Ò °Å¸®.\n X : ÃÖ¼Ò , Y : ÃÖ´ë")]
+    [Tooltip("Ö¼ Ö´/Ö¼ Å¸.\n X : Ö¼ , Y : Ö´")]
     public Vector2 minMaxDist;
 
     public float spawnInterval;
@@ -25,6 +26,16 @@ public class MonsterManager : SingletonManager<MonsterManager>
 
     private Coroutine spawnCoroutine;
     private bool isSpawning = false;
+
+    [Header("Boss Settings")]
+    public BossMonster bossPrefab;
+    public Vector2 bossSpawnOffset = new Vector2(0, 5f);
+
+    private bool isBossDefeated = false;
+    private Vector3 lastBossPosition;
+
+    public bool IsBossDefeated => isBossDefeated;
+    public Vector3 LastBossPosition => lastBossPosition;
 
     #endregion
 
@@ -82,8 +93,43 @@ public class MonsterManager : SingletonManager<MonsterManager>
             isSpawning = false;
         }
 
-        // ÇöÀç Á¸ÀçÇÏ´Â ¸ğµç ¸ó½ºÅÍ Á¦°Å
+        // Ï´ Ö® Ö®
         var enemies = FindObjectsOfType<Enemy>();
+        foreach (var enemy in enemies)
+        {
+            PoolManager.Instance.Despawn(enemy);
+        }
+    }
+
+    public void SpawnStageBoss()
+    {
+        // í˜„ì¬ ìŠ¤í°ëœ ì¼ë°˜ ëª¬ìŠ¤í„°ë“¤ ì œê±°
+        StopSpawning();
+        ClearCurrentEnemies();
+
+        // ë³´ìŠ¤ ìŠ¤í° ìœ„ì¹˜ ê³„ì‚°
+        Vector3 playerPos = GameManager.Instance.player.transform.position;
+        Vector3 spawnPos = playerPos + new Vector3(bossSpawnOffset.x, bossSpawnOffset.y, 0);
+
+        // ë³´ìŠ¤ ìŠ¤í°
+        BossMonster boss = PoolManager.Instance.Spawn<BossMonster>(
+            bossPrefab.gameObject,
+            spawnPos,
+            Quaternion.identity
+        );
+
+        isBossDefeated = false;
+    }
+
+    public void OnBossDefeated(Vector3 position)
+    {
+        isBossDefeated = true;
+        lastBossPosition = position;
+    }
+
+    private void ClearCurrentEnemies()
+    {
+        var enemies = FindObjectsOfType<Enemy>().Where(e => !(e is BossMonster));
         foreach (var enemy in enemies)
         {
             PoolManager.Instance.Despawn(enemy);

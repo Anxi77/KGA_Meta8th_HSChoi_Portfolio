@@ -26,20 +26,20 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>
 
     public void LoadGameState()
     {
-        if (playerStat != null)
+        var saveData = GameManager.Instance.playerDataManager.LoadPlayerData("CurrentSave");
+        if (saveData != null)
         {
-            var statData = GameManager.Instance.playerDataManager.CurrentPlayerStatData;
-            playerStat.LoadStats(statData);
+            if (playerStat != null)
+            {
+                playerStat.LoadStats(saveData.stats);
+                playerStat.level = saveData.levelData.level;
+                playerStat.currentExp = saveData.levelData.exp;
+            }
 
-            var (level, exp) = GameManager.Instance.playerDataManager.LoadLevelData();
-            playerStat.level = level;
-            playerStat.currentExp = exp;
-        }
-
-        if (inventory != null)
-        {
-            var inventoryData = GameManager.Instance.playerDataManager.LoadInventoryData();
-            inventory.LoadInventoryData(inventoryData);
+            if (inventory != null && saveData.inventory != null)
+            {
+                inventory.LoadInventoryData(saveData.inventory);
+            }
         }
 
         ClearTemporaryEffects();
@@ -131,38 +131,40 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>
     public void SaveRuntimeData()
     {
         SavePlayerState();
-        ClearTemporaryEffects(); // 임시 효과는 저장하지 않음
+        ClearTemporaryEffects();
 
-        // PlayerDataManager를 통해 현재 스탯 데이터 저장
-        if (playerStat != null)
+        var saveData = new PlayerDataManager.PlayerSaveData
         {
-            GameManager.Instance.playerDataManager.SaveCurrentPlayerStatData();
-        }
+            stats = playerStat?.GetStatData(),
+            inventory = inventory?.GetInventoryData(),
+            levelData = new LevelData
+            {
+                level = playerStat?.level ?? 1,
+                exp = playerStat?.currentExp ?? 0f
+            }
+        };
+
+        GameManager.Instance.playerDataManager.SavePlayerData("CurrentSave", saveData);
     }
 
     public void LoadRuntimeData()
     {
-        // PlayerDataManager로부터 모든 데이터 로드
-        if (playerStat != null)
+        var saveData = GameManager.Instance.playerDataManager.LoadPlayerData("CurrentSave");
+        if (saveData != null)
         {
-            // 스탯 데이터 로드
-            var statData = GameManager.Instance.playerDataManager.CurrentPlayerStatData;
-            playerStat.LoadStats(statData);
+            if (playerStat != null)
+            {
+                playerStat.LoadStats(saveData.stats);
+                playerStat.level = saveData.levelData.level;
+                playerStat.currentExp = saveData.levelData.exp;
+            }
 
-            // 레벨 데이터 로드
-            var (level, exp) = GameManager.Instance.playerDataManager.LoadLevelData();
-            playerStat.level = level;
-            playerStat.currentExp = exp;
+            if (inventory != null && saveData.inventory != null)
+            {
+                inventory.LoadInventoryData(saveData.inventory);
+            }
         }
 
-        // 인벤토리 데이터 로드
-        if (inventory != null)
-        {
-            var inventoryData = GameManager.Instance.playerDataManager.LoadInventoryData();
-            inventory.LoadInventoryData(inventoryData);
-        }
-
-        // 런타임 상태 초기화
         ClearTemporaryEffects();
         RestorePlayerState();
     }
@@ -228,16 +230,14 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>
     {
         if (playerStat != null)
         {
-            // 레벨업 시 스탯 증가
             playerStat.AddStatModifier(StatType.MaxHp, SourceType.Level, IncreaseType.Add, 10f);
             playerStat.AddStatModifier(StatType.Damage, SourceType.Level, IncreaseType.Add, 2f);
             playerStat.AddStatModifier(StatType.Defense, SourceType.Level, IncreaseType.Add, 1f);
 
-            // HP 회복
             playerStat.RestoreFullHealth();
 
-            // 레벨 데이터 저장
-            SaveLevelData();
+            // 레벨업 후 자동 저장
+            SavePlayerData();
         }
     }
 
@@ -275,33 +275,41 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>
         if (playerStat != null)
         {
             ClearTemporaryEffects();
-            GameManager.Instance.playerDataManager.SaveCurrentPlayerStatData();
 
-            if (inventory != null)
+            // PlayerSaveData 객체 생성
+            var saveData = new PlayerDataManager.PlayerSaveData
             {
-                var inventoryData = inventory.GetInventoryData();
-                GameManager.Instance.playerDataManager.SaveInventoryData(inventoryData);
-            }
+                stats = playerStat.GetStatData(),
+                inventory = inventory?.GetInventoryData(),
+                levelData = new LevelData
+                {
+                    level = playerStat.level,
+                    exp = playerStat.currentExp
+                }
+            };
 
-            SaveLevelData();  // 레벨 데이터 저장
+            // 현재 슬롯에 저장
+            GameManager.Instance.playerDataManager.SavePlayerData("CurrentSave", saveData);
         }
     }
 
     public void LoadPlayerData()
     {
-        var statData = GameManager.Instance.playerDataManager.CurrentPlayerStatData;
-        if (statData != null && playerStat != null)
+        var saveData = GameManager.Instance.playerDataManager.LoadPlayerData("CurrentSave");
+        if (saveData != null)
         {
-            playerStat.LoadStats(statData);
-        }
+            if (playerStat != null)
+            {
+                playerStat.LoadStats(saveData.stats);
+                playerStat.level = saveData.levelData.level;
+                playerStat.currentExp = saveData.levelData.exp;
+            }
 
-        var inventoryData = GameManager.Instance.playerDataManager.LoadInventoryData();
-        if (inventoryData != null && inventory != null)
-        {
-            inventory.LoadInventoryData(inventoryData);
+            if (inventory != null && saveData.inventory != null)
+            {
+                inventory.LoadInventoryData(saveData.inventory);
+            }
         }
-
-        LoadLevelData();  // 레벨 데이터 로드
     }
 
     private IEnumerator RemoveEffectAfterDelay(StatContainer effect, float duration)
@@ -333,27 +341,6 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>
                     AddTemporaryEffect(effect);
                 }
             }
-        }
-    }
-
-    public void SaveLevelData()
-    {
-        if (playerStat != null)
-        {
-            GameManager.Instance.playerDataManager.SaveLevelData(
-                playerStat.level,
-                playerStat.currentExp
-            );
-        }
-    }
-
-    public void LoadLevelData()
-    {
-        if (playerStat != null)
-        {
-            var (level, exp) = GameManager.Instance.playerDataManager.LoadLevelData();
-            playerStat.level = level;
-            playerStat.currentExp = exp;
         }
     }
 

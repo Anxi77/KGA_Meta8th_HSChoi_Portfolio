@@ -156,6 +156,8 @@ MonoBehaviour:
   minMaxDist: {x: 3, y: 5}
   spawnInterval: 1
   enemyPrefab: {fileID: 5331126352838852610, guid: c804cc33ba360424d9301b5b473d1e5f, type: 3}
+  bossPrefab: {fileID: 0}
+  bossSpawnOffset: {x: 0, y: 5}
 --- !u!212 &6150383
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2037,6 +2039,12 @@ MonoBehaviour:
   playerUIManager: {fileID: 335563545}
   hpBarImage: {fileID: 626156622}
   expBarImage: {fileID: 709754219}
+  lobbyCanvas: {fileID: 0}
+  newGameButton: {fileID: 0}
+  loadGameButton: {fileID: 0}
+  exitButton: {fileID: 0}
+  bossWarningPanel: {fileID: 0}
+  warningDuration: 3
 --- !u!1 &849750730
 GameObject:
   m_ObjectHideFlags: 0

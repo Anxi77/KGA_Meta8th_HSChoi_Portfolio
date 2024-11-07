@@ -20,9 +20,17 @@ public class PlayerDataManager : DataManager
         }
     }
 
-    protected override void Awake()
+    private void Awake()
     {
-        base.Awake();
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     private JSONManager<PlayerSaveData> saveManager;
@@ -42,8 +50,7 @@ public class PlayerDataManager : DataManager
     {
         public PlayerStatData stats;
         public InventoryData inventory;
-        public int level;
-        public float exp;
+        public LevelData levelData;
     }
 
     protected override void InitializeManagers()
@@ -127,8 +134,7 @@ public class PlayerDataManager : DataManager
         {
             stats = currentPlayerStatData,
             inventory = new InventoryData(),
-            level = 1,
-            exp = 0
+            levelData = new LevelData { level = 1, exp = 0f }
         };
 
         saveManager.SaveData("DefaultSave", defaultSave);
@@ -158,43 +164,6 @@ public class PlayerDataManager : DataManager
         }
     }
 
-    public void SaveLevelData(int level, float exp)
-    {
-        currentLevelData.level = level;
-        currentLevelData.exp = exp;
-
-        try
-        {
-            EnsureDirectoryExists();
-            string json = JsonUtility.ToJson(currentLevelData);
-            string path = Path.Combine(Application.persistentDataPath, SAVE_PATH, "level.json");
-            File.WriteAllText(path, json);
-            Debug.Log($"Successfully saved level data to: {path}");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error saving level data: {e.Message}");
-        }
-    }
-
-    public (int level, float exp) LoadLevelData()
-    {
-        try
-        {
-            string path = Path.Combine(Application.persistentDataPath, SAVE_PATH, "level.json");
-            if (File.Exists(path))
-            {
-                string json = File.ReadAllText(path);
-                currentLevelData = JsonUtility.FromJson<LevelData>(json);
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error loading level data: {e.Message}");
-        }
-        return (currentLevelData.level, currentLevelData.exp);
-    }
-
     public InventoryData LoadInventoryData()
     {
         return currentInventoryData;
@@ -215,6 +184,14 @@ public class PlayerDataManager : DataManager
         {
             Debug.LogError($"Error saving inventory data: {e.Message}");
         }
+    }
+
+    public bool HasSaveData(string saveSlot)
+    {
+        if (!isInitialized) InitializeManagers();
+
+        string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH, $"{saveSlot}.json");
+        return File.Exists(savePath);
     }
 }
 

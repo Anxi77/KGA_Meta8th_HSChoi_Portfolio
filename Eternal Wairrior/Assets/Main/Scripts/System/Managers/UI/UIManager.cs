@@ -6,7 +6,7 @@ using TMPro;
 using System;
 using UnityEngine.SceneManagement;
 
-public class UIManager : SingletonManager<UIManager>
+public partial class UIManager : SingletonManager<UIManager>
 {
     [Header("UI Panels")]
     public Canvas mainCanvas;
@@ -20,6 +20,17 @@ public class UIManager : SingletonManager<UIManager>
     [Header("UI Bars")]
     [SerializeField] private Slider hpBarImage;
     [SerializeField] private Slider expBarImage;
+
+    [Header("Lobby UI")]
+    [SerializeField] private GameObject lobbyCanvas;
+    [SerializeField] private Button newGameButton;
+    [SerializeField] private Button loadGameButton;
+    [SerializeField] private Button exitButton;
+
+    [Header("Boss Warning UI")]
+    [SerializeField] private GameObject bossWarningPanel;
+    [SerializeField] private float warningDuration = 3f;
+    private Coroutine bossWarningCoroutine;
 
     private bool isPaused = false;
     private Coroutine levelCheckCoroutine;
@@ -54,9 +65,6 @@ public class UIManager : SingletonManager<UIManager>
             case "BossStage":
                 SetupBossStageUI();
                 break;
-            case "TestScene":
-                StartCoroutine(SetupGameSceneUI());
-                break;
         }
     }
 
@@ -69,6 +77,7 @@ public class UIManager : SingletonManager<UIManager>
     private void SetupMainMenuUI()
     {
         StopAllCoroutines();
+        // 메인 메뉴 UI 설정
     }
 
     private IEnumerator SetupGameSceneUI()
@@ -77,6 +86,8 @@ public class UIManager : SingletonManager<UIManager>
         {
             yield return null;
         }
+
+        // 플레이어 UI 초기화
         playerUIManager.Initialize(GameManager.Instance.player);
         StartLevelCheck();
     }
@@ -173,5 +184,55 @@ public class UIManager : SingletonManager<UIManager>
         if (levelupPanel) levelupPanel.gameObject.SetActive(false);
         playerUIManager.Clear();
         Time.timeScale = 1f;
+    }
+
+    public void InitializeLobbyUI()
+    {
+        if (newGameButton != null)
+            newGameButton.onClick.AddListener(() => LobbyManager.Instance.OnStartNewGame());
+
+        if (loadGameButton != null)
+            loadGameButton.onClick.AddListener(() => LobbyManager.Instance.OnLoadGame());
+
+        if (exitButton != null)
+            exitButton.onClick.AddListener(() => LobbyManager.Instance.OnExitGame());
+    }
+
+    public void UpdateLobbyUI(bool hasSaveData)
+    {
+        if (loadGameButton != null)
+            loadGameButton.interactable = hasSaveData;
+    }
+
+    public void ShowLobbyUI()
+    {
+        if (lobbyCanvas != null)
+            lobbyCanvas.SetActive(true);
+    }
+
+    public void HideLobbyUI()
+    {
+        if (lobbyCanvas != null)
+            lobbyCanvas.SetActive(false);
+    }
+
+    public void ShowBossWarning()
+    {
+        if (bossWarningCoroutine != null)
+        {
+            StopCoroutine(bossWarningCoroutine);
+        }
+        bossWarningCoroutine = StartCoroutine(ShowBossWarningCoroutine());
+    }
+
+    private IEnumerator ShowBossWarningCoroutine()
+    {
+        if (bossWarningPanel != null)
+        {
+            bossWarningPanel.SetActive(true);
+            yield return new WaitForSeconds(warningDuration);
+            bossWarningPanel.SetActive(false);
+        }
+        bossWarningCoroutine = null;
     }
 }

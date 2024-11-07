@@ -14,7 +14,7 @@ public class Enemy : MonoBehaviour
 {
     #region Variables
     #region Stats
-    private float maxHp;
+    public float maxHp;
     public float hp = 10f;
     public float damage = 5f;
     public float moveSpeed = 3f;
@@ -22,63 +22,63 @@ public class Enemy : MonoBehaviour
     public float damageInterval;
     internal float originalMoveSpeed;
     public float hpAmount { get { return hp / maxHp; } }
-    private float preDamageTime = 0;
+    public float preDamageTime = 0;
     public float attackRange = 1.2f;
     public float preferredDistance = 1.0f;
     public ElementType elementType = ElementType.None;
 
     [Header("Defense Stats")]
     public float baseDefense = 5f;
-    private float currentDefense;
+    public float currentDefense;
     public float maxDefenseReduction = 0.9f;
-    private float defenseDebuffAmount = 0f;
+    public float defenseDebuffAmount = 0f;
 
-    private float moveSpeedDebuffAmount = 0f;
-    private bool isStunned = false;
+    public float moveSpeedDebuffAmount = 0f;
+    public bool isStunned = false;
 
     [Header("Drop Settings")]
-    [SerializeField] private ExpParticle expParticlePrefab;
-    [SerializeField] private int minExpParticles = 3;
-    [SerializeField] private int maxExpParticles = 6;
-    [SerializeField] private string enemyType;
-    [SerializeField] private float dropRadiusMin = 0.5f;
-    [SerializeField] private float dropRadiusMax = 1.5f;
+    [SerializeField] public ExpParticle expParticlePrefab;
+    [SerializeField] public int minExpParticles = 3;
+    [SerializeField] public int maxExpParticles = 6;
+    [SerializeField] public float dropRadiusMin = 0.5f;
+    [SerializeField] public float dropRadiusMax = 1.5f;
+    [SerializeField] public EnemyType enemyType;
     #endregion
 
     #region References
-    private Transform target;
+    protected Transform target;
     public Image hpBar;
-    private Rigidbody2D rb;
+    protected Rigidbody2D rb;
     public ParticleSystem attackParticle;
-    private bool isInit = false;
-    private Collider2D enemyCollider;
-    private SpriteRenderer spriteRenderer;
+    public bool isInit = false;
+    public Collider2D enemyCollider;
+    public SpriteRenderer spriteRenderer;
     #endregion
 
     #region Pathfinding
     public List<Vector2> currentPath { get; private set; }
-    private float pathUpdateTime = 0.2f;
-    private float lastPathUpdateTime;
-    private float obstaclePathUpdateDelay = 0.1f;
-    private float lastObstacleAvoidanceTime;
-    private float stuckTimer = 0f;
-    private Vector2 lastPosition;
+    protected float pathUpdateTime = 0.2f;
+    protected float lastPathUpdateTime;
+    protected float obstaclePathUpdateDelay = 0.1f;
+    protected float lastObstacleAvoidanceTime;
+    protected float stuckTimer = 0f;
+    protected Vector2 lastPosition;
     #endregion
 
     #region Constants
-    private const float STUCK_THRESHOLD = 0.1f;
-    private const float STUCK_CHECK_TIME = 0.5f;
-    private const float CORNER_CHECK_DISTANCE = 0.5f;
-    private const float WALL_AVOIDANCE_DISTANCE = 1.5f;
-    private const float MIN_CIRCLE_DISTANCE = 1f;
+    protected const float STUCK_THRESHOLD = 0.1f;
+    protected const float STUCK_CHECK_TIME = 0.5f;
+    protected const float CORNER_CHECK_DISTANCE = 0.5f;
+    protected const float WALL_AVOIDANCE_DISTANCE = 1.5f;
+    protected const float MIN_CIRCLE_DISTANCE = 1f;
     #endregion
 
     #region Movement
-    private Vector2 previousMoveDir;
-    private bool isCirclingPlayer = false;
-    private float circlingRadius = 3f;
-    private float circlingAngle = 0f;
-    private float previousXPosition;
+    protected Vector2 previousMoveDir;
+    protected bool isCirclingPlayer = false;
+    protected float circlingRadius = 3f;
+    protected float circlingAngle = 0f;
+    protected float previousXPosition;
     #endregion
 
     #region Formation Variables
@@ -91,15 +91,15 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region Coroutines
-    private Coroutine slowEffectCoroutine;
-    private Coroutine stunCoroutine;
-    private Coroutine dotDamageCoroutine;
-    private Coroutine defenseDebuffCoroutine;
+    protected Coroutine slowEffectCoroutine;
+    protected Coroutine stunCoroutine;
+    protected Coroutine dotDamageCoroutine;
+    protected Coroutine defenseDebuffCoroutine;
     #endregion
     #endregion
 
     #region Unity Lifecycle
-    private void Start() => enemyCollider = GetComponent<Collider2D>();
+    protected virtual void Start() => enemyCollider = GetComponent<Collider2D>();
 
     private void OnEnable()
     {
@@ -116,14 +116,14 @@ public class Enemy : MonoBehaviour
         currentDefense = baseDefense;
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         if (!isInit) Initialize();
         Move();
         UpdateVisuals();
     }
 
-    private void OnDisable()
+    protected virtual void OnDisable()
     {
         if (slowEffectCoroutine != null)
         {
@@ -163,7 +163,7 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region Initialization
-    private void InitializeComponents()
+    protected virtual void InitializeComponents()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -172,7 +172,7 @@ public class Enemy : MonoBehaviour
         CalculateFormationOffset();
     }
 
-    private void Initialize()
+    protected virtual void Initialize()
     {
         if (GameManager.Instance?.player != null)
         {
@@ -181,7 +181,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void CalculateFormationOffset()
+    protected virtual void CalculateFormationOffset()
     {
         if (GameManager.Instance == null) return;
 
@@ -493,7 +493,7 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region Movement Helpers
-    private void MoveDirectlyTowardsTarget()
+    protected virtual void MoveDirectlyTowardsTarget()
     {
         if (target == null) return;
 
@@ -514,7 +514,7 @@ public class Enemy : MonoBehaviour
         ApplyVelocity(moveDir);
     }
 
-    private Vector2 CalculateSeparationForce(Vector2 currentPos)
+    protected virtual Vector2 CalculateSeparationForce(Vector2 currentPos)
     {
         Vector2 separationForce = Vector2.zero;
         float separationRadius = isCirclingPlayer ? 0.8f : 1.2f;
@@ -537,7 +537,7 @@ public class Enemy : MonoBehaviour
         return separationForce.normalized * (isCirclingPlayer ? 0.3f : 0.5f);
     }
 
-    private void ApplyMovement(Vector2 currentPos, Vector2 nextWaypoint)
+    protected virtual void ApplyMovement(Vector2 currentPos, Vector2 nextWaypoint)
     {
         Vector2 moveDirection = (nextWaypoint - currentPos).normalized;
         moveDirection = CalculateAvoidanceDirection(currentPos, nextWaypoint);
@@ -549,13 +549,13 @@ public class Enemy : MonoBehaviour
         rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 5f);
     }
 
-    private void ApplyVelocity(Vector2 moveDirection)
+    protected virtual void ApplyVelocity(Vector2 moveDirection)
     {
         Vector2 targetVelocity = moveDirection * moveSpeed;
         rb.velocity = Vector2.Lerp(rb.velocity, targetVelocity, Time.deltaTime * 5f);
     }
 
-    private Vector2 CalculateAvoidanceDirection(Vector2 currentPosition, Vector2 targetPosition)
+    protected virtual Vector2 CalculateAvoidanceDirection(Vector2 currentPosition, Vector2 targetPosition)
     {
         Vector2 moveDir = (targetPosition - currentPosition).normalized;
         Vector2 finalMoveDir = moveDir;
@@ -587,7 +587,7 @@ public class Enemy : MonoBehaviour
         return SmoothDirection(finalMoveDir);
     }
 
-    private void HandleStuckCheck(Vector2 currentPos)
+    protected virtual void HandleStuckCheck(Vector2 currentPos)
     {
         if (Vector2.Distance(currentPos, lastPosition) < STUCK_THRESHOLD)
         {
@@ -604,12 +604,12 @@ public class Enemy : MonoBehaviour
         lastPosition = currentPos;
     }
 
-    private bool HasReachedWaypoint(Vector2 currentPos, Vector2 waypoint)
+    protected virtual bool HasReachedWaypoint(Vector2 currentPos, Vector2 waypoint)
     {
         return Vector2.Distance(currentPos, waypoint) < PathFindingManager.NODE_SIZE * 0.5f;
     }
 
-    private void UpdateWaypoint()
+    protected virtual void UpdateWaypoint()
     {
         if (currentPath != null && currentPath.Count > 0)
         {
@@ -617,13 +617,13 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void ResetPath()
+    protected virtual void ResetPath()
     {
         currentPath = null;
         stuckTimer = 0f;
     }
 
-    private (RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) CheckObstacles(Vector2 position, Vector2 direction)
+    protected virtual (RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) CheckObstacles(Vector2 position, Vector2 direction)
     {
         Vector2 rightCheck = Quaternion.Euler(0, 0, 30) * direction;
         Vector2 leftCheck = Quaternion.Euler(0, 0, -30) * direction;
@@ -635,14 +635,14 @@ public class Enemy : MonoBehaviour
         );
     }
 
-    private bool HasObstacles((RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) obstacles)
+    protected virtual bool HasObstacles((RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) obstacles)
     {
         return obstacles.front.collider != null ||
                obstacles.right.collider != null ||
                obstacles.left.collider != null;
     }
 
-    private void HandleObstacleAvoidance((RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) obstacles)
+    protected virtual void HandleObstacleAvoidance((RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) obstacles)
     {
         if (currentPath != null && Time.time >= lastObstacleAvoidanceTime + obstaclePathUpdateDelay)
         {
@@ -650,14 +650,14 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void ResetPathForObstacle()
+    protected virtual void ResetPathForObstacle()
     {
         currentPath = null;
         lastPathUpdateTime = Time.time - pathUpdateTime;
         lastObstacleAvoidanceTime = Time.time;
     }
 
-    private Vector2 CalculateAvoidanceVector((RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) obstacles)
+    protected virtual Vector2 CalculateAvoidanceVector((RaycastHit2D front, RaycastHit2D right, RaycastHit2D left) obstacles)
     {
         Vector2 avoidDir = Vector2.zero;
 
@@ -677,7 +677,7 @@ public class Enemy : MonoBehaviour
         return avoidDir != Vector2.zero ? avoidDir.normalized : (Vector2)transform.right;
     }
 
-    private Vector2 SmoothDirection(Vector2 finalMoveDir)
+    protected virtual Vector2 SmoothDirection(Vector2 finalMoveDir)
     {
         if (previousMoveDir != Vector2.zero)
         {
@@ -687,7 +687,7 @@ public class Enemy : MonoBehaviour
         return finalMoveDir;
     }
 
-    private Vector2 CalculateFlockingForce(Vector2 currentPos)
+    protected virtual Vector2 CalculateFlockingForce(Vector2 currentPos)
     {
         Vector2 cohesion = Vector2.zero;
         Vector2 alignment = Vector2.zero;
@@ -727,7 +727,7 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region Combat
-    public void TakeDamage(float damage)
+    public virtual void TakeDamage(float damage)
     {
         if (!gameObject.activeInHierarchy) return;
 
@@ -747,7 +747,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    public void Die()
+    public virtual void Die()
     {
         if (expParticlePrefab != null)
         {
@@ -782,7 +782,7 @@ public class Enemy : MonoBehaviour
         PoolManager.Instance.Despawn(this);
     }
 
-    private void DropItems()
+    protected virtual void DropItems()
     {
         float playerLuck = GameManager.Instance.player.GetComponent<PlayerStat>().GetStat(StatType.Luck);
 
@@ -798,7 +798,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private Vector2 CalculateDropPosition()
+    protected virtual Vector2 CalculateDropPosition()
     {
         float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         float radius = Random.Range(dropRadiusMin, dropRadiusMax);
@@ -811,21 +811,40 @@ public class Enemy : MonoBehaviour
         return (Vector2)transform.position + offset;
     }
 
-    private void Attack()
+    protected virtual void Attack()
     {
         if (Time.time >= preDamageTime + damageInterval)
         {
-            var particle = Instantiate(attackParticle, target.position, Quaternion.identity);
-            particle.Play();
-            Destroy(particle.gameObject, 0.3f);
-
-            GameManager.Instance.player.TakeDamage(damage);
-            preDamageTime = Time.time;
-            //GameManager.Instance.player.characterControl.PlayAnimation(PlayerState.DAMAGED, 0);
+            if (Vector2.Distance(transform.position, target.position) <= attackRange)
+            {
+                // 근접 공격
+                PerformMeleeAttack();
+            }
+            else
+            {
+                // 원거리 공격
+                PerformRangedAttack();
+            }
         }
     }
 
-    public void ApplyDefenseDebuff(float amount, float duration)
+    protected virtual void PerformMeleeAttack()
+    {
+        var particle = Instantiate(attackParticle, target.position, Quaternion.identity);
+        particle.Play();
+        Destroy(particle.gameObject, 0.3f);
+
+        GameManager.Instance.player.TakeDamage(damage);
+        preDamageTime = Time.time;
+    }
+
+    protected virtual void PerformRangedAttack()
+    {
+        // 기본 Enemy 클래스에서는 아무것도 하지 않음
+        // RangedEnemy에서 오버라이드하여 구현
+    }
+
+    public virtual void ApplyDefenseDebuff(float amount, float duration)
     {
         if (!gameObject.activeInHierarchy) return;
 
@@ -837,7 +856,7 @@ public class Enemy : MonoBehaviour
         defenseDebuffCoroutine = StartCoroutine(DefenseDebuffCoroutine(amount, duration));
     }
 
-    private IEnumerator DefenseDebuffCoroutine(float amount, float duration)
+    public virtual IEnumerator DefenseDebuffCoroutine(float amount, float duration)
     {
         float actualReduction = Mathf.Min(
             amount,
@@ -857,24 +876,24 @@ public class Enemy : MonoBehaviour
         defenseDebuffCoroutine = null;
     }
 
-    public void ModifyBaseDefense(float amount)
+    public virtual void ModifyBaseDefense(float amount)
     {
         baseDefense = Mathf.Max(0, baseDefense + amount);
         UpdateCurrentDefense();
     }
 
-    public void SetBaseDefense(float newDefense)
+    public virtual void SetBaseDefense(float newDefense)
     {
         baseDefense = Mathf.Max(0, newDefense);
         UpdateCurrentDefense();
     }
 
-    private void UpdateCurrentDefense()
+    public virtual void UpdateCurrentDefense()
     {
         currentDefense = baseDefense * (1f - defenseDebuffAmount);
     }
 
-    public void ApplySlowEffect(float amount, float duration)
+    public virtual void ApplySlowEffect(float amount, float duration)
     {
         if (!gameObject.activeInHierarchy) return;
 
@@ -889,7 +908,7 @@ public class Enemy : MonoBehaviour
         slowEffectCoroutine = StartCoroutine(SlowEffectCoroutine(amount, duration));
     }
 
-    private IEnumerator SlowEffectCoroutine(float amount, float duration)
+    protected virtual IEnumerator SlowEffectCoroutine(float amount, float duration)
     {
         yield return new WaitForSeconds(duration);
 
@@ -901,12 +920,12 @@ public class Enemy : MonoBehaviour
         slowEffectCoroutine = null;
     }
 
-    private void UpdateMoveSpeed()
+    public virtual void UpdateMoveSpeed()
     {
         moveSpeed = originalMoveSpeed * (1f - moveSpeedDebuffAmount);
     }
 
-    public void ApplyDotDamage(float damagePerTick, float tickInterval, float duration)
+    public virtual void ApplyDotDamage(float damagePerTick, float tickInterval, float duration)
     {
         if (!gameObject.activeInHierarchy) return;
 
@@ -918,7 +937,7 @@ public class Enemy : MonoBehaviour
         dotDamageCoroutine = StartCoroutine(DotDamageCoroutine(damagePerTick, tickInterval, duration));
     }
 
-    private IEnumerator DotDamageCoroutine(float damagePerTick, float tickInterval, float duration)
+    protected virtual IEnumerator DotDamageCoroutine(float damagePerTick, float tickInterval, float duration)
     {
         float endTime = Time.time + duration;
 
@@ -934,7 +953,7 @@ public class Enemy : MonoBehaviour
         dotDamageCoroutine = null;
     }
 
-    public void ApplyStun(float power, float duration)
+    public virtual void ApplyStun(float power, float duration)
     {
         if (!gameObject.activeInHierarchy) return;
 
@@ -946,7 +965,7 @@ public class Enemy : MonoBehaviour
         stunCoroutine = StartCoroutine(StunCoroutine(duration));
     }
 
-    private IEnumerator StunCoroutine(float duration)
+    protected virtual IEnumerator StunCoroutine(float duration)
     {
         isStunned = true;
         float originalSpeed = moveSpeed;
@@ -964,7 +983,7 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region Collision
-    private void Contact()
+    public virtual void Contact()
     {
         var particle = Instantiate(attackParticle, target.position, Quaternion.identity);
         particle.Play();
@@ -974,7 +993,7 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region UI
-    private void UpdateHPBar()
+    protected virtual void UpdateHPBar()
     {
         if (hpBar != null)
         {
@@ -982,7 +1001,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void UpdateVisuals()
+    protected virtual void UpdateVisuals()
     {
         UpdateHPBar();
         UpdateSpriteDirection();
@@ -990,7 +1009,7 @@ public class Enemy : MonoBehaviour
     #endregion
 
     #region Utility
-    public void SetCollisionState(bool isOutOfView)
+    public virtual void SetCollisionState(bool isOutOfView)
     {
         if (enemyCollider != null)
         {
@@ -998,7 +1017,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void UpdateSpriteDirection()
+    protected virtual void UpdateSpriteDirection()
     {
         float currentXPosition = transform.position.x;
         if (currentXPosition != previousXPosition)

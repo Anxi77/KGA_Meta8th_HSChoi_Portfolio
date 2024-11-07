@@ -15,6 +15,10 @@ public class GameManager : MonoBehaviour
 
     public PlayerStatData PlayerStatData => playerDataManager.CurrentPlayerStatData;
 
+    private string lastSavedScene = "TownScene";
+    private Vector3 lastSavedPosition = Vector3.zero;
+    private bool hasInitializedGame = false;
+
     private void Awake()
     {
         if (instance == null)
@@ -120,5 +124,52 @@ public class GameManager : MonoBehaviour
     public void Resume()
     {
         Time.timeScale = 1;
+    }
+
+    public void ClearGameData()
+    {
+        if (playerDataManager != null)
+        {
+            playerDataManager.ClearAllData();
+        }
+        lastSavedScene = "TownScene";
+        lastSavedPosition = Vector3.zero;
+        hasInitializedGame = false;
+    }
+
+    public void InitializeNewGame()
+    {
+        ClearGameData();
+        hasInitializedGame = true;
+        lastSavedScene = "TownScene";
+        lastSavedPosition = Vector3.zero;
+
+        // 기본 데이터 로드
+        var defaultStatData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
+        if (defaultStatData != null)
+        {
+            playerDataManager.LoadPlayerStatData(Instantiate(defaultStatData));
+        }
+    }
+
+    public bool HasSaveData()
+    {
+        return playerDataManager != null && playerDataManager.HasSaveData("CurrentSave");
+    }
+
+    public string GetLastSavedScene()
+    {
+        return lastSavedScene;
+    }
+
+    public Vector3 GetLastSavedPosition()
+    {
+        return lastSavedPosition;
+    }
+
+    public void SaveCurrentSceneAndPosition(string sceneName, Vector3 position)
+    {
+        lastSavedScene = sceneName;
+        lastSavedPosition = position;
     }
 }

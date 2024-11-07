@@ -150,7 +150,6 @@ public class ItemManager : SingletonManager<ItemManager>
     // 아이템 비교/정렬
     public float CompareItems(ItemData item1, ItemData item2)
     {
-        // 아이템 점수 계산 (예시)
         float GetItemScore(ItemData item)
         {
             float score = 0;
@@ -203,10 +202,9 @@ public class ItemManager : SingletonManager<ItemManager>
         DropItems(items, position);
     }
 
-    public List<ItemData> GetDropsForEnemy(string enemyType, float luckMultiplier = 1f)
+    public List<ItemData> GetDropsForEnemy(EnemyType enemyType, float luckMultiplier = 1f)
     {
-        if (System.Enum.TryParse(enemyType, out EnemyType type) &&
-            dropTables.TryGetValue(type, out var dropTable))
+        if (dropTables.TryGetValue(enemyType, out var dropTable))
         {
             var drops = new List<ItemData>();
             int dropCount = 0;
@@ -273,8 +271,6 @@ public class ItemManager : SingletonManager<ItemManager>
         return null;
     }
 
-    // ... 기타 런타임 관리 메서드들
-
     public List<GameObject> GetAllItemPrefabs()
     {
         return availableItems.Values
@@ -286,13 +282,11 @@ public class ItemManager : SingletonManager<ItemManager>
 
     public void SaveItemState()
     {
-        // 현재 아이템 상태 저장
         ItemDataManager.Instance.SaveItemDatabase();
     }
 
     public void RestoreItemState()
     {
-        // 아이템 상태 복원
         LoadItemData();
         LoadDropTables();
     }
