@@ -1,375 +1,220 @@
-using System.Collections;
+ï»¿using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Linq;
-using System.Collections.Generic;
-using UnityEditor;
 
-public class StageManager : MonoBehaviour
+public class StageManager : SingletonManager<StageManager>
 {
-    public static StageManager Instance { get; private set; }
 
-    private void Awake()
+    public enum SceneType
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        MainMenu,
+        Town,
+        Game,
+        Test
     }
 
-    private void OnEnable()
+
+    [Header("Portal Settings")]
+    [SerializeField] private GameObject portalPrefab;
+    [SerializeField] private Vector3 townPortalPosition = new Vector3(10, 0, 0);
+    [SerializeField] private Vector3 gameStagePortalPosition = new Vector3(-10, 0, 0);
+
+    #region Scene Loading
+    public void LoadMainMenu()
     {
-        SceneManager.sceneLoaded += OnSceneLoaded;
+        Debug.Log("StageManager: Starting to load main menu...");
+        StartCoroutine(LoadSceneCoroutine("MainMenu", SceneType.MainMenu));
     }
 
-    private void OnDisable()
+    public void LoadTownScene()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
+        StartCoroutine(LoadSceneCoroutine("TownScene", SceneType.Town));
     }
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    public void LoadGameScene()
     {
-        switch (scene.name)
-        {
-            case "MainMenu":
-                ResetAllData();
-                break;
-            case "GameScene":
-                InitializeMainStage();
-                StartCoroutine(InitializeMonsterSpawn());
-                break;
-            case "BossStage":
-                InitializeBossStage();
-                break;
-            case "TestScene":
-                InitializeTestStage();
-                break;
-        }
-    }
-
-    private void ResetAllData()
-    {
-        var player = GameManager.Instance?.player;
-        if (player != null)
-        {
-            PlayerUnitManager.Instance.InitializeNewPlayer();
-            SkillManager.Instance.ResetForNewStage();
-        }
-
-        // ¸ó½ºÅÍ Á¤¸®
-        MonsterManager.Instance?.StopSpawning();
-        ClearAllPools();
-    }
-
-    private IEnumerator InitializeMainStage()
-    {
-        // ¸Å´ÏÀúµéÀÌ ÃÊ±âÈ­µÉ ¶§±îÁö ´ë±â
-        yield return new WaitUntil(() =>
-            GameManager.Instance != null &&
-            SkillDataManager.Instance != null &&
-            SkillDataManager.Instance.IsInitialized);
-
-        var player = GameManager.Instance?.player;
-        if (player != null)
-        {
-            PlayerUnitManager.Instance.LoadGameState();
-            SkillManager.Instance.ResetForNewStage();
-            InitializeStageItems();
-        }
-    }
-
-    private void InitializeBossStage()
-    {
-        var player = GameManager.Instance?.player;
-        if (player != null)
-        {
-            // ÀÓ½Ã È¿°ú¸¸ Á¦°Å
-            PlayerUnitManager.Instance.ClearTemporaryEffects();
-        }
-    }
-
-    private void InitializeTestStage()
-    {
-        var player = GameManager.Instance?.player;
-        if (player != null)
-        {
-            // Å×½ºÆ®¿ë ½ºÅÈ ¼³Á¤
-            PlayerUnitManager.Instance.InitializeTestPlayer();
-
-            // ½ºÅ³ ÃÊ±âÈ­
-            SkillManager.Instance.ResetForNewStage();
-
-            // ¾ÆÀÌÅÛ ÃÊ±âÈ­
-            InitializeStageItems();
-        }
-    }
-
-    private IEnumerator InitializeMonsterSpawn()
-    {
-        // ÇÃ·¹ÀÌ¾î°¡ ¿ÏÀüÈ÷ ÃÊ±âÈ­µÉ ¶§±îÁö ´ë±â
-        while (GameManager.Instance?.player == null)
-        {
-            yield return null;
-        }
-
-        // Ç® ÃÊ±âÈ­
-        ClearAllPools();
-        InitializeObjectPools();
-
-        // ¸ó½ºÅÍ ¸Å´ÏÀú ÃÊ±âÈ­ ¹× ½ºÆù ½ÃÀÛ
-        MonsterManager.Instance.StartSpawning();
-    }
-
-    private void ClearAllPools()
-    {
-        PoolManager.Instance.ClearAllPools();
-    }
-
-    private void InitializeObjectPools()
-    {
-        PoolManager.Instance.InitializePool();
-    }
-
-    private void InitializeStageItems()
-    {
-        // µå·ÓÅ×ÀÌºí ÃÊ±âÈ­
-        ItemManager.Instance.LoadDropTables();
-    }
-
-    private void CleanupStageItems()
-    {
-        var droppedItems = FindObjectsOfType<Item>();
-        foreach (var item in droppedItems)
-        {
-            PoolManager.Instance.Despawn<Item>(item);
-        }
-    }
-
-    public IEnumerator LoadStageAsync(string sceneName)
-    {
-        // 1. ÇöÀç »óÅÂ ÀúÀå
-        GameManager.Instance.SaveGameData();
-        PlayerUnitManager.Instance.SaveGameState();
-
-        // 2. ¾À ÀüÈ¯ ÁØºñ
-        CleanupStageItems();
-        MonsterManager.Instance?.StopSpawning();
-        ClearAllPools();
-
-        // 3. ¾À ·Îµå
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
-        while (!asyncLoad.isDone)
-        {
-            yield return null;
-        }
-
-        // 4. »õ ¾À ÃÊ±âÈ­ - ÀÌº¥Æ® ±â¹İÀ¸·Î º¯°æ
-        PlayerUnitManager.Instance.OnGameStateLoaded += OnGameStateLoaded;
-        PlayerUnitManager.Instance.LoadGameState();
-    }
-
-    private void OnGameStateLoaded()
-    {
-        // ÀÌº¥Æ® ±¸µ¶ ÇØÁ¦
-        PlayerUnitManager.Instance.OnGameStateLoaded -= OnGameStateLoaded;
-
-        // ¾Àº° ÃÊ±âÈ­ ÁøÇà
-        switch (SceneManager.GetActiveScene().name)
-        {
-            case "GameScene":
-                InitializeMainStage();
-                StartCoroutine(InitializeMonsterSpawn());
-                break;
-            case "BossStage":
-                InitializeBossStage();
-                break;
-        }
-    }
-
-    public void HandleStageClearRewards(StageType stageType)
-    {
-        var rewards = GenerateStageRewards(stageType);
-        foreach (var reward in rewards)
-        {
-            PlayerUnitManager.Instance.AddItem(reward);
-        }
-    }
-
-    private List<ItemData> GenerateStageRewards(StageType stageType)
-    {
-        var rewards = new List<ItemData>();
-        switch (stageType)
-        {
-            case StageType.Normal:
-                rewards.AddRange(ItemManager.Instance.GetRandomItems(3));
-                break;
-            case StageType.Boss:
-                rewards.AddRange(ItemManager.Instance.GetRandomItems(1, ItemType.Weapon));
-                rewards.AddRange(ItemManager.Instance.GetRandomItems(2, ItemType.Armor));
-                break;
-        }
-        return rewards;
+        StartCoroutine(LoadSceneCoroutine("GameScene", SceneType.Game));
     }
 
     public void LoadTestScene()
     {
-        StartCoroutine(LoadStageAsync("TestScene"));
+        StartCoroutine(LoadSceneCoroutine("TestScene", SceneType.Test));
     }
 
-    public void ReturnToMainStage()
+    private IEnumerator LoadSceneCoroutine(string sceneName, SceneType sceneType)
     {
-        StartCoroutine(LoadStageAsync("GameScene"));
-    }
+        Debug.Log($"Starting to load scene: {sceneName}");
 
-    public void TransferToMainStage(Player player, Vector3 spawnPosition)
-    {
-        StartCoroutine(TransferPlayerCoroutine(player, spawnPosition));
-    }
+        // ë¡œë”© í™”ë©´ í‘œì‹œ ë° ê²Œì„ ì¼ì‹œ ì •ì§€
+        UIManager.Instance.ShowLoadingScreen();
+        Time.timeScale = 0f;
 
-    private IEnumerator TransferPlayerCoroutine(Player player, Vector3 spawnPosition)
-    {
-        if (player == null)
+        // ì´ˆê¸° ë¡œë”© ì§€ì—°
+        yield return new WaitForSecondsRealtime(2f);
+
+        // ì”¬ ì „í™˜ ì „ ì •ë¦¬
+        CleanupCurrentScene();
+
+        // ì”¬ ë¡œë“œ
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
+        asyncLoad.allowSceneActivation = false;
+
+        float progress = 0f;
+        while (asyncLoad.progress < 0.9f)
         {
-            Debug.LogError("Player is null!");
-            yield break;
+            progress = Mathf.MoveTowards(progress, asyncLoad.progress, Time.unscaledDeltaTime);
+            UIManager.Instance.UpdateLoadingProgress(progress);
+            yield return null;
         }
 
-        // 1. ÇöÀç »óÅÂ ÀúÀå
-        PlayerUnitManager.Instance.SaveGameState();
+        // ì¶”ê°€ ë¡œë”© ì‹œê°„
+        float artificialLoadingTime = 0f;
+        while (artificialLoadingTime < 5f)
+        {
+            artificialLoadingTime += Time.unscaledDeltaTime;
+            progress = Mathf.Lerp(0.9f, 1f, artificialLoadingTime / 5f);
+            UIManager.Instance.UpdateLoadingProgress(progress);
+            yield return null;
+        }
 
-        // 2. ¾À ÀüÈ¯ ÁØºñ
-        CleanupStageItems();
-        MonsterManager.Instance?.StopSpawning();
-        ClearAllPools();
+        Debug.Log($"Scene {sceneName} loaded to 90%, activating...");
+        asyncLoad.allowSceneActivation = true;
 
-        // 3. ¾À ·Îµå
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("GameScene");
         while (!asyncLoad.isDone)
         {
             yield return null;
         }
 
-        // 4. ÇÃ·¹ÀÌ¾î À§Ä¡ ¼³Á¤
-        player.transform.position = spawnPosition;
+        Debug.Log($"Scene {sceneName} loaded, initializing UI...");
 
-        // 5. °ÔÀÓ »óÅÂ ·Îµå ¹× ÃÊ±âÈ­
-        PlayerUnitManager.Instance.OnGameStateLoaded += OnGameStateLoaded;
-        PlayerUnitManager.Instance.LoadGameState();
+        // UI ì´ˆê¸°í™”
+        switch (sceneType)
+        {
+            case SceneType.MainMenu:
+                UIManager.Instance.SetupMainMenuUI();
+                break;
+            case SceneType.Town:
+            case SceneType.Game:
+                UIManager.Instance.SetupGameUI();
+                break;
+        }
 
-        // 6. ¸ŞÀÎ ½ºÅ×ÀÌÁö ÃÊ±âÈ­
-        yield return StartCoroutine(InitializeMainStage());
-        StartCoroutine(InitializeMonsterSpawn());
+        // UIê°€ ì¤€ë¹„ë  ë•Œê¹Œì§€ ëŒ€ê¸°
+        yield return new WaitUntil(() => IsUIReady(sceneType));
+
+        // GameLoopManager ìƒíƒœ ë³€ê²½
+        switch (sceneType)
+        {
+            case SceneType.MainMenu:
+                GameLoopManager.Instance.ChangeState(GameLoopManager.GameState.MainMenu);
+                break;
+            case SceneType.Town:
+                GameLoopManager.Instance.ChangeState(GameLoopManager.GameState.Town);
+                break;
+            case SceneType.Game:
+            case SceneType.Test:
+                GameLoopManager.Instance.ChangeState(GameLoopManager.GameState.Stage);
+                break;
+        }
+
+        // ìƒíƒœ í•¸ë“¤ëŸ¬ì˜ ì´ˆê¸°í™”ê°€ ì™„ë£Œë  ë•Œê¹Œì§€ ëŒ€ê¸°
+        yield return new WaitUntil(() => IsSceneInitializationComplete(sceneType));
+
+        // ìµœì¢… ë¡œë”© ì§€ì—°
+        yield return new WaitForSecondsRealtime(1f);
+
+        // ëª¨ë“  ì´ˆê¸°í™”ê°€ ì™„ë£Œëœ í›„ì— ë¡œë”© í™”ë©´ì„ ìˆ¨ê¸°ê³  ê²Œì„ ì¬ê°œ
+        UIManager.Instance.HideLoadingScreen();
+        Time.timeScale = 1f;
+        Debug.Log($"Scene {sceneName} initialization complete");
     }
 
-    // ¸¶À»¿¡¼­ ¸ŞÀÎ ½ºÅ×ÀÌÁö·Î ÀÌµ¿ÇÒ ¶§ »ç¿ëÇÒ ¼ö ÀÖ´Â ÆíÀÇ ¸Ş¼­µå
-    public void TransferFromTownToMainStage(Player player)
+    private bool IsSceneInitializationComplete(SceneType sceneType)
     {
-        // ¸ŞÀÎ ½ºÅ×ÀÌÁöÀÇ ±âº» ½ºÆù À§Ä¡ ¼³Á¤
-        Vector3 mainStageSpawnPosition = new Vector3(0, 0, 0); // ¿øÇÏ´Â ½ºÆù À§Ä¡·Î Á¶Á¤
-        TransferToMainStage(player, mainStageSpawnPosition);
+        switch (sceneType)
+        {
+            case SceneType.Town:
+                return GameManager.Instance?.player != null &&
+                       CameraManager.Instance?.IsInitialized == true &&
+                       UIManager.Instance?.playerUIManager?.gameObject.activeSelf == true;
+
+            case SceneType.Game:
+            case SceneType.Test:
+                return GameManager.Instance?.player != null &&
+                       CameraManager.Instance?.IsInitialized == true &&
+                       UIManager.Instance?.playerUIManager?.gameObject.activeSelf == true &&
+                       MonsterManager.Instance?.IsInitialized == true;
+
+            case SceneType.MainMenu:
+                return UIManager.Instance != null && UIManager.Instance.IsMainMenuActive();
+
+            default:
+                return true;
+        }
     }
 
-    private const float STAGE_DURATION = 600f; // 10ºĞ
-    private Portal bossPortal;
-    private Portal townPortal;
-
-    public void StartMainStageLoop()
+    private void CleanupCurrentScene()
     {
-        StartCoroutine(MainStageLoopCoroutine());
+        var existingPortals = FindObjectsOfType<Portal>();
+        foreach (var portal in existingPortals)
+        {
+            Destroy(portal.gameObject);
+        }
+        PoolManager.Instance?.ClearAllPools();
     }
 
-    private IEnumerator MainStageLoopCoroutine()
+    private bool IsUIReady(SceneType sceneType)
     {
-        // 1. ½ºÅ×ÀÌÁö Å¸ÀÌ¸Ó ½ÃÀÛ
-        StageTimeManager.Instance.StartStageTimer(STAGE_DURATION);
+        switch (sceneType)
+        {
+            case SceneType.MainMenu:
+                return UIManager.Instance.IsMainMenuActive();
+            case SceneType.Town:
+            case SceneType.Game:
+                return UIManager.Instance.IsGameUIReady();
+            default:
+                return true;
+        }
+    }
+    #endregion
 
-        // 2. ÀÏ¹İ ¸ó½ºÅÍ ½ºÆù ½ÃÀÛ
-        MonsterManager.Instance.StartSpawning();
-
-        // 3. Å¸ÀÌ¸Ó Á¾·á ´ë±â
-        yield return new WaitUntil(() => StageTimeManager.Instance.IsStageTimeUp());
-
-        // 4. º¸½º ½ºÆù ¾Ë¸²
-        UIManager.Instance.ShowBossWarning();
-
-        // 5. º¸½º ½ºÆù
-        yield return StartCoroutine(SpawnBossWithDelay());
-
-        // 6. º¸½º Ã³Ä¡ ´ë±â
-        yield return new WaitUntil(() => IsBossDefeated());
-
-        // 7. ¸¶À» Æ÷Å» »ı¼º
-        SpawnTownPortal();
+    #region Portal Management
+    public void SpawnGameStagePortal()
+    {
+        SpawnPortal(townPortalPosition, SceneType.Game);
     }
 
-    private IEnumerator SpawnBossWithDelay()
+    public void SpawnTownPortal(Vector3 position)
     {
-        yield return new WaitForSeconds(3f); // °æ°í ¸Ş½ÃÁö Ç¥½Ã ½Ã°£
-        MonsterManager.Instance.SpawnStageBoss();
+        SpawnPortal(position, SceneType.Town);
     }
 
-    private bool IsBossDefeated()
+    private void SpawnPortal(Vector3 position, SceneType destinationType)
     {
-        return MonsterManager.Instance.IsBossDefeated;
-    }
-
-    private void SpawnTownPortal()
-    {
-        Vector3 bossPosition = MonsterManager.Instance.LastBossPosition;
-        // ÇÁ¸®ÆÕÀ» Á÷Á¢ ÂüÁ¶ÇÏµµ·Ï ¼öÁ¤
-        GameObject portalPrefab = Resources.Load<GameObject>("Prefabs/TownPortal");
         if (portalPrefab != null)
         {
-            townPortal = PoolManager.Instance.Spawn<Portal>(portalPrefab, bossPosition, Quaternion.identity);
-            townPortal.Initialize("Town", OnTownPortalEnter);
+            GameObject portalObj = Instantiate(portalPrefab, position, Quaternion.identity);
+            DontDestroyOnLoad(portalObj);
+
+            if (portalObj.TryGetComponent<Portal>(out var portal))
+            {
+                portal.Initialize(destinationType);
+            }
         }
-        else
+    }
+
+    public void OnPortalEnter(SceneType destinationType)
+    {
+        switch (destinationType)
         {
-            Debug.LogError("TownPortal prefab not found in Resources folder!");
+            case SceneType.Town:
+                PlayerUnitManager.Instance.SaveGameState();
+                LoadTownScene();
+                break;
+            case SceneType.Game:
+                LoadGameScene();
+                break;
         }
     }
-
-    private void OnTownPortalEnter()
-    {
-        StartCoroutine(ReturnToTownCoroutine());
-    }
-
-    private IEnumerator ReturnToTownCoroutine()
-    {
-        // 1. ÇöÀç »óÅÂ ÀúÀå
-        PlayerUnitManager.Instance.SaveGameState();
-
-        // 2. º¸»ó Áö±Ş
-        HandleStageClearRewards(StageType.Boss);
-
-        // 3. ¾À ÀüÈ¯
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("TownScene");
-        while (!asyncLoad.isDone)
-        {
-            yield return null;
-        }
-
-        // 4. ÇÃ·¹ÀÌ¾î À§Ä¡ ¼³Á¤
-        GameManager.Instance.player.transform.position = GetTownSpawnPosition();
-
-        // 5. »óÅÂ º¹¿ø
-        PlayerUnitManager.Instance.LoadGameState();
-    }
-
-    private Vector3 GetTownSpawnPosition()
-    {
-        // ¸¶À»ÀÇ ½ºÆù Æ÷ÀÎÆ® ¹İÈ¯
-        return new Vector3(0, 0, 0); // ½ÇÁ¦ ¸¶À» ½ºÆù À§Ä¡·Î ¼öÁ¤ ÇÊ¿ä
-    }
-}
-
-public enum StageType
-{
-    Normal,
-    Boss
+    #endregion
 }

@@ -1,22 +1,21 @@
-using UnityEngine;
+癤퓎sing UnityEngine;
 using System.Collections.Generic;
 using UnityEditor.Experimental.GraphView;
 
-public class PathFindingManager : SingletonManager<PathFindingManager>
+public class PathFindingManager : SingletonManager<PathFindingManager>, IInitializable
 {
-    #region Singleton
+    public bool IsInitialized { get; private set; }
 
-    //private static PathFindingManager instance;
-
-    #endregion
-
-    #region Fields & Properties
+    #region Constants
     private const int GRID_SIZE = 50;
     public const float NODE_SIZE = 1f;
     private const float GRID_VIEW_DISTANCE = 20f;
     private const int MAX_PATH_LENGTH = 100;
     private const int MAX_SEARCH_ITERATIONS = 1000;
+    private const int INITIAL_POOL_SIZE = 20;
+    #endregion
 
+    #region Fields
     private Dictionary<Vector2Int, Node> activeNodes = new Dictionary<Vector2Int, Node>();
     private Camera mainCamera;
     private Vector2 previousCameraPosition;
@@ -24,7 +23,30 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
     private Vector2 gridWorldCenter;
     private List<Node> openSet;
     private HashSet<Node> closedSet;
+    private Queue<PathFindingInstance> instancePool = new Queue<PathFindingInstance>();
     #endregion
+
+    protected override void Awake()
+    {
+        base.Awake();
+    }
+
+    public void Initialize()
+    {
+        try
+        {
+            Debug.Log("Initializing PathFindingManager...");
+            InitializePools();
+            CreateGrid();
+            IsInitialized = true;
+            Debug.Log("PathFindingManager initialized successfully");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error initializing PathFindingManager: {e.Message}");
+            IsInitialized = false;
+        }
+    }
 
     #region Object Pooling
     private class PathFindingInstance
@@ -33,9 +55,6 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
         public HashSet<Node> closedSet = new HashSet<Node>();
         public List<Vector2> path = new List<Vector2>(MAX_PATH_LENGTH);
     }
-
-    private Queue<PathFindingInstance> instancePool = new Queue<PathFindingInstance>();
-    private const int INITIAL_POOL_SIZE = 20;
 
     private void InitializePools()
     {
@@ -64,15 +83,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
     }
     #endregion
 
-    #region Initialization & Setup
-
-    protected override void Awake()
-    {
-        base.Awake();
-        InitializePools();
-        CreateGrid();
-    }
-
+    #region Grid Management
     private void CreateGrid()
     {
         mainCamera = Camera.main;
@@ -114,13 +125,6 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
         }
     }
 
-    private void CreateNode(int x, int y)
-    {
-        Vector2 worldPosition = bottomLeft + new Vector2(x * NODE_SIZE, y * NODE_SIZE);
-        bool isWalkable = !Physics2D.OverlapCircle(worldPosition, NODE_SIZE * 0.4f, LayerMask.GetMask("Obstacle"));
-        activeNodes[new Vector2Int(x, y)] = new Node(isWalkable, worldPosition, x, y);
-    }
-
     private void Update()
     {
         if (mainCamera == null) return;
@@ -132,12 +136,21 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
             previousCameraPosition = currentCameraPosition;
         }
     }
+    #endregion
+
+    #region Node Operations
+    private void CreateNode(int x, int y)
+    {
+        Vector2 worldPosition = bottomLeft + new Vector2(x * NODE_SIZE, y * NODE_SIZE);
+        bool isWalkable = !Physics2D.OverlapCircle(worldPosition, NODE_SIZE * 0.4f, LayerMask.GetMask("Obstacle"));
+        activeNodes[new Vector2Int(x, y)] = new Node(isWalkable, worldPosition, x, y);
+    }
 
     private void UpdateGrid(Vector2 cameraPosition)
     {
         bottomLeft = cameraPosition - new Vector2(GRID_SIZE * NODE_SIZE / 2, GRID_SIZE * NODE_SIZE / 2);
 
-        // 현재 카메라 뷰포트 범위 계산
+        //  카牝 트
         float height = 2f * mainCamera.orthographicSize;
         float width = height * mainCamera.aspect;
 
@@ -148,7 +161,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
 
         HashSet<Vector2Int> currentVisibleNodes = new HashSet<Vector2Int>();
 
-        // 새로운 노드 생성 및 기존 노드 업데이트
+        // 恝  트
         for (int x = startX; x <= endX; x++)
         {
             for (int y = startY; y <= endY; y++)
@@ -167,7 +180,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
             }
         }
 
-        // 시야 밖의 노드 제거
+        //  청
         List<Vector2Int> nodesToRemove = new List<Vector2Int>();
         foreach (var node in activeNodes)
         {
@@ -182,7 +195,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
             activeNodes.Remove(pos);
         }
 
-        // 적 콜라이더 상태 업데이트
+        //  척甄
         UpdateEnemyColliders(currentVisibleNodes);
     }
 
@@ -243,7 +256,6 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
 
         return neighbours;
     }
-
     #endregion
 
     #region Pathfinding Core
@@ -380,7 +392,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
             }
         }
 
-        // 경로를 찾지 못했을 경우 직선 경로 반환
+        // 罐 찾 
         return new List<Vector2> { startPos, targetPos };
     }
 
@@ -526,11 +538,11 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
     {
         if (mainCamera == null) return;
 
-        // 그리드 시각화
+        // 琉챨화
         Gizmos.color = new Color(1, 1, 0, 0.2f);
         Gizmos.DrawWireCube(gridWorldCenter, new Vector3(GRID_SIZE * NODE_SIZE, GRID_SIZE * NODE_SIZE, 1));
 
-        // 노드 시각화
+        //  챨화
         foreach (var node in activeNodes.Values)
         {
             Gizmos.color = node.walkable ?
@@ -540,7 +552,7 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
             Gizmos.DrawCube(node.worldPosition, Vector3.one * NODE_SIZE * 0.8f);
         }
 
-        // 모든 적의 경로 시각화
+        //   챨화
         var enemies = FindObjectsOfType<Enemy>();
         foreach (var enemy in enemies)
         {
@@ -548,26 +560,26 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
             {
                 var path = enemy.currentPath;
 
-                // 현재 위치에서 첫 번째 웨이포인트까지의 라인
-                Gizmos.color = new Color(1, 0, 1, 1f); // 보라색
+                // 치 첫 트
+                Gizmos.color = new Color(1, 0, 1, 1f); // 
                 Gizmos.DrawLine(enemy.transform.position, path[0]);
 
-                // 경로 시각화
+                // 챨화
                 for (int i = 0; i < path.Count - 1; i++)
                 {
-                    // 경로 라인
-                    Gizmos.color = new Color(0, 0, 1, 1f); // 진한 파란색
+                    // 
+                    Gizmos.color = new Color(0, 0, 1, 1f); // 캘
                     Gizmos.DrawLine(path[i], path[i + 1]);
 
-                    // 웨이포인트 표시
-                    Gizmos.color = new Color(1, 1, 0, 1f); // 노란색
+                    // 트 표
+                    Gizmos.color = new Color(1, 1, 0, 1f); // 
                     Gizmos.DrawWireSphere(path[i], NODE_SIZE * 0.3f);
                 }
 
-                // 마지막 웨이포인트 표시
+                // 트 표
                 if (path.Count > 0)
                 {
-                    Gizmos.color = new Color(0, 1, 0, 1f); // 초록색
+                    Gizmos.color = new Color(0, 1, 0, 1f); // 矩
                     Gizmos.DrawWireSphere(path[path.Count - 1], NODE_SIZE * 0.4f);
                 }
             }
@@ -599,6 +611,22 @@ public class PathFindingManager : SingletonManager<PathFindingManager>
         );
     }
     #endregion
+
+    public void InitializeWithNewCamera()
+    {
+        mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            Debug.LogError("Main Camera not found in PathFindingManager initialization!");
+            return;
+        }
+
+        UpdateGridCenter();
+        InitializeNodes();
+        previousCameraPosition = mainCamera.transform.position;
+
+        Debug.Log("PathFindingManager initialized with new camera");
+    }
 }
 
 

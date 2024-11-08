@@ -122,6 +122,75 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &368975070
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 368975072}
+  - component: {fileID: 368975071}
+  m_Layer: 0
+  m_Name: TestSceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &368975071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368975070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 562262abcc73f544ab0ed1a8aa8c0802, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  managerPrefabs:
+  - managerName: GameManager
+    prefab: {fileID: 6561290952762032635, guid: c1fafc31581602049a5ae4b4a96b2a55, type: 3}
+  - managerName: StageManager
+    prefab: {fileID: 3095068918956261682, guid: 75e4427650e82d749a7c37a75d985f38, type: 3}
+  - managerName: CameraManager
+    prefab: {fileID: 7618072481005056977, guid: 9c131ab879b08414ca2256bdb6b315d8, type: 3}
+  - managerName: PlayerDataManager
+    prefab: {fileID: 509522231614714961, guid: 13f55d2d37cd1e04c8131c3ab427b9ce, type: 3}
+  - managerName: PlayerUnitManager
+    prefab: {fileID: 2073091833135863270, guid: 5233e435dc6c90d448c15eccb59a4a7d, type: 3}
+  - managerName: PoolManager
+    prefab: {fileID: 8858703066102451872, guid: a6760f6d15d3f844baa68d447a9e491f, type: 3}
+  - managerName: SkillManager
+    prefab: {fileID: 847909368160594013, guid: 3fc7a12d127c5034192d52ab5ed0c61d, type: 3}
+  - managerName: SkillDataManager
+    prefab: {fileID: 7368436699820013479, guid: c0bbed01def8a1945a2ff2f5f4aed6a4, type: 3}
+  - managerName: StageTimeManager
+    prefab: {fileID: 9094795581714949491, guid: 3b0c99257e2208245b70ae6665f0380e, type: 3}
+  - managerName: UIManager
+    prefab: {fileID: 1193521406336202201, guid: 62e050dc4cb2be446a5d008b4f4ab721, type: 3}
+  - managerName: MonsterManager
+    prefab: {fileID: 4276945505384924595, guid: 150545fbad3770f40a79dd8ca6ff1b14, type: 3}
+  - managerName: PathFindingManager
+    prefab: {fileID: 5319117590433450768, guid: bbaf9edd7d3c06d4eb7c5cc5f80b64b0, type: 3}
+--- !u!4 &368975072
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368975070}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -101900,4 +101969,5 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 519420032}
+  - {fileID: 368975072}
   - {fileID: 2457973374099007425}

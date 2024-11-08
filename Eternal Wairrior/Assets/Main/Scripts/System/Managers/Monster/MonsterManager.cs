@@ -6,75 +6,59 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 using System.Linq;
 
-public class MonsterManager : SingletonManager<MonsterManager>
+public class MonsterManager : SingletonManager<MonsterManager>, IInitializable
 {
-    #region Members
+    public bool IsInitialized { get; private set; }
 
-    #region Stats
-
-    [Tooltip("ѹ ּ , Y : ִ")]
+    [Header("Spawn Settings")]
+    [Tooltip("스폰 최소/최대 수, Y : 최대")]
     public Vector2Int minMaxCount;
-
-    [Tooltip("ּ ִ/ּ Ÿ.\n X : ּ , Y : ִ")]
+    [Tooltip("최소/최대 스폰 거리.\n X : 최소, Y : 최대")]
     public Vector2 minMaxDist;
-
     public float spawnInterval;
 
-    #endregion
-
+    [Header("Monster Settings")]
     public Enemy enemyPrefab;
-
-    private Coroutine spawnCoroutine;
-    private bool isSpawning = false;
 
     [Header("Boss Settings")]
     public BossMonster bossPrefab;
     public Vector2 bossSpawnOffset = new Vector2(0, 5f);
 
+    private Coroutine spawnCoroutine;
+    private bool isSpawning = false;
     private bool isBossDefeated = false;
     private Vector3 lastBossPosition;
 
     public bool IsBossDefeated => isBossDefeated;
     public Vector3 LastBossPosition => lastBossPosition;
 
-    #endregion
-
-    #region Unity Message Methods
-
     protected override void Awake()
     {
         base.Awake();
     }
 
-    private void Start()
+    public void Initialize()
     {
-        StartCoroutine(SpawnCoroutine());
-    }
-
-    private IEnumerator SpawnCoroutine()
-    {
-        while (true)
+        if (!PoolManager.Instance.IsInitialized)
         {
-            yield return new WaitForSeconds(spawnInterval);
-            int enemyCount = Random.Range(minMaxCount.x, minMaxCount.y);
-            Spawn(enemyCount);
+            Debug.LogWarning("Waiting for PoolManager to initialize...");
+            return;
+        }
 
+        try
+        {
+            Debug.Log("Initializing MonsterManager...");
+            IsInitialized = true;
+            Debug.Log("MonsterManager initialized successfully");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error initializing MonsterManager: {e.Message}");
+            IsInitialized = false;
         }
     }
 
-    private void Spawn(int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            Vector2 playerPos = GameManager.Instance.player.transform.position;
-            Vector2 ranPos = Random.insideUnitCircle;
-            Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
-            Vector2 finalPos = playerPos + spawnPos;
-
-            PoolManager.Instance.Spawn<Enemy>(enemyPrefab.gameObject, finalPos, quaternion.identity);
-        }
-    }
-
+    #region Spawn Management
     public void StartSpawning()
     {
         if (!isSpawning)
@@ -93,25 +77,42 @@ public class MonsterManager : SingletonManager<MonsterManager>
             isSpawning = false;
         }
 
-        // ϴ ֮ ֮
-        var enemies = FindObjectsOfType<Enemy>();
-        foreach (var enemy in enemies)
+        ClearCurrentEnemies();
+    }
+
+    private IEnumerator SpawnCoroutine()
+    {
+        while (true)
         {
-            PoolManager.Instance.Despawn(enemy);
+            yield return new WaitForSeconds(spawnInterval);
+            int enemyCount = Random.Range(minMaxCount.x, minMaxCount.y);
+            SpawnEnemies(enemyCount);
         }
     }
 
+    private void SpawnEnemies(int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            Vector2 playerPos = GameManager.Instance.player.transform.position;
+            Vector2 ranPos = Random.insideUnitCircle;
+            Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
+            Vector2 finalPos = playerPos + spawnPos;
+
+            PoolManager.Instance.Spawn<Enemy>(enemyPrefab.gameObject, finalPos, Quaternion.identity);
+        }
+    }
+    #endregion
+
+    #region Boss Management
     public void SpawnStageBoss()
     {
-        // 현재 스폰된 일반 몬스터들 제거
         StopSpawning();
         ClearCurrentEnemies();
 
-        // 보스 스폰 위치 계산
         Vector3 playerPos = GameManager.Instance.player.transform.position;
         Vector3 spawnPos = playerPos + new Vector3(bossSpawnOffset.x, bossSpawnOffset.y, 0);
 
-        // 보스 스폰
         BossMonster boss = PoolManager.Instance.Spawn<BossMonster>(
             bossPrefab.gameObject,
             spawnPos,
@@ -125,7 +126,9 @@ public class MonsterManager : SingletonManager<MonsterManager>
     {
         isBossDefeated = true;
         lastBossPosition = position;
+        GameLoopManager.Instance.GetCurrentHandler<StageStateHandler>()?.OnBossDefeated(position);
     }
+    #endregion
 
     private void ClearCurrentEnemies()
     {
@@ -135,6 +138,5 @@ public class MonsterManager : SingletonManager<MonsterManager>
             PoolManager.Instance.Despawn(enemy);
         }
     }
-    #endregion
 }
 

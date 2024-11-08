@@ -3,8 +3,10 @@ using TMPro;
 using UnityEngine.UI;
 using System.Collections;
 
-public class PlayerUIManager : MonoBehaviour
+public class PlayerUIManager : SingletonManager<PlayerUIManager>, IInitializable
 {
+    public bool IsInitialized { get; private set; }
+
     [Header("Player Info Texts")]
     [SerializeField] private TextMeshProUGUI playerDefText;
     [SerializeField] private TextMeshProUGUI playerAtkText;
@@ -25,11 +27,79 @@ public class PlayerUIManager : MonoBehaviour
     private PlayerStat playerStat;
     private Coroutine updateCoroutine;
 
-    public void Initialize(Player player)
+    private bool isUIReady = false;
+
+    protected override void Awake()
     {
+        base.Awake();
+        Initialize();
+    }
+
+    public void Initialize()
+    {
+        if (!UIManager.Instance.IsInitialized)
+        {
+            Debug.LogWarning("Waiting for UIManager to initialize...");
+            return;
+        }
+
+        try
+        {
+            Debug.Log("Initializing PlayerUIManager...");
+            IsInitialized = true;
+            Debug.Log("PlayerUIManager initialized successfully");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error initializing PlayerUIManager: {e.Message}");
+            IsInitialized = false;
+        }
+    }
+
+    public void PrepareUI()
+    {
+        if (playerDefText) playerDefText.text = "DEF : 0";
+        if (playerAtkText) playerAtkText.text = "ATK : 0";
+        if (playerMSText) playerMSText.text = "MoveSpeed : 0";
+        if (levelText) levelText.text = "LEVEL : 1";
+        if (expText) expText.text = "EXP : 0/0";
+        if (hpText) hpText.text = "0 / 0";
+        if (expCollectRadText) expCollectRadText.text = "ExpRad : 0";
+        if (playerHpRegenText) playerHpRegenText.text = "HPRegen : 0/s";
+        if (playerAttackRangeText) playerAttackRangeText.text = "AR : 0";
+        if (playerAttackSpeedText) playerAttackSpeedText.text = "AS : 0/s";
+
+        if (hpBarImage) hpBarImage.value = 0;
+        if (expBarImage) expBarImage.value = 0;
+
+        isUIReady = true;
+        Debug.Log("PlayerUI prepared");
+    }
+
+    public bool IsUIReady()
+    {
+        return isUIReady &&
+               playerDefText != null &&
+               playerAtkText != null &&
+               playerMSText != null &&
+               levelText != null &&
+               expText != null &&
+               hpText != null;
+    }
+
+    public void InitializePlayerUI(Player player)
+    {
+        if (player == null)
+        {
+            Debug.LogError("Cannot initialize PlayerUI with null player");
+            return;
+        }
+
         this.player = player;
         this.playerStat = player.GetComponent<PlayerStat>();
         StartUIUpdate();
+        isUIReady = true;
+        Debug.Log("PlayerUI fully initialized with player reference");
     }
 
     private void StartUIUpdate()
@@ -57,11 +127,7 @@ public class PlayerUIManager : MonoBehaviour
     {
         try
         {
-            playerAtkText.text = $"ATK : {playerStat.GetStat(StatType.Damage):F1}";
-            playerDefText.text = $"DEF : {playerStat.GetStat(StatType.Defense):F1}";
-            levelText.text = $"LEVEL : {player.level}";
-            playerMSText.text = $"MoveSpeed : {playerStat.GetStat(StatType.MoveSpeed):F1}";
-
+            UpdateCombatStats();
             UpdateHealthUI();
             UpdateExpUI();
             UpdateOtherStats();
@@ -70,6 +136,14 @@ public class PlayerUIManager : MonoBehaviour
         {
             Debug.LogError($"Error updating player info: {e.Message}");
         }
+    }
+
+    private void UpdateCombatStats()
+    {
+        playerAtkText.text = $"ATK : {playerStat.GetStat(StatType.Damage):F1}";
+        playerDefText.text = $"DEF : {playerStat.GetStat(StatType.Defense):F1}";
+        levelText.text = $"LEVEL : {player.level}";
+        playerMSText.text = $"MoveSpeed : {playerStat.GetStat(StatType.MoveSpeed):F1}";
     }
 
     private void UpdateHealthUI()
@@ -109,7 +183,11 @@ public class PlayerUIManager : MonoBehaviour
         if (updateCoroutine != null)
         {
             StopCoroutine(updateCoroutine);
+            updateCoroutine = null;
         }
+        player = null;
+        playerStat = null;
+        isUIReady = false;
     }
 
     private void OnDisable()

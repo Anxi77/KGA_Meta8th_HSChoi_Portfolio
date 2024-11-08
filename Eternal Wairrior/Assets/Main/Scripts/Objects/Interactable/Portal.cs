@@ -2,20 +2,18 @@ using UnityEngine;
 
 public class Portal : MonoBehaviour
 {
-    private string destinationScene;
-    private System.Action onEnterAction;
+    private StageManager.SceneType destinationType;
 
-    public void Initialize(string scene, System.Action enterAction)
+    public void Initialize(StageManager.SceneType destType)
     {
-        destinationScene = scene;
-        onEnterAction = enterAction;
+        destinationType = destType;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
-            onEnterAction?.Invoke();
+            StageManager.Instance.OnPortalEnter(destinationType);
         }
     }
 }

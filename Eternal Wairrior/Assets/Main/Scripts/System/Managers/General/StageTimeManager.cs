@@ -1,58 +1,84 @@
 using UnityEngine;
 
-public class StageTimeManager : SingletonManager<StageTimeManager>
+public class StageTimeManager : SingletonManager<StageTimeManager>, IInitializable
 {
+    public bool IsInitialized { get; private set; }
+
     private float stageTimer;
-    private float maxStageTime;
+    private float stageDuration;
     private bool isTimerRunning;
 
-    public float RemainingTime => Mathf.Max(0, maxStageTime - stageTimer);
-    public float StageProgress => stageTimer / maxStageTime;
+    protected override void Awake()
+    {
+        base.Awake();
+        Initialize();
+    }
 
-    public event System.Action OnStageTimeUp;
+    public void Initialize()
+    {
+        try
+        {
+            Debug.Log("Initializing StageTimeManager...");
+            ResetTimer();
+            IsInitialized = true;
+            Debug.Log("StageTimeManager initialized successfully");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error initializing StageTimeManager: {e.Message}");
+            IsInitialized = false;
+        }
+    }
 
     private void Update()
     {
         if (isTimerRunning)
         {
             stageTimer += Time.deltaTime;
-
-            if (stageTimer >= maxStageTime)
-            {
-                StopStageTimer();
-                OnStageTimeUp?.Invoke();
-            }
         }
     }
 
     public void StartStageTimer(float duration)
     {
-        maxStageTime = duration;
+        stageDuration = duration;
         stageTimer = 0f;
         isTimerRunning = true;
     }
 
-    public void StopStageTimer()
+    public void PauseTimer()
     {
         isTimerRunning = false;
+    }
+
+    public void ResumeTimer()
+    {
+        isTimerRunning = true;
     }
 
     public void ResetTimer()
     {
         stageTimer = 0f;
+        stageDuration = 0f;
         isTimerRunning = false;
     }
 
     public bool IsStageTimeUp()
     {
-        return stageTimer >= maxStageTime;
+        return stageTimer >= stageDuration;
     }
 
-    public string GetFormattedTime()
+    public float GetElapsedTime()
     {
-        float time = RemainingTime;
-        int minutes = Mathf.FloorToInt(time / 60);
-        int seconds = Mathf.FloorToInt(time % 60);
-        return $"{minutes:00}:{seconds:00}";
+        return stageTimer;
+    }
+
+    public float GetRemainingTime()
+    {
+        return Mathf.Max(0f, stageDuration - stageTimer);
+    }
+
+    public float GetTimeProgress()
+    {
+        return stageDuration > 0f ? stageTimer / stageDuration : 0f;
     }
 }

@@ -15,7 +15,7 @@ MonoBehaviour:
   baseHp: 100
   baseDamage: 100
   baseDefense: 2
-  baseAttackSpeed: 1
+  baseAttackSpeed: 5
   baseAttackRange: 2
   baseAttackAngle: 120
   baseSpeed: 5

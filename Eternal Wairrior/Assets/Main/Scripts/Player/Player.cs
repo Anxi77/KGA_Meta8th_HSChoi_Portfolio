@@ -49,7 +49,6 @@ public class Player : MonoBehaviour
 
     #endregion
 
-    public event System.Action OnInitialized;
     private bool isInitialized = false;
 
     #region Unity Message Methods
@@ -61,14 +60,16 @@ public class Player : MonoBehaviour
 
     private void OnEnable()
     {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        StartCombatSystems();
+        Debug.Log("Player OnEnable called");
+        if (playerStat != null && playerStatus != Status.Dead)
+        {
+            StartCombatSystems();
+        }
     }
 
     private void OnDisable()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-        StopAllCoroutines();
+        CleanupPlayer();
     }
 
     private void Start()
@@ -79,29 +80,14 @@ public class Player : MonoBehaviour
 
     private void InitializeComponents()
     {
-        // 컴포넌트 초기화
         playerStat = GetComponent<PlayerStat>();
-        if (playerStat == null)
-        {
-            playerStat = gameObject.AddComponent<PlayerStat>();
-        }
-
         rb = GetComponent<Rigidbody2D>();
-        if (rb == null)
+        if (rb != null)
         {
-            rb = gameObject.AddComponent<Rigidbody2D>();
             rb.gravityScale = 0f;
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         }
-
-        if (characterControl == null)
-        {
-            characterControl = GetComponent<SPUM_Prefabs>();
-            if (characterControl == null)
-            {
-                Debug.LogError("SPUM_Prefabs component is missing on Player!");
-            }
-        }
+        characterControl?.Initialize();
     }
 
     private void InitializePlayer()
@@ -110,117 +96,16 @@ public class Player : MonoBehaviour
         {
             GameManager.Instance.player = this;
         }
-
-        PlayerUnitManager.Instance.OnPlayerInitialized += OnPlayerInitialized;
-        PlayerUnitManager.Instance.Initialize(this);
     }
 
-    private void OnPlayerInitialized()
+    public void InitializePlayerSystems()
     {
-        PlayerUnitManager.Instance.OnPlayerInitialized -= OnPlayerInitialized;
-
-        ResetAllStats();
-        isInitialized = true;
-        OnInitialized?.Invoke();
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        PlayerUnitManager.Instance.OnGameStateLoaded += OnGameStateLoaded;
-
-        switch (scene.name)
-        {
-            case "MainMenu":
-                ResetAllStats();
-                break;
-            case "GameScene":
-            case "BossStage":
-                PlayerUnitManager.Instance.LoadGameState();
-                break;
-            case "TestScene":
-                PlayerUnitManager.Instance.InitializeTestPlayer();
-                break;
-        }
-    }
-
-    private void OnGameStateLoaded()
-    {
-        PlayerUnitManager.Instance.OnGameStateLoaded -= OnGameStateLoaded;
-
-        if (playerStatus != Status.Dead)
-        {
-            RestartCombatSystems();
-        }
-    }
-
-    private void RestartCombatSystems()
-    {
-        StopAllCoroutines();
         StartCombatSystems();
     }
 
-    private void StartCombatSystems()
+    public void CleanupPlayer()
     {
-        // 필요한 컴포넌트들이 모두 있는지 확인
-        if (playerStatus != Status.Dead && characterControl != null && playerStat != null)
-        {
-            StartHealthRegeneration();
-            StartAutoAttack();
-        }
-        else
-        {
-            Debug.LogWarning("Cannot start combat systems - missing components or player is dead");
-        }
-    }
-
-    private void StartAutoAttack()
-    {
-        if (autoAttackCoroutine != null)
-        {
-            StopCoroutine(autoAttackCoroutine);
-        }
-
-        Debug.Log("Starting Auto Attack Coroutine");
-
-        autoAttackCoroutine = StartCoroutine(AutoAttackCoroutine());
-    }
-
-    private IEnumerator AutoAttackCoroutine()
-    {
-        Debug.Log("Auto Attack Coroutine Started");
-
-        // null 체크 추가
-        if (characterControl == null)
-        {
-            Debug.LogError("Character Control is null!");
-            yield break;
-        }
-
-        while (playerStatus != Status.Dead)
-        {
-            if (velocity == Vector2.zero)
-            {
-                Enemy nearestEnemy = FindNearestEnemy();
-                if (nearestEnemy != null)
-                {
-                    Debug.Log($"Found enemy at distance: {Vector2.Distance(transform.position, nearestEnemy.transform.position)}");
-                    yield return PerformAttack(nearestEnemy);
-                }
-                else
-                {
-                    playerStatus = Status.Alive;
-                    if (characterControl != null) // 안전 체크 추가
-                    {
-                        characterControl.PlayAnimation(PlayerState.IDLE, 0);
-                    }
-                }
-            }
-
-            float attackSpeed = playerStat.GetStat(StatType.AttackSpeed);
-            yield return new WaitForSeconds(1f / attackSpeed);
-        }
-
-        Debug.Log("Auto Attack Coroutine Ended");
+        StopAllCoroutines();
     }
 
     private void FixedUpdate()
@@ -240,27 +125,29 @@ public class Player : MonoBehaviour
     #region Move&Skills
     public void Move()
     {
-        if (rb == null) return;  // 안전 체크 추가
+        if (rb == null) return;
 
         Vector2 input = new Vector2(x, y).normalized;
         float moveSpeed = playerStat.GetStat(StatType.MoveSpeed);
         velocity = input * moveSpeed;
 
         rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime);
+        UpdateAnimation();
+    }
 
-        if (characterControl != null && playerStatus != Status.Attacking)  // null 체크 추가
+    private void GetMoveInput()
+    {
+        x = Input.GetAxisRaw("Horizontal");
+        y = Input.GetAxisRaw("Vertical");
+    }
+
+    private void UpdateAnimation()
+    {
+        if (characterControl != null && playerStatus != Status.Attacking)
         {
             if (velocity != Vector2.zero)
             {
-                if (x > 0)
-                {
-                    characterControl.transform.localScale = new Vector3(1, 1, 1);
-                }
-                else if (x < 0)
-                {
-                    characterControl.transform.localScale = new Vector3(-1, 1, 1);
-                }
-
+                characterControl.transform.localScale = new Vector3(x > 0 ? 1 : (x < 0 ? -1 : characterControl.transform.localScale.x), 1, 1);
                 characterControl.PlayAnimation(PlayerState.MOVE, 0);
             }
             else
@@ -270,50 +157,40 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void GetMoveInput()
-    {
-        x = Input.GetAxisRaw("Horizontal");
-        y = Input.GetAxisRaw("Vertical");
-    }
-
     #endregion
 
     #region Level & EXP
     public float CurrentExp()
     {
-        // 최대 레벨 체크
         if (level >= expList.Count)
         {
             return 0;
         }
 
-        // 현재 레벨에서의 경험치 반환
         if (level == 1)
         {
-            return exp;  // 1레벨일 때는 현재 경험치 그대로 반환
+            return exp;
         }
         else
         {
-            return exp - expList[level - 2];  // 현재 레벨에서의 경험치 계산
+            return exp - expList[level - 2];
         }
     }
 
     public float GetExpForNextLevel()
     {
-        // 최대 레벨 체크
         if (level >= expList.Count)
         {
             return 99999f;
         }
 
-        // 다음 레벨까지 필요한 경험치 계산
         if (level == 1)
         {
-            return expList[0];  // 1레벨에서는 첫 번째 경험치 요구량 반환
+            return expList[0];
         }
         else
         {
-            return expList[level - 1] - expList[level - 2];  // 현재 레벨의 요량
+            return expList[level - 1] - expList[level - 2];
         }
     }
 
@@ -323,7 +200,6 @@ public class Player : MonoBehaviour
 
         exp += amount;
 
-        // 레벨업 체크 - 한 번에 한 레벨씩만 상승하도록 수정
         if (level < expList.Count && exp >= expList[level - 1])
         {
             LevelUp();
@@ -334,10 +210,8 @@ public class Player : MonoBehaviour
     {
         level++;
 
-        // PlayerStat에 레벨업 정보 전달
         playerStat.UpdateStatsForLevel(level);
 
-        // 레벨업 시 체력 회복
         float maxHp = playerStat.GetStat(StatType.MaxHp);
         playerStat.SetCurrentHp(maxHp);
     }
@@ -396,6 +270,10 @@ public class Player : MonoBehaviour
     public void Die()
     {
         playerStatus = Status.Dead;
+        StopAllCoroutines();
+
+        // 게임 오버 상태로 전환
+        GameLoopManager.Instance.ChangeState(GameLoopManager.GameState.GameOver);
     }
 
     #endregion
@@ -505,8 +383,8 @@ public class Player : MonoBehaviour
     #region Initializing
     public void ResetAllStats()
     {
-        playerStat.ResetToBase();
-        this.playerStatus = Status.Alive;
+        playerStat?.ResetToBase();
+        playerStatus = Status.Alive;
         exp = 0;
         level = 1;
     }
@@ -535,4 +413,71 @@ public class Player : MonoBehaviour
     #endregion
 
     public bool IsInitialized() => isInitialized;
+
+    private void StartCombatSystems()
+    {
+        Debug.Log("Starting combat systems...");
+        if (playerStatus != Status.Dead)
+        {
+            if (playerStat == null)
+            {
+                Debug.LogError("PlayerStat is null!");
+                return;
+            }
+
+            Debug.Log("Starting health regeneration...");
+            StartHealthRegeneration();
+
+            Debug.Log("Starting auto attack...");
+            StartAutoAttack();
+
+            Debug.Log("Combat systems started successfully");
+        }
+        else
+        {
+            Debug.LogWarning("Cannot start combat systems: Player is dead");
+        }
+    }
+
+    private void StartAutoAttack()
+    {
+        Debug.Log("Attempting to start auto attack...");
+
+        if (autoAttackCoroutine != null)
+        {
+            Debug.Log("Stopping existing auto attack coroutine");
+            StopCoroutine(autoAttackCoroutine);
+            autoAttackCoroutine = null;
+        }
+
+        Debug.Log("Starting new auto attack coroutine");
+        autoAttackCoroutine = StartCoroutine(AutoAttackCoroutine());
+    }
+
+    private IEnumerator AutoAttackCoroutine()
+    {
+        Debug.Log("Auto attack coroutine started");
+
+        while (true)
+        {
+            if (playerStatus != Status.Dead)
+            {
+                Enemy nearestEnemy = FindNearestEnemy();
+                if (nearestEnemy != null)
+                {
+                    float distanceToEnemy = Vector2.Distance(transform.position, nearestEnemy.transform.position);
+                    float attackRange = playerStat.GetStat(StatType.AttackRange);
+
+                    if (distanceToEnemy <= attackRange)
+                    {
+                        yield return StartCoroutine(PerformAttack(nearestEnemy));
+                    }
+                }
+            }
+
+            // 공격 속도에 따른 대기
+            float attackDelay = 1f / playerStat.GetStat(StatType.AttackSpeed);
+            yield return new WaitForSeconds(attackDelay);
+        }
+    }
 }

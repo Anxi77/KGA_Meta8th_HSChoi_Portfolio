@@ -110,7 +110,7 @@ public class PlayerStat : MonoBehaviour
         // baseData가 null일 때 GameManager에서 가져오기
         if (baseData == null)
         {
-            baseData = GameManager.Instance?.PlayerStatData;
+            baseData = PlayerDataManager.Instance.CurrentPlayerStatData;
             if (baseData == null)
             {
                 Debug.LogWarning("PlayerStatData is null, loading from Resources...");

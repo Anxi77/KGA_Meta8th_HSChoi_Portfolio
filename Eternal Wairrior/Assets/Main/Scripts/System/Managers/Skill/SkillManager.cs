@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SkillManager : SingletonManager<SkillManager>
+public class SkillManager : SingletonManager<SkillManager> , IInitializable
 {
     public bool IsInitialized { get; private set; }
 
@@ -14,16 +14,14 @@ public class SkillManager : SingletonManager<SkillManager>
     {
         base.Awake();
         IsInitialized = false;
-        Initialize();
     }
 
-    private void Initialize()
+    public void Initialize()
     {
         try
         {
             Debug.Log("Initializing SkillManager...");
 
-            // SkillDataManager가 초기화될 때까지 대기
             if (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized)
             {
                 Debug.LogWarning("Waiting for SkillDataManager to initialize...");

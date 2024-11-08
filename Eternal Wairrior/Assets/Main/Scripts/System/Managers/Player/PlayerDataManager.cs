@@ -3,45 +3,20 @@ using UnityEngine;
 using System.IO;
 using UnityEngine.SceneManagement;
 
-public class PlayerDataManager : DataManager
+public class PlayerDataManager : DataManager<PlayerDataManager>, IInitializable
 {
-    private static PlayerDataManager instance;
-    public static PlayerDataManager Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                GameObject go = new GameObject("PlayerDataManager");
-                instance = go.AddComponent<PlayerDataManager>();
-                DontDestroyOnLoad(go);
-            }
-            return instance;
-        }
-    }
 
-    private void Awake()
-    {
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-
-    private JSONManager<PlayerSaveData> saveManager;
-    private BackupManager backupManager;
-    private const string SAVE_PATH = "PlayerData";
+    private const string SAVE_PATH = "Asset/Resources/PlayerData";
+    private const string DEFAULT_SAVE_SLOT = "DefaultSave";
 
     private PlayerStatData currentPlayerStatData;
     private InventoryData currentInventoryData;
-
     private LevelData currentLevelData = new LevelData { level = 1, exp = 0f };
 
+    private JSONManager<PlayerSaveData> saveManager;
+    private BackupManager backupManager;
+
+    public new bool IsInitialized { get; private set; }
     public PlayerStatData CurrentPlayerStatData => currentPlayerStatData;
     public InventoryData CurrentInventoryData => currentInventoryData;
 
@@ -53,61 +28,31 @@ public class PlayerDataManager : DataManager
         public LevelData levelData;
     }
 
+    protected override void Awake()
+    {
+        base.Awake();
+    }
+
+    public void Initialize()
+    {
+        try
+        {
+            Debug.Log("Initializing PlayerDataManager...");
+            InitializeDefaultData();
+            IsInitialized = true;
+            Debug.Log("PlayerDataManager initialized successfully");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error initializing PlayerDataManager: {e.Message}");
+            IsInitialized = false;
+        }
+    }
+
     protected override void InitializeManagers()
     {
-        if (!isInitialized)
-        {
-            saveManager = new JSONManager<PlayerSaveData>(SAVE_PATH);
-            backupManager = new BackupManager();
-            currentPlayerStatData = ScriptableObject.CreateInstance<PlayerStatData>();
-            currentInventoryData = new InventoryData();
-            isInitialized = true;
-        }
-    }
-
-    public void LoadPlayerStatData(PlayerStatData data)
-    {
-        if (data != null)
-        {
-            currentPlayerStatData = data;
-        }
-    }
-
-    public void SaveCurrentPlayerStatData()
-    {
-        currentPlayerStatData.SavePermanentStats();
-    }
-
-    public void LoadInventoryData(InventoryData data)
-    {
-        if (data != null)
-        {
-            currentInventoryData = data;
-        }
-    }
-
-    public void SaveCurrentInventoryData(InventoryData data)
-    {
-        currentInventoryData = data;
-    }
-
-    public void SavePlayerData(string saveSlot, PlayerSaveData data)
-    {
-        if (!isInitialized) InitializeManagers();
-        saveManager.SaveData(saveSlot, data);
-        SaveWithBackup();
-    }
-
-    public PlayerSaveData LoadPlayerData(string saveSlot)
-    {
-        if (!isInitialized) InitializeManagers();
-        var data = saveManager.LoadData(saveSlot);
-        if (data != null)
-        {
-            LoadPlayerStatData(data.stats);
-            LoadInventoryData(data.inventory);
-        }
-        return data;
+        saveManager = new JSONManager<PlayerSaveData>(SAVE_PATH);
+        backupManager = new BackupManager();
     }
 
     protected override void CreateResourceFolders()
@@ -125,24 +70,24 @@ public class PlayerDataManager : DataManager
         var defaultStatData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
         if (defaultStatData == null)
         {
-            Debug.LogWarning("Default player stats not found in Resources folder");
+            Debug.LogWarning("Default player stats not found, creating new...");
             defaultStatData = ScriptableObject.CreateInstance<PlayerStatData>();
         }
-
         currentPlayerStatData = Instantiate(defaultStatData);
-        var defaultSave = new PlayerSaveData
-        {
-            stats = currentPlayerStatData,
-            inventory = new InventoryData(),
-            levelData = new LevelData { level = 1, exp = 0f }
-        };
-
-        saveManager.SaveData("DefaultSave", defaultSave);
+        currentInventoryData = new InventoryData();
     }
 
     protected override BackupManager GetBackupManager()
     {
         return backupManager;
+    }
+
+    public override void SaveWithBackup()
+    {
+        if (backupManager != null)
+        {
+            backupManager.CreateBackup(SAVE_PATH);
+        }
     }
 
     public override void ClearAllData()
@@ -151,22 +96,49 @@ public class PlayerDataManager : DataManager
         {
             saveManager.ClearAll();
         }
-        base.ClearAllData();
+        currentPlayerStatData = ScriptableObject.CreateInstance<PlayerStatData>();
+        currentInventoryData = new InventoryData();
+        currentLevelData = new LevelData { level = 1, exp = 0f };
     }
 
-    private void EnsureDirectoryExists()
+    public void LoadPlayerStatData(PlayerStatData data)
     {
-        string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH);
-        if (!Directory.Exists(savePath))
+        if (data != null)
         {
-            Directory.CreateDirectory(savePath);
-            Debug.Log($"Created directory: {savePath}");
+            currentPlayerStatData = data;
         }
     }
 
-    public InventoryData LoadInventoryData()
+    public void SaveCurrentPlayerStatData()
     {
-        return currentInventoryData;
+        currentPlayerStatData.SavePermanentStats();
+    }
+
+    public void SavePlayerData(string saveSlot, PlayerSaveData data)
+    {
+        if (!IsInitialized) Initialize();
+        saveManager.SaveData(saveSlot, data);
+        SaveWithBackup();
+    }
+
+    public PlayerSaveData LoadPlayerData(string saveSlot)
+    {
+        if (!IsInitialized) Initialize();
+        var data = saveManager.LoadData(saveSlot);
+        if (data != null)
+        {
+            LoadPlayerStatData(data.stats);
+            LoadInventoryData(data.inventory);
+        }
+        return data;
+    }
+
+    public void LoadInventoryData(InventoryData data)
+    {
+        if (data != null)
+        {
+            currentInventoryData = data;
+        }
     }
 
     public void SaveInventoryData(InventoryData data)
@@ -186,10 +158,19 @@ public class PlayerDataManager : DataManager
         }
     }
 
+    private void EnsureDirectoryExists()
+    {
+        string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH);
+        if (!Directory.Exists(savePath))
+        {
+            Directory.CreateDirectory(savePath);
+            Debug.Log($"Created directory: {savePath}");
+        }
+    }
+
     public bool HasSaveData(string saveSlot)
     {
-        if (!isInitialized) InitializeManagers();
-
+        if (!IsInitialized) Initialize();
         string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH, $"{saveSlot}.json");
         return File.Exists(savePath);
     }

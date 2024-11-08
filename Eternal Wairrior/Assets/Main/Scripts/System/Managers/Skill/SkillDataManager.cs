@@ -5,10 +5,9 @@ using UnityEditor;
 using System.Linq;
 using System.Text;
 
-public class SkillDataManager : DataManager
+public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
 {
-    private static SkillDataManager instance;
-    public static SkillDataManager Instance => instance;
+    public new bool IsInitialized { get; private set; }
 
     private ResourceManager<GameObject> prefabManager;
     private ResourceManager<Sprite> iconManager;
@@ -32,14 +31,11 @@ public class SkillDataManager : DataManager
 
     protected override void Awake()
     {
-        if (instance != null && instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        instance = this;
+        base.Awake();
+    }
 
-        // 에디터 모드와 플레이 모드 구분
+    public void Initialize() 
+    {
         if (Application.isEditor && !Application.isPlaying)
         {
             InitializeForEditor();
@@ -47,27 +43,24 @@ public class SkillDataManager : DataManager
         else
         {
             DontDestroyOnLoad(gameObject);
-            InitializeForRuntime();
+            InitializeRuntime();
         }
     }
 
-    private void InitializeForRuntime()
+    public void InitializeRuntime()
     {
         try
         {
-            Debug.Log("Initializing SkillDataManager for runtime...");
-
-            // 매니저 초기화
-            InitializeManagers();
-
-            // 모든 스킬 데이터 로드
+            Debug.Log("Initializing SkillDataManager...");
+            InitializeDefaultData();
             LoadAllSkillData();
-
-            Debug.Log("SkillDataManager initialized for runtime");
+            IsInitialized = true;
+            Debug.Log("SkillDataManager initialized successfully");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error initializing SkillDataManager for runtime: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"Error initializing SkillDataManager: {e.Message}");
+            IsInitialized = false;
         }
     }
 
@@ -842,7 +835,7 @@ public class SkillDataManager : DataManager
         }
     }
 
-    protected override void OnDestroy()
+    private void OnDestroy()
     {
         // 에디터 모드서 직접 삭제할 때만 데이터 정리
         if (Application.isEditor && !Application.isPlaying)

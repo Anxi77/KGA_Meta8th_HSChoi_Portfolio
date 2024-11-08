@@ -35,12 +35,13 @@ public class SPUM_Prefabs : MonoBehaviour
     public List<AnimationClip> DEATH_List = new();
     public List<AnimationClip> OTHER_List = new();
 
-    private void Awake()
+    public void Initialize()
     {
         StateAnimationPairs = new Dictionary<string, List<AnimationClip>>();
         OverrideControllerInit();
         PopulateAnimationLists();
     }
+
     public void OverrideControllerInit()
     {
         if (_anim == null)

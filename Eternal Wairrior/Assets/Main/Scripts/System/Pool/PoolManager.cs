@@ -1,44 +1,34 @@
 using UnityEngine;
 using System.Collections;
 
-public class PoolManager : MonoBehaviour
+public class PoolManager : SingletonManager<PoolManager>, IInitializable
 {
-    private static PoolManager instance;
-    public static PoolManager Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                instance = FindObjectOfType<PoolManager>();
-                if (instance == null)
-                {
-                    GameObject go = new GameObject("PoolManager");
-                    instance = go.AddComponent<PoolManager>();
-                    DontDestroyOnLoad(go);
-                }
-            }
-            return instance;
-        }
-    }
+    public bool IsInitialized { get; private set; }
 
     private ObjectPool objectPool;
 
-    private void Awake()
+    protected override void Awake()
     {
-        if (instance == null)
+        base.Awake();
+    }
+
+    public void Initialize()
+    {
+        try
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
+            Debug.Log("Initializing PoolManager...");
             InitializePool();
+            IsInitialized = true;
+            Debug.Log("PoolManager initialized successfully");
         }
-        else if (instance != this)
+        catch (System.Exception e)
         {
-            Destroy(gameObject);
+            Debug.LogError($"Error initializing PoolManager: {e.Message}");
+            IsInitialized = false;
         }
     }
 
-    public void InitializePool()
+    private void InitializePool()
     {
         if (objectPool == null)
         {

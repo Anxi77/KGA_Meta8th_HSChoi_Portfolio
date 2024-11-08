@@ -37,7 +37,7 @@ public class JSONManager<T> : IDataManager<T> where T : class
             cache[key] = data;
             AssetDatabase.Refresh();
 
-            Debug.Log($"JSON saved successfully: {fullPath}");
+            Debug.Log($"JSON saved successfully: {fullPath}"); 
         }
         catch (System.Exception e)
         {
