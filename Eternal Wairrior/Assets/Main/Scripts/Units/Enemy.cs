@@ -52,7 +52,6 @@ public class Enemy : MonoBehaviour
     public ParticleSystem attackParticle;
     public bool isInit = false;
     public Collider2D enemyCollider;
-    public SpriteRenderer spriteRenderer;
     #endregion
 
     #region Pathfinding
@@ -166,7 +165,6 @@ public class Enemy : MonoBehaviour
     protected virtual void InitializeComponents()
     {
         rb = GetComponent<Rigidbody2D>();
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         previousXPosition = transform.position.x;
 
         CalculateFormationOffset();
@@ -230,7 +228,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    public void Move()
+    public virtual void Move()
     {
         if (isStunned || moveSpeed <= 0) return;
 
@@ -768,11 +766,8 @@ public class Enemy : MonoBehaviour
                     expParticle.expValue = expPerParticle;
                 }
             }
+            DropItems();
         }
-        //if(ItemManager.Instance.GetDropsForEnemy(enemyType, 1f).Count > 0) 
-        //{
-        //    DropItems();
-        //}
 
         if (GameManager.Instance?.enemies != null)
         {
@@ -815,15 +810,19 @@ public class Enemy : MonoBehaviour
     {
         if (Time.time >= preDamageTime + damageInterval)
         {
-            if (Vector2.Distance(transform.position, target.position) <= attackRange)
+            float distanceToTarget = Vector2.Distance(transform.position, target.position);
+
+            if (distanceToTarget <= attackRange)
             {
-                // 근접 공격
-                PerformMeleeAttack();
-            }
-            else
-            {
-                // 원거리 공격
-                PerformRangedAttack();
+                // RangedEnemy의 경우 원거리 공격을, MeleeEnemy의 경우 근접 공격을 수행
+                if (this is RangedEnemy || this is BossMonster)
+                {
+                    PerformRangedAttack();
+                }
+                else
+                {
+                    PerformMeleeAttack();
+                }
             }
         }
     }
@@ -1022,7 +1021,9 @@ public class Enemy : MonoBehaviour
         float currentXPosition = transform.position.x;
         if (currentXPosition != previousXPosition)
         {
-            spriteRenderer.flipX = (currentXPosition - previousXPosition) > 0;
+            Vector3 scale = transform.localScale;
+            scale.x = (currentXPosition - previousXPosition) > 0 ? -1 : 1;
+            transform.localScale = scale;
             previousXPosition = currentXPosition;
         }
     }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Assets.FantasyMonsters.Common.Scripts;
 
 public class BossMonster : Enemy
 {
@@ -8,13 +9,17 @@ public class BossMonster : Enemy
     public float enrageDamageMultiplier = 1.5f;
     public float enrageSpeedMultiplier = 1.3f;
 
+    public Monster monster;
+
     private bool isEnraged = false;
     private Vector3 startPosition;
+    private Animator animator;  
 
     protected override void Start()
     {
         base.Start();
         startPosition = transform.position;
+        animator = GetComponentInChildren<Animator>();
         InitializeBossStats();
     }
 
@@ -36,6 +41,12 @@ public class BossMonster : Enemy
         {
             EnterEnragedState();
         }
+    }
+
+    public override void Move()
+    {
+        base.Move();
+        monster.SetState(MonsterState.Run);
     }
 
     private void EnterEnragedState()
@@ -61,36 +72,36 @@ public class BossMonster : Enemy
     }
 
     // 보스 전용 공격 패턴들
-    private IEnumerator SpecialAttackPattern()
-    {
-        while (true)
-        {
-            // 기본 공격
-            yield return new WaitForSeconds(3f);
+    //private IEnumerator SpecialAttackPattern()
+    //{
+    //    while (true)
+    //    {
+    //        // 기본 공격
+    //        yield return new WaitForSeconds(3f);
 
-            // 광역 공격
-            if (hp < maxHp * 0.7f)
-            {
-                AreaAttack();
-                yield return new WaitForSeconds(5f);
-            }
+    //        // 광역 공격
+    //        if (hp < maxHp * 0.7f)
+    //        {
+    //            AreaAttack();
+    //            yield return new WaitForSeconds(5f);
+    //        }
 
-            // 소환 공격
-            if (hp < maxHp * 0.5f)
-            {
-                SummonMinions();
-                yield return new WaitForSeconds(10f);
-            }
-        }
-    }
+    //        // 소환 공격
+    //        if (hp < maxHp * 0.5f)
+    //        {
+    //            SummonMinions();
+    //            yield return new WaitForSeconds(10f);
+    //        }
+    //    }
+    //}
 
-    private void AreaAttack()
-    {
-        // 광역 공격 구현
-    }
+    //private void AreaAttack()
+    //{
+    //    // 광역 공격 구현
+    //}
 
-    private void SummonMinions()
-    {
-        // 하수인 소환 구현
-    }
+    //private void SummonMinions()
+    //{
+    //    // 하수인 소환 구현
+    //}
 }

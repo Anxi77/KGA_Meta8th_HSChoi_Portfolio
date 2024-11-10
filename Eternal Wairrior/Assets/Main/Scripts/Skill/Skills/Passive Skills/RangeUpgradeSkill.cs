@@ -2,9 +2,10 @@ using UnityEngine;
 
 public class RangeUpgradeSkill : PermanentPassiveSkill
 {
-    protected override void ApplyEffectToPlayer(Player player)
+    public override void ApplyEffectToPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
 
         if (_attackRangeIncrease > 0)
         {
@@ -19,10 +20,20 @@ public class RangeUpgradeSkill : PermanentPassiveSkill
         }
     }
 
-    protected override void RemoveEffectFromPlayer(Player player)
+    public override void RemoveEffectFromPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
-        playerStat.RemoveStatsBySource(SourceType.Passive);
+        if (playerStat == null) return;
+
+        if (_attackRangeIncrease > 0)
+        {
+            playerStat.RemoveStatModifier(StatType.AttackRange, SourceType.Passive);
+        }
+
+        if (_expAreaIncrease > 0)
+        {
+            playerStat.RemoveStatModifier(StatType.ExpCollectionRadius, SourceType.Passive);
+        }
     }
 
     protected override void UpdateInspectorValues(PassiveSkillStat stats)
@@ -74,5 +85,5 @@ public class RangeUpgradeSkill : PermanentPassiveSkill
 
     protected override string GetDefaultSkillName() => "Range Mastery";
     protected override string GetDefaultDescription() => "Permanently increases attack range and experience collection radius";
-    protected override SkillType GetSkillType() => SkillType.Passive;
+    public override SkillType GetSkillType() => SkillType.Passive;
 }

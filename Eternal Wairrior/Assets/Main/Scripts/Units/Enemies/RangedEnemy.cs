@@ -4,7 +4,7 @@ using System.Collections;
 public class RangedEnemy : Enemy
 {
     [Header("Ranged Attack Settings")]
-    [SerializeField] private Projectile projectilePrefab;
+    [SerializeField] private EnemyProjectile projectilePrefab;
     [SerializeField] private float minAttackDistance = 5f;
     [SerializeField] private float maxAttackDistance = 15f;
     [SerializeField] private float attackAnimationDuration = 0.5f;
@@ -15,7 +15,7 @@ public class RangedEnemy : Enemy
     protected override void Start()
     {
         base.Start();
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>();
         attackRange = maxAttackDistance;
         preferredDistance = minAttackDistance;
     }
@@ -35,11 +35,12 @@ public class RangedEnemy : Enemy
         animator?.SetTrigger("Attack");
 
         Vector2 direction = ((Vector2)target.position - (Vector2)transform.position).normalized;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
-        Projectile projectile = PoolManager.Instance.Spawn<Projectile>(
+        EnemyProjectile projectile = PoolManager.Instance.Spawn<EnemyProjectile>(
             projectilePrefab.gameObject,
             transform.position,
-            Quaternion.identity
+            Quaternion.Euler(0, 0, angle - 90)
         );
 
         if (projectile != null)

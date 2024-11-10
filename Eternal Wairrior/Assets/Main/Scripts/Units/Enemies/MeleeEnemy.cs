@@ -15,7 +15,7 @@ public class MeleeEnemy : Enemy
     protected override void Start()
     {
         base.Start();
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>();
         attackRange = 2f;
         preferredDistance = 1.5f;
     }
@@ -61,7 +61,6 @@ public class MeleeEnemy : Enemy
         base.MoveDirectlyTowardsTarget();
     }
 
-    // 공격 범위 시각화 (디버그용)
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;

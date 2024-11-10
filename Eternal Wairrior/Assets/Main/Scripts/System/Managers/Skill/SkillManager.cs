@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SkillManager : SingletonManager<SkillManager> , IInitializable
+public class SkillManager : SingletonManager<SkillManager>, IInitializable
 {
     public bool IsInitialized { get; private set; }
 
@@ -117,11 +117,19 @@ public class SkillManager : SingletonManager<SkillManager> , IInitializable
 
     public void AddOrUpgradeSkill(SkillData skillData)
     {
-        if (GameManager.Instance.player == null || skillData == null) return;
+        if (GameManager.Instance?.player == null || skillData == null) return;
 
         try
         {
             Debug.Log($"Adding/Upgrading skill: {skillData.metadata.Name} (ID: {skillData.metadata.ID})");
+
+            var playerStat = GameManager.Instance.player.GetComponent<PlayerStat>();
+            float currentHpRatio = 1f;
+            if (playerStat != null)
+            {
+                currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
+                Debug.Log($"Before AddOrUpgradeSkill - HP: {playerStat.GetStat(StatType.CurrentHp)}/{playerStat.GetStat(StatType.MaxHp)} ({currentHpRatio:F2})");
+            }
 
             var existingSkill = GetPlayerSkill(skillData.metadata.ID);
             Debug.Log($"Existing skill check - Found: {existingSkill != null}");
@@ -172,6 +180,14 @@ public class SkillManager : SingletonManager<SkillManager> , IInitializable
                     }
                 }
             }
+
+            if (playerStat != null)
+            {
+                float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+                float newCurrentHp = Mathf.Max(1f, newMaxHp * currentHpRatio);
+                playerStat.SetCurrentHp(newCurrentHp);
+                Debug.Log($"After AddOrUpgradeSkill - HP: {newCurrentHp}/{newMaxHp} ({currentHpRatio:F2})");
+            }
         }
         catch (System.Exception e)
         {
@@ -185,9 +201,31 @@ public class SkillManager : SingletonManager<SkillManager> , IInitializable
         Quaternion rotation = existingSkill.transform.rotation;
         Transform parent = existingSkill.transform.parent;
 
+        // 현재 HP 비율 저장
+        var playerStat = GameManager.Instance.player.GetComponent<PlayerStat>();
+        float currentHpRatio = 1f;
+        float currentHp = 0f;
+        float maxHp = 0f;
+
+        if (playerStat != null)
+        {
+            currentHp = playerStat.GetStat(StatType.CurrentHp);
+            maxHp = playerStat.GetStat(StatType.MaxHp);
+            currentHpRatio = currentHp / maxHp;
+            Debug.Log($"[SkillManager] Before replace - HP: {currentHp}/{maxHp} ({currentHpRatio:F2})");
+        }
+
+        // 기존 스킬의 효과를 먼저 제거
+        if (existingSkill is PermanentPassiveSkill permanentSkill)
+        {
+            permanentSkill.RemoveEffectFromPlayer(GameManager.Instance.player);
+        }
+
+        // 기존 스킬 제거
         GameManager.Instance.player.skills.Remove(existingSkill);
         Destroy(existingSkill.gameObject);
 
+        // 새 스킬 생성
         var newObj = Instantiate(newPrefab, position, rotation, parent);
         if (newObj.TryGetComponent<Skill>(out var newSkill))
         {
@@ -197,9 +235,25 @@ public class SkillManager : SingletonManager<SkillManager> , IInitializable
 
             skillData.GetCurrentTypeStat().baseStat.skillLevel = targetLevel;
             newSkill.SetSkillData(skillData);
+
+            // Initialize 호출 전에 현재 HP 설정
+            if (playerStat != null)
+            {
+                playerStat.SetCurrentHp(currentHp);
+            }
+
             newSkill.Initialize();
             GameManager.Instance.player.skills.Add(newSkill);
             Debug.Log($"Successfully replaced skill with level {targetLevel} prefab");
+
+            // 최종 HP 체크 및 조정
+            if (playerStat != null)
+            {
+                float finalMaxHp = playerStat.GetStat(StatType.MaxHp);
+                float finalCurrentHp = Mathf.Max(currentHp, finalMaxHp * currentHpRatio);
+                playerStat.SetCurrentHp(finalCurrentHp);
+                Debug.Log($"[SkillManager] After replace - HP: {finalCurrentHp}/{finalMaxHp} ({currentHpRatio:F2})");
+            }
         }
     }
 

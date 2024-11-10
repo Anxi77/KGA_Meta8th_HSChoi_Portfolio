@@ -103,7 +103,7 @@ public class PathDamageSkill : AreaSkills
 
     protected override string GetDefaultSkillName() => "Path Damage";
     protected override string GetDefaultDescription() => "Creates a damaging path behind the player";
-    protected override SkillType GetSkillType() => SkillType.Area;
+    public override SkillType GetSkillType() => SkillType.Area;
 }
 
 

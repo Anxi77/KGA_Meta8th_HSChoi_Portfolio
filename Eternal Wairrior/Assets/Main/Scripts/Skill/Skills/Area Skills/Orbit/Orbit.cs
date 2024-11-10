@@ -104,7 +104,7 @@ public class Orbit : AreaSkills
         return baseDesc;
     }
 
-    protected override SkillType GetSkillType() => SkillType.Area;
+    public override SkillType GetSkillType() => SkillType.Area;
     protected override string GetDefaultSkillName() => "Orbit";
     protected override string GetDefaultDescription() => "Rotating orbs that damage enemies";
 }

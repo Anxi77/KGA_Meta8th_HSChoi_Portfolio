@@ -621,7 +621,7 @@ MonoBehaviour:
   pausePanel: {fileID: 2382855721329316087}
   levelupPanel: {fileID: 1262424302739094976}
   skillList: {fileID: 523798194703150302}
-  playerUIManager: {fileID: 8856179785002987637}
+  playerUIPanel: {fileID: 8856179785002987637}
   hpBarImage: {fileID: 8284608534867923308}
   expBarImage: {fileID: 9193101782168723902}
   bossWarningPanel: {fileID: 0}
@@ -3461,7 +3461,7 @@ GameObject:
   - component: {fileID: 2521633213674773121}
   - component: {fileID: 8856179785002987637}
   m_Layer: 0
-  m_Name: PlayerUIManager
+  m_Name: PlayerUIPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3496,7 +3496,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6166459961455334213}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d092f7d46a5222242aafe7a17f7dc6f7, type: 3}
+  m_Script: {fileID: 11500000, guid: d82f77deafdf7a4449fbcb4d042f30c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   playerDefText: {fileID: 3795064658877118700}

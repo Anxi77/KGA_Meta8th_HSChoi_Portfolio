@@ -42,6 +42,7 @@ public class MultiShot : ProjectileSkills
             if (proj != null)
             {
                 InitializeProjectile(proj);
+                proj.SetDirection(fireDir);
             }
         }
     }
@@ -98,6 +99,6 @@ public class MultiShot : ProjectileSkills
     protected override string GetDefaultSkillName() => "Multi Shot";
     protected override string GetDefaultDescription() => "Fires multiple projectiles simultaneously";
 
-    protected override SkillType GetSkillType() => SkillType.Projectile;
+    public override SkillType GetSkillType() => SkillType.Projectile;
 }
 

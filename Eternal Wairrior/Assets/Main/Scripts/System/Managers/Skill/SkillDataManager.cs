@@ -378,8 +378,9 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
                 Debug.Log($"Created directory: {fullPath}");
             }
         }
-
+#if UNITY_EDITOR
         AssetDatabase.Refresh();
+#endif
     }
 
     protected override void CreateDefaultFiles()
@@ -468,7 +469,7 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
     {
         return backupManager;
     }
-
+#if UNITY_EDITOR
     public override void ClearAllData()
     {
         // 에디터 모드이면서 플레이 모드 아닐  데이터 제 용
@@ -493,7 +494,7 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
             }
         }
     }
-
+#endif
     // 스킬 데이터 관리
     public void SaveSkillData(SkillData skillData)
     {
@@ -571,10 +572,10 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
             foreach (var skillData in skillDataList)
             {
                 if (skillData?.metadata == null) continue;
-
+#if UNITY_EDITOR
                 // 리소스 파일들 저장
                 SaveSkillResources(skillData);
-
+#endif
                 // JSON 데이터 저장
                 string jsonPath = Path.Combine(Application.dataPath, "Resources", JSON_PATH, $"{skillData.metadata.ID}_Data.json");
                 Directory.CreateDirectory(Path.GetDirectoryName(jsonPath));
@@ -623,8 +624,9 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
                 SaveSkillStatsToCSV("AreaSkillStats", areaStats);
                 SaveSkillStatsToCSV("PassiveSkillStats", passiveStats);
             }
-
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
+#endif
             Debug.Log("Successfully saved all skill data");
         }
         catch (System.Exception e)
@@ -673,7 +675,7 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
             Debug.LogError($"Error saving CSV file {fileName}: {e.Message}");
         }
     }
-
+#if UNITY_EDITOR
     private void SaveSkillResources(SkillData skillData)
     {
         try
@@ -736,7 +738,7 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
             Debug.LogError($"Error saving resources for skill {skillData.metadata.Name}: {e.Message}");
         }
     }
-
+#endif
     // 런타임 데이터 접근 메서드들
     public SkillData GetSkillData(SkillID id)
     {
@@ -834,7 +836,7 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
             throw;
         }
     }
-
+#if UNITY_EDITOR
     private void OnDestroy()
     {
         // 에디터 모드서 직접 삭제할 때만 데이터 정리
@@ -858,7 +860,7 @@ public class SkillDataManager : DataManager<SkillDataManager>, IInitializable
             Debug.Log("SkillDataManager destroyed during runtime (data preserved)");
         }
     }
-
+#endif
     // LoadSkillData 메서드 수정
     private SkillData LoadSkillData(SkillID id)
     {

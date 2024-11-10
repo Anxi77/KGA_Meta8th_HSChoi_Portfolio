@@ -2,8 +2,9 @@ using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+#if UNITY_EDITOR
 using UnityEditor;
-
+#endif
 public class JSONManager<T> : IDataManager<T> where T : class
 {
     private readonly string basePath;
@@ -35,8 +36,9 @@ public class JSONManager<T> : IDataManager<T> where T : class
             File.WriteAllText(fullPath, jsonData);
 
             cache[key] = data;
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
-
+#endif
             Debug.Log($"JSON saved successfully: {fullPath}"); 
         }
         catch (System.Exception e)
@@ -79,7 +81,9 @@ public class JSONManager<T> : IDataManager<T> where T : class
             {
                 File.Delete(fullPath);
                 cache.Remove(key);
+#if UNITY_EDITOR
                 AssetDatabase.Refresh();
+#endif
                 return true;
             }
         }
@@ -104,13 +108,17 @@ public class JSONManager<T> : IDataManager<T> where T : class
                 }
             }
             cache.Clear();
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
+#endif
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error clearing JSON data: {e.Message}");
         }
     }
+
+#if UNITY_EDITOR
 
     // 여러 데이터를 한 번에 저장
     public void SaveBulkData(string key, IEnumerable<T> dataList)
@@ -128,7 +136,7 @@ public class JSONManager<T> : IDataManager<T> where T : class
             Debug.LogError($"Error saving bulk JSON data: {e.Message}");
         }
     }
-
+#endif
     // 여러 데이터를 한 번에 로드
     public IEnumerable<T> LoadBulkData(string key)
     {

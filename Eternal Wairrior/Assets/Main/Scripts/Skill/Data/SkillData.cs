@@ -2,7 +2,9 @@
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 [System.Serializable]
 public class SkillMetadata
@@ -77,8 +79,9 @@ public class SkillData : ISerializationCallbackReceiver
                 skillType = metadata?.Type ?? SkillType.None
             });
         }
-
+#if UNITY_EDITOR
         SaveResourceReferences();
+#endif
     }
 
     void ISerializationCallbackReceiver.OnAfterDeserialize()
@@ -125,7 +128,7 @@ public class SkillData : ISerializationCallbackReceiver
         passiveStat ??= new PassiveSkillStat { baseStat = baseStats };
         resourceReferences ??= new ResourceReferenceData();
     }
-
+#if UNITY_EDITOR
     private void SaveResourceReferences()
     {
         resourceReferences.Clear();
@@ -164,7 +167,7 @@ public class SkillData : ISerializationCallbackReceiver
             }
         }
     }
-
+#endif
     public ISkillStat GetStatsForLevel(int level)
     {
         if (statsByLevel == null)

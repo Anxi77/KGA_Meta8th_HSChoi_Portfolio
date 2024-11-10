@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,21 +13,13 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
         GameOver
     }
 
-    public enum InitializationState
-    {
-        None,
-        DataManagers,    // PlayerDataManager, ItemDataManager, SkillDataManager
-        CoreManagers,    // GameManager, UIManager, PoolManager
-        GameplayManagers,// PlayerUnitManager, MonsterManager, etc.
-        Complete
-    }
-
     private GameState currentState = GameState.MainMenu;
     public GameState CurrentState => currentState;
     public bool IsInitialized { get; private set; }
 
     private Dictionary<GameState, IGameStateHandler> stateHandlers;
-    private InitializationState currentInitState = InitializationState.None;
+
+    private bool isStateTransitioning = false;
 
     public void Initialize()
     {
@@ -47,77 +39,49 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
 
     private IEnumerator InitializationSequence()
     {
-        Debug.Log("Starting manager initialization sequence...");
+        yield return StartCoroutine(InitializeDataManagers(success => {
+            if (!success)
+            {
+                Debug.LogError("Failed to initialize Data Managers");
+            }
+        }));
 
-        // 1. Data Managers ÃÊ±âÈ­
-        currentInitState = InitializationState.DataManagers;
-        bool dataManagersInitialized = false;
-        yield return StartCoroutine(InitializeDataManagers(success => dataManagersInitialized = success));
+        yield return new WaitForSeconds(0.1f);
+        yield return StartCoroutine(InitializeCoreManagers(success => {
+            if (!success)
+            {
+                Debug.LogError("Failed to initialize Core Managers");
+            }
+        }));
 
-        if (!dataManagersInitialized)
+        yield return new WaitForSeconds(0.1f);
+        yield return StartCoroutine(InitializeGameplayManagers());
+
+        yield return new WaitForSeconds(0.1f);
+        if (UIManager.Instance != null)
         {
-            Debug.LogError("Data Managers initialization failed");
-            yield break;
+            UIManager.Instance.Initialize();
         }
 
-        // 2. Core Managers ÃÊ±âÈ­
-        currentInitState = InitializationState.CoreManagers;
-        bool coreManagersInitialized = false;
-        yield return StartCoroutine(InitializeCoreManagers(success => coreManagersInitialized = success));
-
-        if (!coreManagersInitialized)
+        // ìƒíƒœ í•¸ë“¤ëŸ¬ ì´ˆê¸°í™”
+        if (CreateStateHandlers())
         {
-            Debug.LogError("Core Managers initialization failed");
-            yield break;
-        }
-
-        // 3. Gameplay Managers ÃÊ±âÈ­
-        currentInitState = InitializationState.GameplayManagers;
-        bool gameplayManagersInitialized = false;
-        yield return StartCoroutine(InitializeGameplayManagers(success => gameplayManagersInitialized = success));
-
-        if (!gameplayManagersInitialized)
-        {
-            Debug.LogError("Gameplay Managers initialization failed");
-            yield break;
-        }
-
-        // 4. State Handlers »ı¼º ¹× ÃÊ±âÈ­
-        if (!CreateStateHandlers())
-        {
-            Debug.LogError("State Handlers creation failed");
-            yield break;
-        }
-
-        currentInitState = InitializationState.Complete;
-        IsInitialized = true;
-
-        Debug.Log("All managers initialized successfully");
-
-        // StageManager¸¦ ÅëÇØ ¸ŞÀÎ ¸Ş´º ¾À ·Îµå
-        if (StageManager.Instance != null)
-        {
-            Debug.Log("Loading main menu scene...");
-            StageManager.Instance.LoadMainMenu();
-
-            // ¾À ·Îµå°¡ ¿Ï·áµÉ ¶§±îÁö ´ë±â
-            yield return new WaitForSeconds(0.5f);
-
-            // »óÅÂ º¯°æ
+            Debug.Log("State handlers initialized successfully");
+            // ì´ˆê¸° ìƒíƒœ ì„¤ì •
             ChangeState(GameState.MainMenu);
-            Debug.Log("Changed state to MainMenu");
         }
         else
         {
-            Debug.LogError("StageManager is null, cannot load main menu!");
+            Debug.LogError("Failed to initialize state handlers");
         }
     }
 
     private IEnumerator InitializeDataManagers(System.Action<bool> onComplete)
     {
         Debug.Log("Initializing Data Managers...");
+        bool success = true;
 
-        // PlayerDataManager ÃÊ±âÈ­
+        // PlayerDataManager ì´ˆê¸°í™”
         if (PlayerDataManager.Instance != null)
         {
             PlayerDataManager.Instance.Initialize();
@@ -125,62 +89,62 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             {
                 if (CheckInitializationError(PlayerDataManager.Instance))
                 {
-                    onComplete?.Invoke(false);
-                    yield break;
+                    success = false;
+                    break;
                 }
                 yield return null;
             }
             Debug.Log("PlayerDataManager initialized");
         }
 
-        // ItemDataManager ÃÊ±âÈ­
-        if (ItemDataManager.Instance != null)
+        // ItemDataManager ì´ˆê¸°í™”
+        if (success && ItemDataManager.Instance != null)
         {
             ItemDataManager.Instance.Initialize();
             while (!ItemDataManager.Instance.IsInitialized)
             {
                 if (CheckInitializationError(ItemDataManager.Instance))
                 {
-                    onComplete?.Invoke(false);
-                    yield break;
+                    success = false;
+                    break;
                 }
                 yield return null;
             }
             Debug.Log("ItemDataManager initialized");
         }
 
-        // SkillDataManager ÃÊ±âÈ­
-        if (SkillDataManager.Instance != null)
+        // SkillDataManager ì´ˆê¸°í™”
+        if (success && SkillDataManager.Instance != null)
         {
             SkillDataManager.Instance.Initialize();
             while (!SkillDataManager.Instance.IsInitialized)
             {
                 if (CheckInitializationError(SkillDataManager.Instance))
                 {
-                    onComplete?.Invoke(false);
-                    yield break;
+                    success = false;
+                    break;
                 }
                 yield return null;
             }
             Debug.Log("SkillDataManager initialized");
         }
 
-        Debug.Log("All Data Managers initialized");
-        onComplete?.Invoke(true);
+        Debug.Log($"Data Managers initialization {(success ? "completed" : "failed")}");
+        onComplete?.Invoke(success);
     }
 
     private bool CheckInitializationError(IInitializable manager)
     {
-        // ¿©±â¼­ ÃÊ±âÈ­ Áß ¹ß»ıÇÒ ¼ö ÀÖ´Â ¿À·ù »óÅÂ¸¦ Ã¼Å©
-        // ¿¹: Å¸ÀÓ¾Æ¿ô, Æ¯Á¤ Á¶°Ç ½ÇÆĞ µî
-        return false; // ¿À·ù°¡ ¾øÀ¸¸é false ¹İÈ¯
+        // ì—¬ê¸°ì„œ ì´ˆê¸°í™” ì¤‘ ë°œìƒí•  ìˆ˜ ìˆëŠ” ì˜¤ë¥˜ ìƒíƒœë¥¼ ì²´í¬
+        // ì˜ˆ: íƒ€ì„ì•„ì›ƒ, íŠ¹ì • ì¡°ê±´ ì‹¤íŒ¨ ë“±
+        return false; // ì˜¤ë¥˜ê°€ ì—†ìœ¼ë©´ false ë°˜í™˜
     }
 
     private IEnumerator InitializeCoreManagers(System.Action<bool> onComplete)
     {
         Debug.Log("Initializing Core Managers...");
 
-        // PoolManager ÃÊ±âÈ­
+        // PoolManager ì´ˆê¸°í™”
         if (PoolManager.Instance != null)
         {
             PoolManager.Instance.Initialize();
@@ -196,7 +160,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("PoolManager initialized");
         }
 
-        // GameManager ÃÊ±âÈ­
+        // GameManager ì´ˆê¸°í™”
         if (GameManager.Instance != null)
         {
             GameManager.Instance.Initialize();
@@ -212,7 +176,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("GameManager initialized");
         }
 
-        // CameraManager ÃÊ±âÈ­
+        // CameraManager ì´ˆê¸°í™”
         if (CameraManager.Instance != null)
         {
             CameraManager.Instance.Initialize();
@@ -228,10 +192,10 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("CameraManager initialized");
         }
 
-        // UIManager´Â ¸¶Áö¸·¿¡ ÃÊ±âÈ­
+        // UIManagerëŠ” ë§ˆì§€ë§‰ì— ì´ˆê¸°í™”
         if (UIManager.Instance != null)
         {
-            // GameLoopManager°¡ ÀÌ¹Ì ÃÊ±âÈ­µÇ¾î ÀÖÀ½À» º¸Àå
+            // GameLoopManagerê°€ ì´ë¯¸ ì´ˆê¸°í™”ë˜ì–´ ìˆìŒì„ ë³´ì¥
             IsInitialized = true;
 
             UIManager.Instance.Initialize();
@@ -251,11 +215,28 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
         onComplete?.Invoke(true);
     }
 
-    private IEnumerator InitializeGameplayManagers(System.Action<bool> onComplete)
+    private IEnumerator InitializeGameplayManagers()
     {
         Debug.Log("Initializing Gameplay Managers...");
 
-        // SkillManager ÃÊ±âÈ­
+        // ItemManager ì´ˆê¸°í™” ì „ì— ItemDataManagerê°€ ì™„ì „íˆ ì´ˆê¸°í™”ë  ë•Œê¹Œì§€ ëŒ€ê¸°
+        while (ItemDataManager.Instance == null || !ItemDataManager.Instance.IsInitialized)
+        {
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        // ItemManager ì´ˆê¸°í™”
+        if (ItemManager.Instance != null)
+        {
+            ItemManager.Instance.Initialize();
+            while (!ItemManager.Instance.IsInitialized)
+            {
+                yield return null;
+            }
+            Debug.Log("ItemManager initialized");
+        }
+
+        // SkillManager ì´ˆê¸°í™”
         if (SkillManager.Instance != null)
         {
             SkillManager.Instance.Initialize();
@@ -263,7 +244,6 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             {
                 if (CheckInitializationError(SkillManager.Instance))
                 {
-                    onComplete?.Invoke(false);
                     yield break;
                 }
                 yield return null;
@@ -271,7 +251,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("SkillManager initialized");
         }
 
-        // PlayerUnitManager ÃÊ±âÈ­
+        // PlayerUnitManager ì´ˆê¸°í™”
         if (PlayerUnitManager.Instance != null)
         {
             PlayerUnitManager.Instance.Initialize();
@@ -279,7 +259,6 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             {
                 if (CheckInitializationError(PlayerUnitManager.Instance))
                 {
-                    onComplete?.Invoke(false);
                     yield break;
                 }
                 yield return null;
@@ -287,7 +266,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("PlayerUnitManager initialized");
         }
 
-        // MonsterManager ÃÊ±âÈ­
+        // MonsterManager ì´ˆê¸°í™”
         if (MonsterManager.Instance != null)
         {
             MonsterManager.Instance.Initialize();
@@ -295,7 +274,6 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             {
                 if (CheckInitializationError(MonsterManager.Instance))
                 {
-                    onComplete?.Invoke(false);
                     yield break;
                 }
                 yield return null;
@@ -303,7 +281,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("MonsterManager initialized");
         }
 
-        // StageTimeManager ÃÊ±âÈ­
+        // StageTimeManager ì´ˆê¸°í™”
         if (StageTimeManager.Instance != null)
         {
             StageTimeManager.Instance.Initialize();
@@ -311,7 +289,6 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             {
                 if (CheckInitializationError(StageTimeManager.Instance))
                 {
-                    onComplete?.Invoke(false);
                     yield break;
                 }
                 yield return null;
@@ -319,40 +296,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
             Debug.Log("StageTimeManager initialized");
         }
 
-        // PlayerUIManager ÃÊ±âÈ­
-        if (PlayerUIManager.Instance != null)
-        {
-            PlayerUIManager.Instance.Initialize();
-            while (!PlayerUIManager.Instance.IsInitialized)
-            {
-                if (CheckInitializationError(PlayerUIManager.Instance))
-                {
-                    onComplete?.Invoke(false);
-                    yield break;
-                }
-                yield return null;
-            }
-            Debug.Log("PlayerUIManager initialized");
-        }
-
-        // ItemManager ÃÊ±âÈ­
-        if (ItemManager.Instance != null)
-        {
-            ItemManager.Instance.Initialize();
-            while (!ItemManager.Instance.IsInitialized)
-            {
-                if (CheckInitializationError(ItemManager.Instance))
-                {
-                    onComplete?.Invoke(false);
-                    yield break;
-                }
-                yield return null;
-            }
-            Debug.Log("ItemManager initialized");
-        }
-
         Debug.Log("All Gameplay Managers initialized");
-        onComplete?.Invoke(true);
     }
 
     private bool CreateStateHandlers()
@@ -362,7 +306,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
 
         try
         {
-            // °¢ StateHandler ÀÎ½ºÅÏ½º »ı¼º ¹× ÃÊ±âÈ­
+            // ê° StateHandler ì¸ìŠ¤í„´ìŠ¤ ìƒì„± ë° ì´ˆê¸°í™”
             stateHandlers[GameState.MainMenu] = new MainMenuStateHandler();
             stateHandlers[GameState.Town] = new TownStateHandler();
             stateHandlers[GameState.Stage] = new StageStateHandler();
@@ -388,26 +332,39 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
 
         try
         {
-            // ÇöÀç »óÅÂ Á¾·á
+            // ì´ë¯¸ ìƒíƒœ ì „í™˜ì´ ì§„í–‰ ì¤‘ì¸ì§€ í™•ì¸
+            if (isStateTransitioning)
+            {
+                Debug.Log("State transition already in progress, skipping");
+                return;
+            }
+
+            // ìƒíƒœ ì „í™˜ ì‹œì‘
+            isStateTransitioning = true;
+
+            // í˜„ì¬ ìƒíƒœ ì¢…ë£Œ
             if (stateHandlers.ContainsKey(currentState))
             {
                 stateHandlers[currentState].OnExit();
             }
 
-            // »õ·Î¿î »óÅÂ·Î ÀüÈ¯
+            // ìƒˆë¡œìš´ ìƒíƒœë¡œ ì „í™˜
             currentState = newState;
 
-            // »õ·Î¿î »óÅÂ ½ÃÀÛ
+            // ìƒˆë¡œìš´ ìƒíƒœ ì‹œì‘
             if (stateHandlers.ContainsKey(currentState))
             {
                 stateHandlers[currentState].OnEnter();
             }
 
+            // ìƒíƒœ ì „í™˜ ì™„ë£Œ
+            isStateTransitioning = false;
             Debug.Log($"Successfully changed to state: {newState}");
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error during state change: {e.Message}\n{e.StackTrace}");
+            isStateTransitioning = false;
         }
     }
 
@@ -458,7 +415,7 @@ public class GameLoopManager : SingletonManager<GameLoopManager>, IInitializable
     }
 }
 
-// °ÔÀÓ »óÅÂ ÇÚµé·¯ ÀÎÅÍÆäÀÌ½º
+// ê²Œì„ ìƒíƒœ í•¸ë“¤ëŸ¬ ì¸í„°í˜ì´ìŠ¤
 public interface IGameStateHandler
 {
     void OnEnter();

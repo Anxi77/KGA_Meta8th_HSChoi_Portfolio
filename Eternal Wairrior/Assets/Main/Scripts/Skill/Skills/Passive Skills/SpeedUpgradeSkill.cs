@@ -2,9 +2,10 @@ using UnityEngine;
 
 public class SpeedUpgradeSkill : PermanentPassiveSkill
 {
-    protected override void ApplyEffectToPlayer(Player player)
+    public override void ApplyEffectToPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
 
         if (_moveSpeedIncrease > 0)
         {
@@ -19,9 +20,10 @@ public class SpeedUpgradeSkill : PermanentPassiveSkill
         }
     }
 
-    protected override void RemoveEffectFromPlayer(Player player)
+    public override void RemoveEffectFromPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
 
         if (_moveSpeedIncrease > 0)
         {
@@ -83,5 +85,5 @@ public class SpeedUpgradeSkill : PermanentPassiveSkill
 
     protected override string GetDefaultSkillName() => "Speed Mastery";
     protected override string GetDefaultDescription() => "Permanently increases movement and attack speed";
-    protected override SkillType GetSkillType() => SkillType.Passive;
+    public override SkillType GetSkillType() => SkillType.Passive;
 }

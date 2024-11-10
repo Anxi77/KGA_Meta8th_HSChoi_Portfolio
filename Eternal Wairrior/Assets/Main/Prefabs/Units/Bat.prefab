@@ -236,8 +236,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0.81}
-  m_SizeDelta: {x: 1, y: 0.2}
+  m_AnchoredPosition: {x: -0.0015, y: 0.81}
+  m_SizeDelta: {x: 0.997, y: 0.0672}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!223 &2494477380095008142
 Canvas:
@@ -487,7 +487,7 @@ GameObject:
   - component: {fileID: 9040869322625756562}
   - component: {fileID: 8733998583761297635}
   - component: {fileID: 3213487113762707645}
-  - component: {fileID: 4671105331730425101}
+  - component: {fileID: -7447113314976174837}
   m_Layer: 7
   m_Name: Bat
   m_TagString: Enemy
@@ -574,7 +574,7 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
---- !u!114 &4671105331730425101
+--- !u!114 &-7447113314976174837
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -583,25 +583,41 @@ MonoBehaviour:
   m_GameObject: {fileID: 2974742278653649114}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c2a4f0cd09f6674294dcce7d5e48cda, type: 3}
+  m_Script: {fileID: 11500000, guid: cc2dc7c3874e05c41887739abe25d0b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hp: 100
-  damage: 0
-  moveSpeed: 1
-  mobEXP: 100
-  damageInterval: 0.5
-  attackRange: 0.9
+  maxHp: 0
+  hp: 10
+  damage: 5
+  moveSpeed: 3
+  mobEXP: 10
+  damageInterval: 0
+  preDamageTime: 0
+  attackRange: 1.2
   preferredDistance: 1
   elementType: 0
   baseDefense: 5
+  currentDefense: 0
   maxDefenseReduction: 0.9
+  defenseDebuffAmount: 0
+  moveSpeedDebuffAmount: 0
+  isStunned: 0
   expParticlePrefab: {fileID: 5334211976707995158, guid: 8156f81e49faef04a8c59f5abb3f3cd6, type: 3}
   minExpParticles: 3
   maxExpParticles: 6
+  dropRadiusMin: 0.5
+  dropRadiusMax: 0
+  enemyType: 1
   hpBar: {fileID: 3306363183409375035}
-  attackParticle: {fileID: 7242367112545350938, guid: b59d613d3271c084b9b225b91e4756df, type: 3}
-  monster: {fileID: 7019480967226190859}
+  attackParticle: {fileID: 198724499637059262, guid: b0b484d1e19cd324cbe11a7349a75e67, type: 3}
+  isInit: 0
+  enemyCollider: {fileID: 8733998583761297635}
+  attackAnimationDuration: 0.5
+  attackPrepareTime: 0.2
+  attackRadius: 1.5
+  attackLayer:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &3867542108395319768
 GameObject:
   m_ObjectHideFlags: 0

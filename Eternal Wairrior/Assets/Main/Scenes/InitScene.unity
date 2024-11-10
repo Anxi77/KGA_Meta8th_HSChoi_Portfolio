@@ -186,14 +186,19 @@ MonoBehaviour:
   - managerName: StageManager
     prefab: {fileID: 3095068918956261682, guid: b36876ac0d124254280d8989d3e353dd, type: 3}
   - managerName: UIManager
-    prefab: {fileID: 1193521406336202201, guid: 2cbb541383fedc64aa88f33d6386a625, type: 3}
+    prefab: {fileID: 4837098570667057248, guid: 5e45f69bfec898e45b31ea4d0f88f7a8, type: 3}
   - managerName: StageTimeManager
     prefab: {fileID: 9094795581714949491, guid: 3b0c99257e2208245b70ae6665f0380e, type: 3}
   - managerName: CameraManager
     prefab: {fileID: 7618072481005056977, guid: 9c131ab879b08414ca2256bdb6b315d8, type: 3}
   - managerName: GameLoopManager
     prefab: {fileID: 6980232301591486485, guid: 0a3c15d8de9f3c041839ccbd853345f1, type: 3}
+  - managerName: ItemManager
+    prefab: {fileID: 736130719495222252, guid: 02f0ff577fb206c40bb465abfc69b3ce, type: 3}
+  - managerName: ItemDataManager
+    prefab: {fileID: 1944172262956047946, guid: e3f181060ab46aa45a9753ebfbc15b27, type: 3}
   eventSystemPrefab: {fileID: 7642285049428268831, guid: 68cd26960ed9c834e8f18c0e81fa8d26, type: 3}
+  loadTestScene: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

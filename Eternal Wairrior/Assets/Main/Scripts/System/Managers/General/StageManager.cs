@@ -45,64 +45,71 @@ public class StageManager : SingletonManager<StageManager>
     {
         Debug.Log($"Starting to load scene: {sceneName}");
 
-        // 로딩 화면 표시 및 게임 일시 정지
         UIManager.Instance.ShowLoadingScreen();
+        UIManager.Instance.UpdateLoadingProgress(0f);
         Time.timeScale = 0f;
 
-        // 초기 로딩 지연
-        yield return new WaitForSecondsRealtime(2f);
+        // 초기 로딩 (0% - 10%)
+        float progress = 0f;
+        while (progress < 10f)
+        {
+            progress += Time.unscaledDeltaTime * 50f;
+            UIManager.Instance.UpdateLoadingProgress(progress);
+            yield return null;
+        }
 
-        // 씬 전환 전 정리
         CleanupCurrentScene();
 
-        // 씬 로드
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
-        asyncLoad.allowSceneActivation = false;
-
-        float progress = 0f;
-        while (asyncLoad.progress < 0.9f)
+        // TestScene인 경우와 일반 씬 로딩을 구분
+        if (sceneName.Contains("Test"))
         {
-            progress = Mathf.MoveTowards(progress, asyncLoad.progress, Time.unscaledDeltaTime);
-            UIManager.Instance.UpdateLoadingProgress(progress);
-            yield return null;
+            // TestScene은 비동기 로딩 없이 바로 초기화 (10% - 70%)
+            progress = 10f;
+            while (progress < 70f)
+            {
+                progress += Time.unscaledDeltaTime * 100f;
+                UIManager.Instance.UpdateLoadingProgress(progress);
+                yield return null;
+            }
+
+            // 씬 전환
+            SceneManager.LoadScene(sceneName);
+
+            // 씬 로드 후 초기화가 완료될 때까지 잠시 대기
+            yield return new WaitForSeconds(0.5f);
+        }
+        else
+        {
+            // 일반 씬 비동기 로딩 (10% - 70%)
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
+            asyncLoad.allowSceneActivation = false;
+
+            while (asyncLoad.progress < 0.9f)
+            {
+                progress = Mathf.Lerp(10f, 70f, asyncLoad.progress / 0.9f);
+                UIManager.Instance.UpdateLoadingProgress(progress);
+                yield return null;
+            }
+
+            asyncLoad.allowSceneActivation = true;
+            while (!asyncLoad.isDone)
+            {
+                yield return null;
+            }
         }
 
-        // 추가 로딩 시간
-        float artificialLoadingTime = 0f;
-        while (artificialLoadingTime < 5f)
-        {
-            artificialLoadingTime += Time.unscaledDeltaTime;
-            progress = Mathf.Lerp(0.9f, 1f, artificialLoadingTime / 5f);
-            UIManager.Instance.UpdateLoadingProgress(progress);
-            yield return null;
-        }
-
-        Debug.Log($"Scene {sceneName} loaded to 90%, activating...");
-        asyncLoad.allowSceneActivation = true;
-
-        while (!asyncLoad.isDone)
-        {
-            yield return null;
-        }
-
-        Debug.Log($"Scene {sceneName} loaded, initializing UI...");
-
-        // UI 초기화
+        // UI 초기화 (70% - 80%)
         switch (sceneType)
         {
             case SceneType.MainMenu:
                 UIManager.Instance.SetupMainMenuUI();
                 break;
-            case SceneType.Town:
-            case SceneType.Game:
+            default:
                 UIManager.Instance.SetupGameUI();
                 break;
         }
 
-        // UI가 준비될 때까지 대기
-        yield return new WaitUntil(() => IsUIReady(sceneType));
-
-        // GameLoopManager 상태 변경
+        // 게임 상태 변경
         switch (sceneType)
         {
             case SceneType.MainMenu:
@@ -117,36 +124,59 @@ public class StageManager : SingletonManager<StageManager>
                 break;
         }
 
-        // 상태 핸들러의 초기화가 완료될 때까지 대기
-        yield return new WaitUntil(() => IsSceneInitializationComplete(sceneType));
+        // 씬 초기화 완료 대기 (80% - 95%)
+        while (!IsSceneReady(sceneType))
+        {
+            progress = Mathf.Lerp(80f, 95f, Time.unscaledDeltaTime);
+            UIManager.Instance.UpdateLoadingProgress(progress);
+            yield return null;
+        }
 
-        // 최종 로딩 지연
-        yield return new WaitForSecondsRealtime(1f);
+        // 최종 마무리 (95% - 100%)
+        while (progress < 100f)
+        {
+            progress += Time.unscaledDeltaTime * 50f;
+            UIManager.Instance.UpdateLoadingProgress(Mathf.Min(100f, progress));
+            yield return null;
+        }
 
-        // 모든 초기화가 완료된 후에 로딩 화면을 숨기고 게임 재개
         UIManager.Instance.HideLoadingScreen();
         Time.timeScale = 1f;
         Debug.Log($"Scene {sceneName} initialization complete");
     }
 
-    private bool IsSceneInitializationComplete(SceneType sceneType)
+    private bool IsSceneReady(SceneType sceneType)
     {
         switch (sceneType)
         {
+            case SceneType.MainMenu:
+                return UIManager.Instance != null &&
+                       UIManager.Instance.IsMainMenuActive();
+
             case SceneType.Town:
                 return GameManager.Instance?.player != null &&
                        CameraManager.Instance?.IsInitialized == true &&
-                       UIManager.Instance?.playerUIManager?.gameObject.activeSelf == true;
+                       UIManager.Instance?.playerUIPanel != null &&
+                       UIManager.Instance.IsGameUIReady();
 
             case SceneType.Game:
             case SceneType.Test:
-                return GameManager.Instance?.player != null &&
-                       CameraManager.Instance?.IsInitialized == true &&
-                       UIManager.Instance?.playerUIManager?.gameObject.activeSelf == true &&
-                       MonsterManager.Instance?.IsInitialized == true;
+                bool isReady = GameManager.Instance?.player != null &&
+                              CameraManager.Instance?.IsInitialized == true &&
+                              UIManager.Instance?.playerUIPanel != null &&
+                              UIManager.Instance.IsGameUIReady() &&
+                              MonsterManager.Instance?.IsInitialized == true;
 
-            case SceneType.MainMenu:
-                return UIManager.Instance != null && UIManager.Instance.IsMainMenuActive();
+                if (!isReady)
+                {
+                    Debug.Log($"Test Scene not ready: Player={GameManager.Instance?.player != null}, " +
+                             $"Camera={CameraManager.Instance?.IsInitialized}, " +
+                             $"UI={UIManager.Instance?.playerUIPanel != null}, " +
+                             $"GameUI={UIManager.Instance?.IsGameUIReady()}, " +
+                             $"Monster={MonsterManager.Instance?.IsInitialized}");
+                }
+
+                return isReady;
 
             default:
                 return true;
@@ -171,6 +201,8 @@ public class StageManager : SingletonManager<StageManager>
                 return UIManager.Instance.IsMainMenuActive();
             case SceneType.Town:
             case SceneType.Game:
+                return UIManager.Instance.IsGameUIReady();
+            case SceneType.Test:
                 return UIManager.Instance.IsGameUIReady();
             default:
                 return true;

@@ -1,0 +1,18 @@
+{
+    "dropTables": [
+        {
+            "enemyType": 1,
+            "dropEntries": [
+                {
+                    "itemId": "123",
+                    "dropRate": 1.0,
+                    "rarity": 0,
+                    "minAmount": 1,
+                    "maxAmount": 1
+                }
+            ],
+            "guaranteedDropRate": 1.0,
+            "maxDrops": 1
+        }
+    ]
+}

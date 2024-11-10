@@ -32,15 +32,3 @@ public enum SkillID
     FireRing, // Area
     ThermalElevation // Passive
 }
-
-/// <summary>
-/// Defines the elemental type of a skill
-/// </summary>
-public enum ElementType
-{
-    None = 0,
-    Dark,    // Reduces target's defense
-    Water,   // Slows target's movement
-    Fire,    // Deals damage over time
-    Earth    // Can stun targets
-}

@@ -11,7 +11,26 @@ public abstract class PassiveSkills : Skill
 
     public override void Initialize()
     {
-        InitializePassiveSkillData();
+        if (skillData == null) return;
+
+        var playerStat = GameManager.Instance?.player?.GetComponent<PlayerStat>();
+        if (playerStat != null)
+        {
+            float currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
+            Debug.Log($"Before Initialize - HP: {playerStat.GetStat(StatType.CurrentHp)}/{playerStat.GetStat(StatType.MaxHp)} ({currentHpRatio:F2})");
+
+            InitializePassiveSkillData();
+
+            float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+            float newCurrentHp = Mathf.Max(1f, newMaxHp * currentHpRatio);
+            playerStat.SetCurrentHp(newCurrentHp);
+
+            Debug.Log($"After Initialize - HP: {newCurrentHp}/{newMaxHp} ({currentHpRatio:F2})");
+        }
+        else
+        {
+            InitializePassiveSkillData();
+        }
     }
 
     private void InitializePassiveSkillData()
@@ -191,29 +210,87 @@ public abstract class PassiveSkills : Skill
     protected virtual IEnumerator ApplyTemporaryEffects(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) yield break;
+
+        float currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
+        bool anyEffectApplied = false;
 
         if (_damageIncrease > 0)
-            playerStat.AddStatModifier(StatType.Damage, SourceType.Passive, IncreaseType.Mul, _damageIncrease / 100f);
+        {
+            ApplyStatModifier(playerStat, StatType.Damage, _damageIncrease);
+            anyEffectApplied = true;
+        }
 
         if (_defenseIncrease > 0)
-            playerStat.AddStatModifier(StatType.Defense, SourceType.Passive, IncreaseType.Mul, _defenseIncrease / 100f);
+        {
+            ApplyStatModifier(playerStat, StatType.Defense, _defenseIncrease);
+            anyEffectApplied = true;
+        }
 
         if (_expAreaIncrease > 0)
-            playerStat.AddStatModifier(StatType.ExpCollectionRadius, SourceType.Passive, IncreaseType.Mul, _expAreaIncrease / 100f);
+        {
+            ApplyStatModifier(playerStat, StatType.ExpCollectionRadius, _expAreaIncrease);
+            anyEffectApplied = true;
+        }
 
         if (_homingActivate)
+        {
             player.ActivateHoming(true);
+            anyEffectApplied = true;
+        }
 
         if (_hpIncrease > 0)
-            playerStat.AddStatModifier(StatType.MaxHp, SourceType.Passive, IncreaseType.Mul, _hpIncrease / 100f);
+        {
+            ApplyStatModifier(playerStat, StatType.MaxHp, _hpIncrease);
+            float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+            float newCurrentHp = newMaxHp * currentHpRatio;
+            playerStat.SetCurrentHp(newCurrentHp);
+            anyEffectApplied = true;
+        }
 
-        yield return new WaitForSeconds(_effectDuration);
+        if (_moveSpeedIncrease > 0)
+        {
+            ApplyStatModifier(playerStat, StatType.MoveSpeed, _moveSpeedIncrease);
+            anyEffectApplied = true;
+        }
 
-        if (_damageIncrease > 0 || _defenseIncrease > 0 || _expAreaIncrease > 0 || _hpIncrease > 0)
+        if (_attackSpeedIncrease > 0)
+        {
+            ApplyStatModifier(playerStat, StatType.AttackSpeed, _attackSpeedIncrease);
+            anyEffectApplied = true;
+        }
+
+        if (_attackRangeIncrease > 0)
+        {
+            ApplyStatModifier(playerStat, StatType.AttackRange, _attackRangeIncrease);
+            anyEffectApplied = true;
+        }
+
+        if (_hpRegenIncrease > 0)
+        {
+            ApplyStatModifier(playerStat, StatType.HpRegenRate, _hpRegenIncrease);
+            anyEffectApplied = true;
+        }
+
+        if (anyEffectApplied)
+        {
+            yield return new WaitForSeconds(_effectDuration);
+
+            currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
             playerStat.RemoveStatsBySource(SourceType.Passive);
 
-        if (_homingActivate)
-            player.ActivateHoming(false);
+            if (_hpIncrease > 0)
+            {
+                float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+                float newCurrentHp = newMaxHp * currentHpRatio;
+                playerStat.SetCurrentHp(newCurrentHp);
+            }
+
+            if (_homingActivate)
+            {
+                player.ActivateHoming(false);
+            }
+        }
     }
 
     protected override void UpdateSkillTypeStats(ISkillStat newStats)
@@ -232,10 +309,17 @@ public abstract class PassiveSkills : Skill
             return;
         }
 
+        var playerStat = GameManager.Instance?.player?.GetComponent<PlayerStat>();
+        float currentHpRatio = 1f;
+        if (playerStat != null)
+        {
+            currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
+            Debug.Log($"Before UpdateInspectorValues - HP: {playerStat.GetStat(StatType.CurrentHp)}/{playerStat.GetStat(StatType.MaxHp)} ({currentHpRatio:F2})");
+        }
+
         Debug.Log($"[PassiveSkills] Before Update - Level: {_skillLevel}");
 
         _skillLevel = stats.baseStat.skillLevel;
-
         _damage = stats.baseStat.damage;
         _elementalPower = stats.baseStat.elementalPower;
         _effectDuration = stats.effectDuration;
@@ -252,6 +336,14 @@ public abstract class PassiveSkills : Skill
         _hpRegenIncrease = stats.hpRegenIncrease;
 
         Debug.Log($"[PassiveSkills] After Update - Level: {_skillLevel}");
+
+        if (playerStat != null)
+        {
+            float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+            float newCurrentHp = Mathf.Max(1f, newMaxHp * currentHpRatio);
+            playerStat.SetCurrentHp(newCurrentHp);
+            Debug.Log($"After UpdateInspectorValues - HP: {newCurrentHp}/{newMaxHp} ({currentHpRatio:F2})");
+        }
     }
 
     protected virtual SkillData CreateDefaultSkillData()
@@ -282,5 +374,15 @@ public abstract class PassiveSkills : Skill
 
             Debug.Log($"Removed all effects for {skillData?.metadata?.Name ?? "Unknown Skill"}");
         }
+    }
+
+    protected virtual void ApplyStatModifier(PlayerStat playerStat, StatType statType, float percentageIncrease)
+    {
+        if (percentageIncrease <= 0) return;
+
+        float currentStat = playerStat.GetStat(statType);
+        float increase = currentStat * (percentageIncrease / 100f);
+        playerStat.AddStatModifier(statType, SourceType.Passive, IncreaseType.Add, increase);
+        Debug.Log($"Applied {statType} increase: Current({currentStat}) + {percentageIncrease}% = {currentStat + increase}");
     }
 }

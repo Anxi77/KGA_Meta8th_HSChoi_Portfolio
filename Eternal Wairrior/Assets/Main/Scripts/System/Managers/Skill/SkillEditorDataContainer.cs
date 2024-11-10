@@ -37,6 +37,8 @@ public class SkillEditorDataContainer : ScriptableObject
     // OnDisable에서 데이터 저장
     private void OnDisable()
     {
+#if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(this);
+#endif
     }
 }

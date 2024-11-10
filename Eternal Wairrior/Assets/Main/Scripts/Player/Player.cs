@@ -38,7 +38,7 @@ public class Player : MonoBehaviour
     #endregion
 
     #region References
-    private PlayerStat playerStat;  // PlayerStat 참조
+    public PlayerStat playerStat;  // PlayerStat 참조
     private Rigidbody2D rb;
     private float x = 0;
     private float y = 0;
@@ -49,18 +49,32 @@ public class Player : MonoBehaviour
 
     #endregion
 
-    private bool isInitialized = false;
+    // 메서드 대신 프로퍼티로 변경
+    public bool IsInitialized { get; private set; }
 
     #region Unity Message Methods
 
     private void Awake()
     {
-        InitializeComponents();
+        // 기본 컴포넌트 참조만 가져오기
+        playerStat = GetComponent<PlayerStat>();
+        rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.gravityScale = 0f;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
+    }
+
+    private void Start()
+    {
+        // PlayerUnitManager를 통한 초기화 요청
+        PlayerUnitManager.Instance?.InitializePlayer(this);
+        IsInitialized = true;  // 초기화 완료 시점에 설정
     }
 
     private void OnEnable()
     {
-        Debug.Log("Player OnEnable called");
         if (playerStat != null && playerStatus != Status.Dead)
         {
             StartCombatSystems();
@@ -72,40 +86,59 @@ public class Player : MonoBehaviour
         CleanupPlayer();
     }
 
-    private void Start()
+    private void CleanupPlayer()
     {
-        InitializePlayer();
-        StartCombatSystems();
-    }
-
-    private void InitializeComponents()
-    {
-        playerStat = GetComponent<PlayerStat>();
-        rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.gravityScale = 0f;
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-        }
-        characterControl?.Initialize();
-    }
-
-    private void InitializePlayer()
-    {
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.player = this;
-        }
-    }
-
-    public void InitializePlayerSystems()
-    {
-        StartCombatSystems();
-    }
-
-    public void CleanupPlayer()
-    {
+        // 모든 코루틴 정지
         StopAllCoroutines();
+
+        // 전투 시스템 정리
+        if (autoAttackCoroutine != null)
+        {
+            StopCoroutine(autoAttackCoroutine);
+            autoAttackCoroutine = null;
+        }
+
+        if (healthRegenCoroutine != null)
+        {
+            StopCoroutine(healthRegenCoroutine);
+            healthRegenCoroutine = null;
+        }
+
+        // 스킬 정리
+        if (skills != null)
+        {
+            foreach (var skill in skills)
+            {
+                if (skill != null)
+                {
+                    Destroy(skill.gameObject);
+                }
+            }
+            skills.Clear();
+        }
+
+        // 상태 초기화
+        playerStatus = Status.Dead;
+        IsInitialized = false;  // 정리 시점에 false로 설정
+
+        Debug.Log("Player cleanup completed");
+    }
+
+    public void StartCombatSystems()
+    {
+        Debug.Log("Starting combat systems...");
+        if (playerStatus != Status.Dead)
+        {
+            if (playerStat == null)
+            {
+                Debug.LogError("PlayerStat is null!");
+                return;
+            }
+
+            StartHealthRegeneration();
+            StartAutoAttack();
+            Debug.Log("Combat systems started successfully");
+        }
     }
 
     private void FixedUpdate()
@@ -210,10 +243,19 @@ public class Player : MonoBehaviour
     {
         level++;
 
+        // 현재 체력 비율 저장
+        float currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
+
+        // 레벨업에 따른 스탯 업데이트
         playerStat.UpdateStatsForLevel(level);
 
+        // 새로운 최대 체력
         float maxHp = playerStat.GetStat(StatType.MaxHp);
-        playerStat.SetCurrentHp(maxHp);
+
+        // 이전 체력 비율을 유지하면서 체력 설정
+        playerStat.SetCurrentHp(maxHp * currentHpRatio);
+
+        Debug.Log($"Level Up! Level: {level}, New MaxHP: {maxHp}, Current HP: {playerStat.GetStat(StatType.CurrentHp)}");
     }
     #endregion
 
@@ -272,7 +314,7 @@ public class Player : MonoBehaviour
         playerStatus = Status.Dead;
         StopAllCoroutines();
 
-        // 게임 오버 상태로 전환
+        // 게임 오버 상태로 전환만 하고, 타운으로의 자동 전환은 하지 않음
         GameLoopManager.Instance.ChangeState(GameLoopManager.GameState.GameOver);
     }
 
@@ -411,33 +453,6 @@ public class Player : MonoBehaviour
         }
     }
     #endregion
-
-    public bool IsInitialized() => isInitialized;
-
-    private void StartCombatSystems()
-    {
-        Debug.Log("Starting combat systems...");
-        if (playerStatus != Status.Dead)
-        {
-            if (playerStat == null)
-            {
-                Debug.LogError("PlayerStat is null!");
-                return;
-            }
-
-            Debug.Log("Starting health regeneration...");
-            StartHealthRegeneration();
-
-            Debug.Log("Starting auto attack...");
-            StartAutoAttack();
-
-            Debug.Log("Combat systems started successfully");
-        }
-        else
-        {
-            Debug.LogWarning("Cannot start combat systems: Player is dead");
-        }
-    }
 
     private void StartAutoAttack()
     {

@@ -18,7 +18,8 @@ public class MonsterManager : SingletonManager<MonsterManager>, IInitializable
     public float spawnInterval;
 
     [Header("Monster Settings")]
-    public Enemy enemyPrefab;
+    public MeleeEnemy meleeEnemyPrefab;
+    public RangedEnemy rangedEnemyPrefab;
 
     [Header("Boss Settings")]
     public BossMonster bossPrefab;
@@ -95,12 +96,69 @@ public class MonsterManager : SingletonManager<MonsterManager>, IInitializable
         for (int i = 0; i < count; i++)
         {
             Vector2 playerPos = GameManager.Instance.player.transform.position;
+            Vector2 spawnPos = GetValidSpawnPosition(playerPos);
+
+            if (Random.value < 0.5f)
+            {
+                PoolManager.Instance.Spawn<MeleeEnemy>(meleeEnemyPrefab.gameObject, spawnPos, Quaternion.identity);
+            }
+            else
+            {
+                PoolManager.Instance.Spawn<RangedEnemy>(rangedEnemyPrefab.gameObject, spawnPos, Quaternion.identity);
+            }
+        }
+    }
+
+    private Vector2 GetValidSpawnPosition(Vector2 playerPos)
+    {
+        int maxAttempts = 10;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            // 기존 방식대로 스폰 위치 계산
             Vector2 ranPos = Random.insideUnitCircle;
             Vector2 spawnPos = (ranPos * (minMaxDist.y - minMaxDist.x)) + (ranPos.normalized * minMaxDist.x);
             Vector2 finalPos = playerPos + spawnPos;
 
-            PoolManager.Instance.Spawn<Enemy>(enemyPrefab.gameObject, finalPos, Quaternion.identity);
+            // 해당 위치가 walkable한지 확인
+            Node node = PathFindingManager.Instance.GetNodeFromWorldPosition(finalPos);
+            if (node != null && node.walkable)
+            {
+                return finalPos;
+            }
         }
+
+        // 모든 시도가 실패하면 플레이어 주변의 가장 가까운 walkable 위치 찾기
+        return FindNearestWalkablePosition(playerPos);
+    }
+
+    private Vector2 FindNearestWalkablePosition(Vector2 centerPos)
+    {
+        float searchRadius = 1f;
+        float maxSearchRadius = minMaxDist.y;
+        float radiusIncrement = 1f;
+
+        while (searchRadius <= maxSearchRadius)
+        {
+            for (float angle = 0; angle < 360; angle += 45)
+            {
+                float radian = angle * Mathf.Deg2Rad;
+                Vector2 checkPos = centerPos + new Vector2(
+                    Mathf.Cos(radian) * searchRadius,
+                    Mathf.Sin(radian) * searchRadius
+                );
+
+                Node node = PathFindingManager.Instance.GetNodeFromWorldPosition(checkPos);
+                if (node != null && node.walkable)
+                {
+                    return checkPos;
+                }
+            }
+            searchRadius += radiusIncrement;
+        }
+
+        // 최후의 수단으로 플레이어 위치 반환
+        return centerPos;
     }
     #endregion
 

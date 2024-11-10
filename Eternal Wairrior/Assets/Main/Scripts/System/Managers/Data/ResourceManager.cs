@@ -1,5 +1,7 @@
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using System.IO;
 using System.Collections.Generic;
 
@@ -29,7 +31,7 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
             }
 
             string assetPath = $"Assets/Resources/{basePath}/{key}";
-
+#if UNITY_EDITOR
             // 스프라이트인지 게임오브젝트인지 확인
             if (data is Sprite sprite)
             {
@@ -40,8 +42,10 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
                 SavePrefab(assetPath, prefab);
             }
 
-            cache[key] = data;
             AssetDatabase.Refresh();
+#endif
+            cache[key] = data;
+
             Debug.Log($"Saved resource to: {assetPath}");
         }
         catch (System.Exception e)
@@ -49,7 +53,6 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
             Debug.LogError($"Error saving resource: {e.Message}\n{e.StackTrace}");
         }
     }
-
     public T LoadData(string key)
     {
         if (cache.TryGetValue(key, out T cachedData))
@@ -73,7 +76,9 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
             {
                 File.Delete(fullPath);
                 cache.Remove(key);
+#if UNITY_EDITOR
                 AssetDatabase.Refresh();
+#endif
                 return true;
             }
         }
@@ -95,14 +100,16 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
                 Directory.CreateDirectory(directory);
             }
             cache.Clear();
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
+#endif
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Error clearing resources: {e.Message}");
         }
     }
-
+#if UNITY_EDITOR
     private void SaveSprite(string path, Sprite sprite)
     {
         try
@@ -114,7 +121,6 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
             }
 
             string fullPath = $"{path}.png";
-
             // 텍스처 원본 경로 가져오기
             string texturePath = AssetDatabase.GetAssetPath(sprite.texture);
 
@@ -182,8 +188,9 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
                     Debug.LogError($"Could not get TextureImporter for sprite: {texturePath}");
                 }
             }
-
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
+#endif
         }
         catch (System.Exception e)
         {
@@ -229,4 +236,5 @@ public class ResourceManager<T> : IDataManager<T> where T : UnityEngine.Object
             Debug.LogError($"Error saving prefab: {e.Message}");
         }
     }
+#endif
 }

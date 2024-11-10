@@ -6,27 +6,13 @@ using static StageManager;
 
 public class PlayerUnitManager : SingletonManager<PlayerUnitManager>, IInitializable
 {
-    public bool IsInitialized { get; private set; }
-
     [SerializeField] private GameObject playerPrefab;
-    private PlayerStat playerStat;
-    private Inventory inventory;
-    private Dictionary<SourceType, List<StatContainer>> temporaryEffects = new();
-    private Dictionary<SourceType, List<StatContainer>> temporaryEffectsBackup;
+    [SerializeField] private Vector3 defaultSpawnPosition = Vector3.zero;
 
-    protected override void Awake()
-    {
-        base.Awake();
-    }
+    public bool IsInitialized { get; private set; }
 
     public void Initialize()
     {
-        if (!PlayerDataManager.Instance.IsInitialized)
-        {
-            Debug.LogWarning("Waiting for PlayerDataManager to initialize...");
-            return;
-        }
-
         try
         {
             Debug.Log("Initializing PlayerUnitManager...");
@@ -40,208 +26,174 @@ public class PlayerUnitManager : SingletonManager<PlayerUnitManager>, IInitializ
         }
     }
 
-    #region Player Initialization
-    public void InitializePlayer(Player player)
-    {
-        if (player == null) return;
-
-        playerStat = player.GetComponent<PlayerStat>();
-        inventory = player.GetComponent<Inventory>();
-        ValidateReferences();
-    }
-
-    private void ValidateReferences()
-    {
-        if (playerStat == null)
-        {
-            Debug.LogError("PlayerStat reference is missing!");
-        }
-        if (inventory == null)
-        {
-            Debug.LogError("Inventory reference is missing!");
-        }
-    }
-
     public void SpawnPlayer(Vector3 position)
     {
-        if (playerPrefab == null)
+        Debug.Log($"Spawning player at position: {position}");
+
+        if (GameManager.Instance.player != null)
         {
-            Debug.LogError("Player prefab is not assigned!");
+            Debug.LogWarning("Player already exists, destroying old player");
+            Destroy(GameManager.Instance.player.gameObject);
+        }
+
+        try
+        {
+            GameObject playerObj = Instantiate(playerPrefab, position, Quaternion.identity);
+            Player player = playerObj.GetComponent<Player>();
+
+            if (player != null)
+            {
+                InitializePlayer(player);
+                Debug.Log("Player spawned and initialized successfully");
+            }
+            else
+            {
+                Debug.LogError("Player component not found on spawned object");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error spawning player: {e.Message}");
+        }
+    }
+
+    public void InitializePlayer(Player player)
+    {
+        if (player == null)
+        {
+            Debug.LogError("Cannot initialize null player");
             return;
         }
 
         try
         {
-            if (GameManager.Instance.player != null)
+            Debug.Log("Starting player initialization...");
+
+            // GameManager에 먼저 플레이어 등록
+            GameManager.Instance.player = player;
+
+            // PlayerStat 초기화
+            PlayerStat playerStat = player.GetComponent<PlayerStat>();
+            if (playerStat != null)
             {
-                GameManager.Instance.player.CleanupPlayer();
-                SaveGameState();
-                Destroy(GameManager.Instance.player.gameObject);
+                // 기본 스탯 데이터 로드
+                var defaultStatData = Resources.Load<PlayerStatData>("DefaultPlayerStats");
+                if (defaultStatData != null)
+                {
+                    playerStat.LoadStats(Instantiate(defaultStatData));
+                }
+
+                // 체력을 최대치로 설정
+                float maxHp = playerStat.GetStat(StatType.MaxHp);
+                playerStat.SetCurrentHp(maxHp);
+                Debug.Log($"Player stats initialized - MaxHP: {maxHp}");
+
+                // 저장된 데이터가 있다면 로드
+                if (PlayerDataManager.Instance.HasSaveData("CurrentSave"))
+                {
+                    LoadGameState();
+                }
             }
 
-            GameObject playerObj = Instantiate(playerPrefab, position, Quaternion.identity);
-            DontDestroyOnLoad(playerObj);
-
-            if (playerObj.TryGetComponent<Player>(out var player))
+            // 캐릭터 컨트롤 초기화
+            if (player.characterControl != null)
             {
-                GameManager.Instance.InitializePlayer(player);
-                InitializePlayer(player);
+                player.characterControl.Initialize();
+                Debug.Log("Character control initialized");
             }
+
+            // 플레이어 상태 초기화
+            player.playerStatus = Player.Status.Alive;
+
+            // 전투 시스템 시작
+            player.StartCombatSystems();
+
+            Debug.Log("Player initialization completed successfully");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Error in SpawnPlayer: {e.Message}");
+            Debug.LogError($"Error initializing player: {e.Message}");
         }
     }
 
     public Vector3 GetSpawnPosition(SceneType sceneType)
     {
-        return sceneType switch
+        // 씬 타입별로 적절한 스폰 위치 반환
+        switch (sceneType)
         {
-            SceneType.Town => new Vector3(0, 0, 0),
-            SceneType.Game => new Vector3(0, 0, 0),
-            SceneType.Test => new Vector3(0, 0, 0),
-            _ => Vector3.zero
-        };
+            case SceneType.Town:
+                return new Vector3(0, 0, 0); // 타운 스폰 위치
+            case SceneType.Game:
+            case SceneType.Test:
+                return defaultSpawnPosition;
+            default:
+                return Vector3.zero;
+        }
     }
-    #endregion
 
-    #region State Management
     public void SaveGameState()
     {
-        SavePlayerState();
-        SaveTemporaryEffects();
+        if (GameManager.Instance?.player == null) return;
+
+        var player = GameManager.Instance.player;
+        var playerStat = player.GetComponent<PlayerStat>();
+        var inventory = player.GetComponent<Inventory>();
+
+        if (playerStat != null)
+        {
+            PlayerDataManager.Instance.LoadPlayerStatData(playerStat.GetStatData());
+            PlayerDataManager.Instance.SaveCurrentPlayerStatData();
+        }
+
+        if (inventory != null)
+        {
+            PlayerDataManager.Instance.SaveInventoryData(inventory.GetInventoryData());
+        }
     }
 
     public void LoadGameState()
     {
-        if (GameManager.Instance?.player == null)
-        {
-            Debug.LogError("Player is null during LoadGameState!");
-            return;
-        }
+        if (GameManager.Instance?.player == null) return;
 
-        try
-        {
-            GameManager.Instance.player.CleanupPlayer();
-            ClearTemporaryEffects();
+        var player = GameManager.Instance.player;
+        var playerStat = player.GetComponent<PlayerStat>();
+        var inventory = player.GetComponent<Inventory>();
 
-            var saveData = PlayerDataManager.Instance.LoadPlayerData("CurrentSave");
-            if (saveData != null)
+        var savedData = PlayerDataManager.Instance.LoadPlayerData("CurrentSave");
+        if (savedData != null)
+        {
+            if (playerStat != null)
             {
-                LoadPlayerData(saveData);
+                playerStat.LoadStats(savedData.stats);
             }
 
-            RestorePlayerState();
-            RestoreTemporaryEffects();
-
-            if (GameManager.Instance?.player != null)
+            if (inventory != null)
             {
-                GameManager.Instance.player.InitializePlayerSystems();
+                inventory.LoadInventoryData(savedData.inventory);
             }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error in LoadGameState: {e.Message}");
-        }
-    }
-
-    private void LoadPlayerData(PlayerDataManager.PlayerSaveData saveData)
-    {
-        if (playerStat != null)
-        {
-            playerStat.LoadStats(saveData.stats);
-            playerStat.level = saveData.levelData.level;
-            playerStat.currentExp = saveData.levelData.exp;
-        }
-
-        if (inventory != null && saveData.inventory != null)
-        {
-            inventory.LoadInventoryData(saveData.inventory);
-        }
-    }
-    #endregion
-
-    #region Effect Management
-    public void AddTemporaryEffect(StatContainer effect, float duration = 0f)
-    {
-        if (!temporaryEffects.ContainsKey(effect.buffType))
-        {
-            temporaryEffects[effect.buffType] = new List<StatContainer>();
-        }
-
-        temporaryEffects[effect.buffType].Add(effect);
-        playerStat?.AddStatModifier(effect.statType, effect.buffType, effect.incType, effect.amount);
-
-        if (duration > 0)
-        {
-            StartCoroutine(RemoveEffectAfterDelay(effect, duration));
-        }
-    }
-
-    public void RemoveTemporaryEffect(StatContainer effect)
-    {
-        if (temporaryEffects.TryGetValue(effect.buffType, out var effects))
-        {
-            effects.Remove(effect);
-            playerStat?.RemoveStatModifier(effect.statType, effect.buffType, effect.incType, effect.amount);
         }
     }
 
     public void ClearTemporaryEffects()
     {
-        foreach (var effects in temporaryEffects.Values)
+        if (GameManager.Instance?.player == null) return;
+
+        var player = GameManager.Instance.player;
+
+        // 플레이어의 일시적인 효과들 제거
+        if (player.playerStat != null)
         {
-            foreach (var effect in effects)
-            {
-                playerStat?.RemoveStatModifier(
-                    effect.statType,
-                    effect.buffType,
-                    effect.incType,
-                    effect.amount
-                );
-            }
+            // 버프/디버프 효과 제거
+            player.playerStat.RemoveStatsBySource(SourceType.Buff);
+            player.playerStat.RemoveStatsBySource(SourceType.Debuff);
+
+            // 소비아이템 효과 제거
+            player.playerStat.RemoveStatsBySource(SourceType.Consumable);
         }
-        temporaryEffects.Clear();
-    }
 
-    private IEnumerator RemoveEffectAfterDelay(StatContainer effect, float duration)
-    {
-        yield return new WaitForSeconds(duration);
-        RemoveTemporaryEffect(effect);
-    }
+        // 패시브 효과 초기화
+        player.ResetPassiveEffects();
 
-    private void SaveTemporaryEffects()
-    {
-        temporaryEffectsBackup = new Dictionary<SourceType, List<StatContainer>>(temporaryEffects);
+        Debug.Log("Cleared all temporary effects from player");
     }
-
-    private void RestoreTemporaryEffects()
-    {
-        if (temporaryEffectsBackup != null)
-        {
-            foreach (var kvp in temporaryEffectsBackup)
-            {
-                foreach (var effect in kvp.Value)
-                {
-                    AddTemporaryEffect(effect);
-                }
-            }
-        }
-    }
-    #endregion
-
-    #region Player State
-    public void SavePlayerState()
-    {
-        playerStat?.SaveCurrentState();
-        inventory?.SaveInventoryState();
-    }
-
-    public void RestorePlayerState()
-    {
-        playerStat?.RestoreState();
-        inventory?.RestoreInventoryState();
-    }
-    #endregion
 }

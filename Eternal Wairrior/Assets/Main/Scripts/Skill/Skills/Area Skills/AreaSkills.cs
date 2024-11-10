@@ -201,4 +201,44 @@ public abstract class AreaSkills : Skill
             Debug.LogWarning($"Error in OnValidate for {GetType().Name}: {e.Message}");
         }
     }
+
+    public void ModifyRadius(float multiplier)
+    {
+        _radius *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat() as AreaSkillStat;
+        if (currentStats != null)
+        {
+            currentStats.radius = _radius;
+        }
+    }
+
+    public void ModifyDuration(float multiplier)
+    {
+        _duration *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat() as AreaSkillStat;
+        if (currentStats != null)
+        {
+            currentStats.duration = _duration;
+        }
+    }
+
+    public override void ModifyDamage(float multiplier)
+    {
+        _damage *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat();
+        if (currentStats?.baseStat != null)
+        {
+            currentStats.baseStat.damage = _damage;
+        }
+    }
+
+    public override void ModifyCooldown(float multiplier)
+    {
+        _tickRate *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat() as AreaSkillStat;
+        if (currentStats != null)
+        {
+            currentStats.tickRate = _tickRate;
+        }
+    }
 }

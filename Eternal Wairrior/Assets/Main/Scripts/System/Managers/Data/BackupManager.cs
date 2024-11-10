@@ -114,9 +114,10 @@ public class BackupManager
                 Debug.LogError($"백업 정리 중 오류 발생: {oldBackup}, 오류: {e.Message}");
             }
         }
-
+#if UNITY_EDITOR
         // 변경사항을 Unity에 반영
         AssetDatabase.Refresh();
+#endif
     }
 
     public bool RestoreFromBackup(string backupTimestamp)
@@ -137,8 +138,9 @@ public class BackupManager
 
             // 백업에서 복원
             CopyDirectory(backupPath, resourcePath);
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
-
+#endif
             return true;
         }
         catch (System.Exception e)

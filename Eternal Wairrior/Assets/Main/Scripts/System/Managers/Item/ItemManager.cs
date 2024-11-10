@@ -1,223 +1,132 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ItemManager : SingletonManager<ItemManager>, IInitializable
 {
-    public bool IsInitialized { get; private set; }
+    [SerializeField] private GameObject worldDropItemPrefab;
+    private ItemDataManager itemDataManager;
+    private ItemGenerator itemGenerator;
+    private bool isInitialized;
 
-    private Dictionary<string, ItemData> availableItems = new Dictionary<string, ItemData>();
-    private Dictionary<string, Item> activeItems = new Dictionary<string, Item>();
-    private Dictionary<EnemyType, DropTableData> dropTables = new Dictionary<EnemyType, DropTableData>();
-
-    protected override void Awake()
-    {
-        base.Awake();
-    }
+    public bool IsInitialized => isInitialized;
 
     public void Initialize()
     {
-        if (!ItemDataManager.Instance.IsInitialized)
+        if (!IsInitialized)
         {
-            Debug.LogWarning("Waiting for ItemDataManager to initialize...");
-            return;
-        }
-
-        try
-        {
-            Debug.Log("Initializing ItemManager...");
-            LoadItemData();
-            LoadDropTables();
-            IsInitialized = true;
-            Debug.Log("ItemManager initialized successfully");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Error initializing ItemManager: {e.Message}");
-            IsInitialized = false;
-        }
-    }
-
-    private void LoadItemData()
-    {
-        var items = ItemDataManager.Instance.GetAllItemData();
-        foreach (var item in items)
-        {
-            availableItems[item.id] = item;
-        }
-    }
-
-    private void LoadDropTables()
-    {
-        dropTables = ItemDataManager.Instance.GetDropTables();
-    }
-
-    #region Item Management
-    public void EquipItem(string itemId, EquipmentSlot slot)
-    {
-        if (availableItems.TryGetValue(itemId, out var itemData))
-        {
-            var player = GameManager.Instance?.player;
-            if (player != null)
+            try
             {
-                var playerStat = player.GetComponent<PlayerStat>();
-                playerStat.EquipItem(itemData.stats, slot);
+                Debug.Log("Initializing ItemManager...");
+                InitializeManagers();
+                isInitialized = true;
+                Debug.Log("ItemManager initialized successfully");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error initializing ItemManager: {e.Message}\n{e.StackTrace}");
+                isInitialized = false;
             }
         }
     }
 
-    public void UnequipItem(EquipmentSlot slot)
+    private void InitializeManagers()
     {
-        var player = GameManager.Instance?.player;
-        if (player != null)
+        try
         {
-            var playerStat = player.GetComponent<PlayerStat>();
-            playerStat.UnequipItem(slot);
+            // ItemDataManager 초기화 대기
+            while (ItemDataManager.Instance == null)
+            {
+                Debug.Log("Waiting for ItemDataManager...");
+                return;
+            }
+
+            itemDataManager = ItemDataManager.Instance;
+            if (!itemDataManager.IsInitialized)
+            {
+                Debug.Log("Waiting for ItemDataManager to initialize...");
+                return;
+            }
+
+            // ItemGenerator 초기화
+            var itemDatabase = itemDataManager.GetAllItemData();
+            if (itemDatabase != null && itemDatabase.Any())
+            {
+                itemGenerator = new ItemGenerator(itemDatabase.ToDictionary(item => item.id));
+                Debug.Log("ItemGenerator initialized successfully");
+            }
+            else
+            {
+                Debug.LogWarning("Item database is empty or not loaded");
+                itemGenerator = new ItemGenerator(new Dictionary<string, ItemData>());
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error in InitializeManagers: {e.Message}\n{e.StackTrace}");
+            throw;
         }
     }
 
-    public ItemData GetItem(string itemId)
-    {
-        if (availableItems.TryGetValue(itemId, out var itemData))
-        {
-            return itemData.Clone();
-        }
-        return null;
-    }
-    #endregion
-
-    #region Item Drop System
     public void DropItem(ItemData itemData, Vector3 position)
     {
-        if (itemData?.prefab == null) return;
+        if (itemData == null || worldDropItemPrefab == null) return;
 
-        var droppedItem = PoolManager.Instance.Spawn<Item>(
-            itemData.prefab,
-            position + Random.insideUnitSphere * 1f,
-            Quaternion.identity
-        );
-        droppedItem.Initialize(itemData);
-    }
-
-    public void DropItems(List<ItemData> items, Vector3 position, float spreadRadius = 1f)
-    {
-        foreach (var item in items)
+        var worldDropItem = PoolManager.Instance.Spawn<WorldDropItem>(worldDropItemPrefab, position, Quaternion.identity);
+        if (worldDropItem != null)
         {
-            Vector3 randomOffset = Random.insideUnitSphere * spreadRadius;
-            randomOffset.z = 0;
-            DropItem(item, position + randomOffset);
+            worldDropItem.Initialize(itemData);
+
+            // 물리 효과 제거하거나, 아주 작은 랜덤 오프셋만 추가
+            if (worldDropItem.TryGetComponent<Rigidbody2D>(out var rb))
+            {
+                // 아주 작은 랜덤 오프셋 적용 (선택사항)
+                Vector2 smallRandomOffset = Random.insideUnitCircle * 0.3f;
+                rb.AddForce(smallRandomOffset, ForceMode2D.Impulse);
+            }
         }
     }
 
     public List<ItemData> GetDropsForEnemy(EnemyType enemyType, float luckMultiplier = 1f)
     {
-        if (dropTables.TryGetValue(enemyType, out var dropTable))
-        {
-            var drops = new List<ItemData>();
-            int dropCount = 0;
-
-            // 보장 드랍
-            if (Random.value < dropTable.guaranteedDropRate * luckMultiplier)
-            {
-                var guaranteedDrop = GetRandomDropFromTable(dropTable, luckMultiplier);
-                if (guaranteedDrop != null)
-                {
-                    drops.Add(guaranteedDrop);
-                    dropCount++;
-                }
-            }
-
-            // 추가 드랍
-            foreach (var entry in dropTable.dropEntries)
-            {
-                if (dropCount >= dropTable.maxDrops) break;
-
-                if (Random.value < entry.dropRate * luckMultiplier)
-                {
-                    if (availableItems.TryGetValue(entry.itemId, out var itemData))
-                    {
-                        var drop = itemData.Clone();
-                        drop.amount = Random.Range(entry.minAmount, entry.maxAmount + 1);
-                        drops.Add(drop);
-                        dropCount++;
-                    }
-                }
-            }
-
-            return drops;
-        }
-
-        return new List<ItemData>();
+        var dropTable = itemDataManager.GetDropTables().GetValueOrDefault(enemyType);
+        if (dropTable == null) return new List<ItemData>();
+        return itemGenerator.GenerateDrops(dropTable, luckMultiplier);
     }
 
-    private ItemData GetRandomDropFromTable(DropTableData dropTable, float luckMultiplier)
+    public ItemData GetItem(string itemId)
     {
-        float totalWeight = dropTable.dropEntries.Sum(entry => entry.dropRate * luckMultiplier);
-        float random = Random.Range(0f, totalWeight);
-        float currentWeight = 0f;
-
-        foreach (var entry in dropTable.dropEntries)
+        if (string.IsNullOrEmpty(itemId))
         {
-            currentWeight += entry.dropRate * luckMultiplier;
-            if (random <= currentWeight)
-            {
-                if (availableItems.TryGetValue(entry.itemId, out var itemData))
-                {
-                    var drop = itemData.Clone();
-                    drop.amount = Random.Range(entry.minAmount, entry.maxAmount + 1);
-                    return drop;
-                }
-            }
+            Debug.LogError("Attempted to get item with null or empty ID");
+            return null;
         }
 
-        return null;
-    }
-    #endregion
+        // 아이템 생성
+        var item = itemGenerator.GenerateItem(itemId);
+        if (item == null)
+        {
+            Debug.LogError($"Failed to generate item with ID: {itemId}");
+            return null;
+        }
 
-    #region Item Utilities
-    public List<ItemData> GetRandomItems(int count, ItemType type = ItemType.None)
+        Debug.Log($"Generated item: {item.name} with {item.stats?.Count ?? 0} stats and {item.effects?.Count ?? 0} effects");
+        return item;
+    }
+
+    public List<ItemData> GetItemsByType(ItemType type)
     {
-        var filteredItems = availableItems.Values
-            .Where(item => type == ItemType.None || item.type == type)
+        return itemDataManager.GetAllItemData()
+            .Where(item => item.type == type)
+            .Select(item => item.Clone())
             .ToList();
-
-        var result = new List<ItemData>();
-        while (result.Count < count && filteredItems.Any())
-        {
-            int index = Random.Range(0, filteredItems.Count);
-            result.Add(filteredItems[index].Clone());
-            filteredItems.RemoveAt(index);
-        }
-
-        return result;
     }
 
-    public bool CanStackMore(string itemId, int currentAmount)
+    public List<ItemData> GetItemsByRarity(ItemRarity rarity)
     {
-        if (availableItems.TryGetValue(itemId, out var itemData))
-        {
-            return currentAmount < itemData.maxStack;
-        }
-        return false;
-    }
-
-    public int GetRemainingStackSpace(string itemId, int currentAmount)
-    {
-        if (availableItems.TryGetValue(itemId, out var itemData))
-        {
-            return itemData.maxStack - currentAmount;
-        }
-        return 0;
-    }
-    #endregion
-
-    public List<GameObject> GetAllItemPrefabs()
-    {
-        return availableItems.Values
-            .Where(item => item.prefab != null)
-            .Select(item => item.prefab)
-            .Distinct()
+        return itemDataManager.GetAllItemData()
+            .Where(item => item.rarity == rarity)
+            .Select(item => item.Clone())
             .ToList();
     }
 }

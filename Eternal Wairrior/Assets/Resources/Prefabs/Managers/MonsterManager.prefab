@@ -100,6 +100,7 @@ MonoBehaviour:
   minMaxCount: {x: 1, y: 1}
   minMaxDist: {x: 3, y: 5}
   spawnInterval: 1
-  enemyPrefab: {fileID: 5331126352838852610, guid: c804cc33ba360424d9301b5b473d1e5f, type: 3}
-  bossPrefab: {fileID: 0}
+  meleeEnemyPrefab: {fileID: -7447113314976174837, guid: 99010f3b8c22f4547a8e5c3b0aed18a8, type: 3}
+  rangedEnemyPrefab: {fileID: 22607315064371206, guid: d5769cd49013b744c8a66fac5bdcc048, type: 3}
+  bossPrefab: {fileID: 3571720604893261881, guid: a1c6bef36f3fb0e4c8dd950f66140775, type: 3}
   bossSpawnOffset: {x: 0, y: 5}

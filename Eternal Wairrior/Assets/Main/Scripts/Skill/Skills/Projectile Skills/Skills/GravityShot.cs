@@ -165,7 +165,7 @@ public class GravityProjectileSkill : ProjectileSkills
 
     protected override string GetDefaultSkillName() => "Gravity Shot";
     protected override string GetDefaultDescription() => "Creates gravity wells that pull and damage enemies";
-    protected override SkillType GetSkillType() => SkillType.Projectile;
+    public override SkillType GetSkillType() => SkillType.Projectile;
 
     public override void UpdateHomingState(bool activate)
     {

@@ -10,7 +10,7 @@ public class Bind : AreaSkills
 
     protected override string GetDefaultSkillName() => "Bind";
     protected override string GetDefaultDescription() => "Creates a binding area that restricts enemy movement";
-    protected override SkillType GetSkillType() => SkillType.Area;
+    public override SkillType GetSkillType() => SkillType.Area;
 
     protected override void Awake()
     {

@@ -17,7 +17,8 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
     public PlayerSkillList skillList;
 
     [Header("Player Info")]
-    [SerializeField] public PlayerUIManager playerUIManager;
+    [SerializeField] public PlayerUIPanel playerUIPanel;
+    [SerializeField] public PlayerSkillList playerSkillList;
 
     [Header("UI Bars")]
     [SerializeField] private Slider hpBarImage;
@@ -43,6 +44,19 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TextMeshProUGUI gameOverTimerText;
 
+    [Header("Stage UI")]
+    [SerializeField] public StageTimeUI stageTimeUI;
+
+    [Header("Inventory UI")]
+    [SerializeField] private GameObject inventoryUIPrefab;  // 프리팹만 참조
+    private InventoryUI inventoryUI;  // 런타임에 생성된 인스턴스 참조
+
+    [Header("Tooltips")]
+    public GameObject tooltipPrefab;  // 툴팁 프리팹 참조 추가
+
+    [Header("Input Settings")]
+    [SerializeField] private KeyCode inventoryToggleKey = KeyCode.I;
+
     protected override void Awake()
     {
         base.Awake();
@@ -59,7 +73,7 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
         try
         {
             Debug.Log("Initializing UIManager...");
-            InitializeUI();
+            InitializeUIComponents();
             IsInitialized = true;
             Debug.Log("UIManager initialized successfully");
         }
@@ -67,6 +81,19 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
         {
             Debug.LogError($"Error initializing UIManager: {e.Message}");
             IsInitialized = false;
+        }
+    }
+
+    private void InitializeUIComponents()
+    {
+        if (playerUIPanel != null)
+        {
+            playerUIPanel.Initialize();
+            Debug.Log("PlayerUIPanel initialized");
+        }
+        else
+        {
+            Debug.LogWarning("PlayerUIPanel reference is missing!");
         }
     }
 
@@ -88,10 +115,11 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
         {
             case "MainMenu":
                 SetupMainMenuUI();
+                if (stageTimeUI != null) stageTimeUI.gameObject.SetActive(false);
                 break;
             case "GameScene":
             case "TestScene":
-                StartCoroutine(SetupGameSceneUI());
+                StartCoroutine(SetupGameSceneUI()); if (stageTimeUI != null) stageTimeUI.gameObject.SetActive(true);
                 break;
             case "BossStage":
                 SetupBossStageUI();
@@ -138,9 +166,9 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
             levelupPanel.gameObject.SetActive(false);
             Debug.Log("Level up panel deactivated");
         }
-        if (playerUIManager)
+        if (playerUIPanel)
         {
-            playerUIManager.gameObject.SetActive(false);
+            playerUIPanel.gameObject.SetActive(false);
             Debug.Log("Player UI deactivated");
         }
         if (bossWarningPanel)
@@ -162,14 +190,37 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
             yield return null;
         }
 
-        // PlayerUIManager가 비활성화되어 있다면 활성화
-        if (playerUIManager != null && !playerUIManager.gameObject.activeSelf)
+        if (playerUIPanel != null && !playerUIPanel.gameObject.activeSelf)
         {
-            playerUIManager.gameObject.SetActive(true);
+            playerUIPanel.gameObject.SetActive(true);
         }
 
-        // 플레이어 UI 초기화
-        playerUIManager?.InitializePlayerUI(GameManager.Instance.player);
+        playerUIPanel?.InitializePlayerUI(GameManager.Instance.player);
+
+        if (inventoryUI != null)
+        {
+            inventoryUI.gameObject.SetActive(true);
+            if (!inventoryUI.IsInitialized)
+            {
+                inventoryUI.Initialize();
+            }
+            SetInventoryAccessible(true);
+        }
+
+        if (stageTimeUI != null)
+        {
+            stageTimeUI.gameObject.SetActive(true);
+            if (!stageTimeUI.IsInitialized)
+            {
+                stageTimeUI.Initialize();
+            }
+
+            while (!StageTimeManager.Instance.IsInitialized)
+            {
+                yield return null;
+            }
+            StageTimeManager.Instance.StartStageTimer(600f);
+        }
     }
 
     private void SetupBossStageUI()
@@ -179,7 +230,26 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
 
     private void Update()
     {
+        if (!IsInitialized) return;
+
         CheckPause();
+
+        // 인벤토리 토글 처리
+        if (Input.GetKeyDown(inventoryToggleKey))
+        {
+            if (inventoryUI != null && inventoryUI.IsInitialized)
+            {
+                if (inventoryUI.gameObject.activeSelf)
+                {
+                    HideInventory();
+                }
+                else
+                {
+                    ShowInventory();
+                }
+                Debug.Log($"Inventory toggled: {inventoryUI.gameObject.activeSelf}");
+            }
+        }
     }
 
     private void CheckPause()
@@ -232,13 +302,18 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
         }
     }
 
-    // UI 요소 초기화/정리 메서드
     public void ClearUI()
     {
         StopAllCoroutines();
         if (pausePanel) pausePanel.SetActive(false);
         if (levelupPanel) levelupPanel.gameObject.SetActive(false);
-        playerUIManager.Clear();
+        if (stageTimeUI) stageTimeUI.gameObject.SetActive(false);
+        if (inventoryUI)
+        {
+            inventoryUI.gameObject.SetActive(false);
+            SetInventoryAccessible(false);
+        }
+        playerUIPanel.Clear();
         Time.timeScale = 1f;
     }
 
@@ -391,15 +466,28 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
 
     private void CleanupUI()
     {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("Attempting to cleanup UI in edit mode - operation skipped");
+            return;
+        }
+#endif
+
         if (mainMenuPanel != null)
         {
-            Destroy(mainMenuPanel.gameObject);
+            DestroyImmediate(mainMenuPanel.gameObject);
             mainMenuPanel = null;
         }
         if (loadingScreen != null)
         {
-            Destroy(loadingScreen.gameObject);
+            DestroyImmediate(loadingScreen.gameObject);
             loadingScreen = null;
+        }
+        if (inventoryUI != null)
+        {
+            DestroyImmediate(inventoryUI.gameObject);
+            inventoryUI = null;
         }
     }
 
@@ -445,9 +533,9 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
 
     public void InitializePlayerUI(Player player)
     {
-        if (playerUIManager != null)
+        if (playerUIPanel != null)
         {
-            playerUIManager.InitializePlayerUI(player);
+            playerUIPanel.InitializePlayerUI(player);
             GameManager.Instance.StartLevelCheck();
         }
     }
@@ -459,18 +547,113 @@ public partial class UIManager : SingletonManager<UIManager>, IInitializable
 
     public void SetupGameUI()
     {
-        // PlayerUI 초기화
-        if (playerUIManager != null)
+        if (playerUIPanel != null)
         {
-            playerUIManager.gameObject.SetActive(true);
-            playerUIManager.PrepareUI();  // UI 컴포넌트들만 초기화
+            playerUIPanel.Initialize();
+        }
+        else
+        {
+            Debug.LogError("PlayerUIPanel reference is missing!");
         }
     }
 
     public bool IsGameUIReady()
     {
-        return playerUIManager != null &&
-               playerUIManager.gameObject.activeSelf &&
-               playerUIManager.IsUIReady();
+        return playerUIPanel != null && playerUIPanel.IsUIReady;
+    }
+
+    public bool IsLoadingScreenVisible()
+    {
+        return loadingScreen != null && loadingScreen.gameObject.activeSelf;
+    }
+
+    public void UpdatePlayerUI(Player player)
+    {
+        if (playerUIPanel != null)
+        {
+            playerUIPanel.InitializePlayerUI(player);
+        }
+    }
+
+    public void ClearPlayerUI()
+    {
+        playerUIPanel?.Clear();
+    }
+
+    public bool IsPlayerUIReady()
+    {
+        return playerUIPanel != null &&
+               playerUIPanel.gameObject.activeSelf &&
+               playerUIPanel.IsUIReady;
+    }
+
+    public void SetInventoryAccessible(bool accessible)
+    {
+        inventoryUI?.SetInventoryAccessible(accessible);
+    }
+
+    public void ShowInventory()
+    {
+        if (inventoryUI != null && inventoryUI.IsInitialized)
+        {
+            inventoryUI.gameObject.SetActive(true);
+            inventoryUI.UpdateUI();
+        }
+    }
+
+    public void HideInventory()
+    {
+        if (inventoryUI != null)
+        {
+            inventoryUI.gameObject.SetActive(false);
+        }
+    }
+
+    public void UpdateInventoryUI()
+    {
+        inventoryUI?.UpdateUI();
+    }
+
+    public ItemTooltip CreateTooltip(Vector2 position)
+    {
+        if (tooltipPrefab == null)
+        {
+            Debug.LogError("Tooltip prefab not assigned in UIManager!");
+            return null;
+        }
+
+        var tooltip = PoolManager.Instance.Spawn<ItemTooltip>(tooltipPrefab, position, Quaternion.identity);
+        if (tooltip != null)
+        {
+            tooltip.transform.SetParent(mainCanvas.transform, false);
+        }
+        return tooltip;
+    }
+
+    public void InitializeInventoryUI()
+    {
+        // 이미 존재하는 인벤토리 UI가 있다면 제거
+        if (inventoryUI != null)
+        {
+            Destroy(inventoryUI.gameObject);
+            inventoryUI = null;
+        }
+
+        // 프리팹으로부터 새로운 인스턴스 생성
+        if (inventoryUIPrefab != null)
+        {
+            var inventoryObj = Instantiate(inventoryUIPrefab, mainCanvas.transform);
+            inventoryUI = inventoryObj.GetComponent<InventoryUI>();
+            Debug.Log("Created new InventoryUI instance");
+
+            inventoryUI.gameObject.SetActive(false);
+            inventoryUI.Initialize();
+            SetInventoryAccessible(false);
+            Debug.Log("InventoryUI initialized");
+        }
+        else
+        {
+            Debug.LogError("InventoryUI prefab is missing!");
+        }
     }
 }

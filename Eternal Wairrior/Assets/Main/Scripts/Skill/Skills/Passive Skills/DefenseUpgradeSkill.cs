@@ -2,26 +2,33 @@ using UnityEngine;
 
 public class DefenseUpgradeSkill : PermanentPassiveSkill
 {
-    protected override void ApplyEffectToPlayer(Player player)
+    public override void ApplyEffectToPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
+
+        float currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
 
         if (_defenseIncrease > 0)
         {
-            playerStat.AddStatModifier(StatType.Defense, SourceType.Passive, IncreaseType.Mul, _defenseIncrease / 100f);
-            Debug.Log($"Applied permanent defense increase: {_defenseIncrease}%");
+            ApplyStatModifier(playerStat, StatType.Defense, _defenseIncrease);
         }
 
         if (_hpIncrease > 0)
         {
-            playerStat.AddStatModifier(StatType.MaxHp, SourceType.Passive, IncreaseType.Mul, _hpIncrease / 100f);
-            Debug.Log($"Applied permanent max HP increase: {_hpIncrease}%");
+            ApplyStatModifier(playerStat, StatType.MaxHp, _hpIncrease);
+            float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+            float newCurrentHp = Mathf.Max(1f, newMaxHp * currentHpRatio);
+            playerStat.SetCurrentHp(newCurrentHp);
         }
     }
 
-    protected override void RemoveEffectFromPlayer(Player player)
+    public override void RemoveEffectFromPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
+
+        float currentHpRatio = playerStat.GetStat(StatType.CurrentHp) / playerStat.GetStat(StatType.MaxHp);
 
         if (_defenseIncrease > 0)
         {
@@ -31,6 +38,10 @@ public class DefenseUpgradeSkill : PermanentPassiveSkill
         if (_hpIncrease > 0)
         {
             playerStat.RemoveStatModifier(StatType.MaxHp, SourceType.Passive);
+            
+            float newMaxHp = playerStat.GetStat(StatType.MaxHp);
+            float newCurrentHp = newMaxHp * currentHpRatio;
+            playerStat.SetCurrentHp(newCurrentHp);
         }
     }
 
@@ -74,5 +85,5 @@ public class DefenseUpgradeSkill : PermanentPassiveSkill
 
     protected override string GetDefaultSkillName() => "Defense Mastery";
     protected override string GetDefaultDescription() => "Permanently increases defense and maximum HP";
-    protected override SkillType GetSkillType() => SkillType.Passive;
+    public override SkillType GetSkillType() => SkillType.Passive;
 }

@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor.PackageManager.Requests;
 
 public enum FireMode
 {
@@ -130,7 +129,7 @@ public abstract class ProjectileSkills : Skill
 
     protected bool isInitialized = false;
 
-    protected FireMode currentFireMode = FireMode.Manual;
+    protected FireMode currentFireMode = FireMode.Auto;
     protected bool canFire = false;
     protected float fireTimer = 0f;
 
@@ -294,7 +293,7 @@ public abstract class ProjectileSkills : Skill
     public virtual void UpdateHomingState(bool activate)
     {
         _isHoming = activate;
-        currentFireMode = activate ? FireMode.AutoHoming : FireMode.Manual;
+        currentFireMode = activate ? FireMode.AutoHoming : FireMode.Auto;
 
         if (!activate)
         {
@@ -440,5 +439,45 @@ public abstract class ProjectileSkills : Skill
         canFire = false;
         isInitialized = false;
         StopAllCoroutines();
+    }
+
+    public void ModifyProjectileSpeed(float multiplier)
+    {
+        _projectileSpeed *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat() as ProjectileSkillStat;
+        if (currentStats != null)
+        {
+            currentStats.projectileSpeed = _projectileSpeed;
+        }
+    }
+
+    public void ModifyProjectileRange(float multiplier)
+    {
+        _attackRange *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat() as ProjectileSkillStat;
+        if (currentStats != null)
+        {
+            currentStats.attackRange = _attackRange;
+        }
+    }
+
+    public override void ModifyDamage(float multiplier)
+    {
+        _damage *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat();
+        if (currentStats?.baseStat != null)
+        {
+            currentStats.baseStat.damage = _damage;
+        }
+    }
+
+    public override void ModifyCooldown(float multiplier)
+    {
+        _shotInterval *= multiplier;
+        var currentStats = skillData?.GetCurrentTypeStat() as ProjectileSkillStat;
+        if (currentStats != null)
+        {
+            currentStats.shotInterval = _shotInterval;
+        }
     }
 }

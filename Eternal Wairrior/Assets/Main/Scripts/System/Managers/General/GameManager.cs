@@ -48,9 +48,14 @@ public class GameManager : SingletonManager<GameManager>, IInitializable
         if (levelCheckCoroutine != null)
         {
             StopCoroutine(levelCheckCoroutine);
+            levelCheckCoroutine = null;
         }
-        levelCheckCoroutine = StartCoroutine(CheckLevelUp());
-        Debug.Log("Started level check coroutine");
+
+        if (player != null && player.playerStatus != Player.Status.Dead)
+        {
+            levelCheckCoroutine = StartCoroutine(CheckLevelUp());
+            Debug.Log("Started level check coroutine");
+        }
     }
 
     private IEnumerator CheckLevelUp()
@@ -66,9 +71,10 @@ public class GameManager : SingletonManager<GameManager>, IInitializable
 
         while (true)
         {
-            if (player == null)
+            if (player == null || player.playerStatus == Player.Status.Dead)
             {
-                Debug.LogWarning("Lost player reference, stopping level check");
+                Debug.Log("Player is dead or null, stopping level check");
+                levelCheckCoroutine = null;
                 yield break;
             }
 

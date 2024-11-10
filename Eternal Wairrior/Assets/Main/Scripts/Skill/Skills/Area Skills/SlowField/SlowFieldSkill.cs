@@ -131,5 +131,5 @@ public class SlowFieldSkill : AreaSkills
 
     protected override string GetDefaultSkillName() => "Slow Field";
     protected override string GetDefaultDescription() => "Creates slowing fields that damage and slow enemies";
-    protected override SkillType GetSkillType() => SkillType.Area;
+    public override SkillType GetSkillType() => SkillType.Area;
 }

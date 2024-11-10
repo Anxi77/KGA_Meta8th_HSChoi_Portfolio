@@ -5,7 +5,7 @@ public class PoolManager : SingletonManager<PoolManager>, IInitializable
 {
     public bool IsInitialized { get; private set; }
 
-    private ObjectPool objectPool;
+    private static ObjectPool objectPool;
 
     protected override void Awake()
     {
@@ -32,15 +32,31 @@ public class PoolManager : SingletonManager<PoolManager>, IInitializable
     {
         if (objectPool == null)
         {
-            GameObject poolObj = new GameObject("ObjectPool");
-            poolObj.transform.SetParent(transform);
-            objectPool = poolObj.AddComponent<ObjectPool>();
+            GameObject poolObj = GameObject.Find("ObjectPool");
+            if (poolObj == null)
+            {
+                poolObj = new GameObject("ObjectPool");
+                DontDestroyOnLoad(poolObj);
+            }
+            objectPool = poolObj.GetComponent<ObjectPool>();
+            if (objectPool == null)
+            {
+                objectPool = poolObj.AddComponent<ObjectPool>();
+            }
         }
     }
 
     public T Spawn<T>(GameObject prefab, Vector3 position, Quaternion rotation) where T : Component
     {
-        return objectPool.Spawn<T>(prefab, position, rotation);
+        string originalName = prefab.name;
+
+        T spawnedObj = objectPool.Spawn<T>(prefab, position, rotation);
+        if (spawnedObj != null)
+        {
+            spawnedObj.gameObject.name = originalName;
+        }
+
+        return spawnedObj;
     }
 
     public void Despawn<T>(T obj) where T : Component

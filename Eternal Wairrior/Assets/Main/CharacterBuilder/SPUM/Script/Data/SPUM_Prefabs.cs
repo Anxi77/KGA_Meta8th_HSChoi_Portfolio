@@ -50,57 +50,63 @@ public class SPUM_Prefabs : MonoBehaviour
             return;
         }
 
-        OverrideController = new AnimatorOverrideController();
-        OverrideController.runtimeAnimatorController = _anim.runtimeAnimatorController;
-
         if (_anim.runtimeAnimatorController == null)
         {
-            Debug.LogError("RuntimeAnimatorController is missing!");
-            return;
+            Debug.LogError("No base RuntimeAnimatorController found! Loading default controller...");
+            RuntimeAnimatorController defaultController = Resources.Load<RuntimeAnimatorController>("Animations/DefaultAnimatorController");
+            if (defaultController == null)
+            {
+                Debug.LogError("Could not load default animator controller!");
+                return;
+            }
+            _anim.runtimeAnimatorController = defaultController;
         }
 
-        AnimationClip[] clips = _anim.runtimeAnimatorController.animationClips;
-        foreach (AnimationClip clip in clips)
+        try
         {
-            OverrideController[clip.name] = clip;
+            OverrideController = new AnimatorOverrideController(_anim.runtimeAnimatorController);
+
+            AnimationClip[] clips = _anim.runtimeAnimatorController.animationClips;
+            foreach (AnimationClip clip in clips)
+            {
+                if (clip != null)
+                {
+                    OverrideController[clip.name] = clip;
+                }
+            }
+
+            _anim.runtimeAnimatorController = OverrideController;
+
+            StateAnimationPairs = new Dictionary<string, List<AnimationClip>>();
+            foreach (PlayerState state in System.Enum.GetValues(typeof(PlayerState)))
+            {
+                var stateText = state.ToString();
+                StateAnimationPairs[stateText] = GetAnimationListForState(state);
+            }
+
+            Debug.Log("AnimatorOverrideController initialized successfully");
         }
-
-        _anim.runtimeAnimatorController = OverrideController;
-
-        foreach (PlayerState state in System.Enum.GetValues(typeof(PlayerState)))
+        catch (System.Exception e)
         {
-            var stateText = state.ToString();
-            if (!StateAnimationPairs.ContainsKey(stateText))
-            {
-                StateAnimationPairs[stateText] = new List<AnimationClip>();
-            }
-
-            switch (state)
-            {
-                case PlayerState.IDLE:
-                    StateAnimationPairs[stateText] = IDLE_List;
-                    break;
-                case PlayerState.MOVE:
-                    StateAnimationPairs[stateText] = MOVE_List;
-                    break;
-                case PlayerState.ATTACK:
-                    StateAnimationPairs[stateText] = ATTACK_List;
-                    break;
-                case PlayerState.DAMAGED:
-                    StateAnimationPairs[stateText] = DAMAGED_List;
-                    break;
-                case PlayerState.DEBUFF:
-                    StateAnimationPairs[stateText] = DEBUFF_List;
-                    break;
-                case PlayerState.DEATH:
-                    StateAnimationPairs[stateText] = DEATH_List;
-                    break;
-                case PlayerState.OTHER:
-                    StateAnimationPairs[stateText] = OTHER_List;
-                    break;
-            }
+            Debug.LogError($"Error initializing AnimatorOverrideController: {e.Message}\n{e.StackTrace}");
         }
     }
+
+    private List<AnimationClip> GetAnimationListForState(PlayerState state)
+    {
+        switch (state)
+        {
+            case PlayerState.IDLE: return IDLE_List;
+            case PlayerState.MOVE: return MOVE_List;
+            case PlayerState.ATTACK: return ATTACK_List;
+            case PlayerState.DAMAGED: return DAMAGED_List;
+            case PlayerState.DEBUFF: return DEBUFF_List;
+            case PlayerState.DEATH: return DEATH_List;
+            case PlayerState.OTHER: return OTHER_List;
+            default: return new List<AnimationClip>();
+        }
+    }
+
     public bool allListsHaveItemsExist()
     {
         List<List<AnimationClip>> allLists = new List<List<AnimationClip>>()

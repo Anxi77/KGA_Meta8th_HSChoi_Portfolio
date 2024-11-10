@@ -4,7 +4,8 @@ using UnityEngine.SceneManagement;
 
 public enum StatType
 {
-    // ⺻ 
+    // ⺻
+    None,
     MaxHp,              // ִ ü
     CurrentHp,          // ü
     Damage,             // ݷ
@@ -41,17 +42,18 @@ public enum StatType
 
 public enum SourceType
 {
-    Base,       // ⺻ 
-    Level,      // ȿ 
-    Passive,    // нú 
-    Active,     // Ƽ 
-    Equipment_Weapon,    // 
-    Equipment_Armor,     // 
-    Equipment_Accessory, // 
-    Equipment_Special,   // Ư
-    Consumable, // Һ
-    Buff,       // Ͻ
-    Debuff      // 
+    None,       // 없음
+    Base,       // 기본 
+    Level,      // 레벨 효과 
+    Passive,    // 패시브 
+    Active,     // 액티브 
+    Equipment_Weapon,    // 무기
+    Equipment_Armor,     // 방어구
+    Equipment_Accessory, // 장신구
+    Equipment_Special,   // 특수
+    Consumable, // 소비
+    Buff,       // 버프
+    Debuff      // 디버프
 }
 
 public enum IncreaseType
@@ -60,37 +62,70 @@ public enum IncreaseType
     Mul     // ϱ
 }
 
-public enum EquipmentSlot
-{
-    None,
-    Weapon,
-    Armor,
-    Accessory1,
-    Accessory2,
-    Special
-}
-
 [System.Serializable]
-public struct StatContainer
+public class StatContainer
 {
-    public StatType statType;      //  
-    public SourceType buffType;    //  ȿ
-    public IncreaseType incType;   // ϱ ϱ
-    public float amount;           // ġ
-    public EquipmentSlot equipSlot;  //  ߰
+    public StatType statType;
+    public SourceType sourceType;
+    public IncreaseType increaseType;
+    public float amount;
 
-    public StatContainer(StatType statType, SourceType buffType, IncreaseType incType, float amount, EquipmentSlot slot = EquipmentSlot.None)
+    public StatContainer()
+    {
+        statType = StatType.None;
+        sourceType = SourceType.None;
+        increaseType = IncreaseType.Add;
+        amount = 0f;
+    }
+
+    public StatContainer(StatType statType, SourceType sourceType, IncreaseType increaseType, float amount)
     {
         this.statType = statType;
-        this.buffType = buffType;
-        this.incType = incType;
+        this.sourceType = sourceType;
+        this.increaseType = increaseType;
         this.amount = amount;
-        this.equipSlot = slot;
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (obj is StatContainer other)
+        {
+            return statType == other.statType &&
+                   sourceType == other.sourceType &&
+                   increaseType == other.increaseType &&
+                   amount == other.amount;
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 + statType.GetHashCode();
+            hash = hash * 23 + sourceType.GetHashCode();
+            hash = hash * 23 + increaseType.GetHashCode();
+            hash = hash * 23 + amount.GetHashCode();
+            return hash;
+        }
+    }
+
+    public static bool operator ==(StatContainer left, StatContainer right)
+    {
+        if (ReferenceEquals(left, null))
+            return ReferenceEquals(right, null);
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(StatContainer left, StatContainer right)
+    {
+        return !(left == right);
     }
 
     public override string ToString()
     {
-        return $"[{buffType}] {statType} {(incType == IncreaseType.Add ? "+" : "x")} {amount}";
+        return $"[{sourceType}] {statType} {(increaseType == IncreaseType.Add ? "+" : "x")} {amount}";
     }
 }
 
@@ -211,10 +246,10 @@ public class PlayerStat : MonoBehaviour
 
         foreach (var effect in baseData.GetAllPermanentStats())
         {
-            if (!activeEffects.ContainsKey(effect.buffType))
-                activeEffects[effect.buffType] = new List<StatContainer>();
+            if (!activeEffects.ContainsKey(effect.sourceType))
+                activeEffects[effect.sourceType] = new List<StatContainer>();
 
-            activeEffects[effect.buffType].Add(effect);
+            activeEffects[effect.sourceType].Add(effect);
         }
 
         RecalculateStats();
@@ -270,7 +305,7 @@ public class PlayerStat : MonoBehaviour
                 {
                     if (effect.statType != statType) continue;
 
-                    if (effect.incType == IncreaseType.Add)
+                    if (effect.increaseType == IncreaseType.Add)
                         addValue += effect.amount;
                     else
                         mulValue *= (1 + effect.amount);
@@ -410,7 +445,7 @@ public class PlayerStat : MonoBehaviour
         equippedItems[slot] = itemStats;
         foreach (var stat in itemStats)
         {
-            AddStatModifier(stat.statType, stat.buffType, stat.incType, stat.amount);
+            AddStatModifier(stat.statType, stat.sourceType, stat.increaseType, stat.amount);
         }
     }
 
@@ -441,7 +476,7 @@ public class PlayerStat : MonoBehaviour
             {
                 foreach (var stat in stats)
                 {
-                    AddStatModifier(stat.statType, stat.buffType, stat.incType, stat.amount);
+                    AddStatModifier(stat.statType, stat.sourceType, stat.increaseType, stat.amount);
                 }
             }
         }
@@ -449,13 +484,12 @@ public class PlayerStat : MonoBehaviour
 
     private void RemoveSpecificStat(StatContainer stat)
     {
-        if (activeEffects.TryGetValue(stat.buffType, out var effects))
+        if (activeEffects.TryGetValue(stat.sourceType, out var effects))
         {
             effects.RemoveAll(x =>
                 x.statType == stat.statType &&
-                x.incType == stat.incType &&
-                x.amount == stat.amount &&
-                x.equipSlot == stat.equipSlot);
+                x.increaseType == stat.increaseType &&
+                x.amount == stat.amount);
         }
         RecalculateStats();
     }
@@ -512,7 +546,7 @@ public class PlayerStat : MonoBehaviour
         {
             effects.RemoveAll(x =>
                 x.statType == statType &&
-                x.incType == incType &&
+                x.increaseType == incType &&
                 x.amount == amount);
             RecalculateStats();
         }

@@ -6,7 +6,8 @@ using UnityEngine.SceneManagement;
 public class PlayerDataManager : DataManager<PlayerDataManager>, IInitializable
 {
 
-    private const string SAVE_PATH = "Asset/Resources/PlayerData";
+    private const string SAVE_FOLDER = "PlayerData";
+    private string SAVE_PATH => Path.Combine(Application.persistentDataPath, SAVE_FOLDER);
     private const string DEFAULT_SAVE_SLOT = "DefaultSave";
 
     private PlayerStatData currentPlayerStatData;
@@ -57,11 +58,24 @@ public class PlayerDataManager : DataManager<PlayerDataManager>, IInitializable
 
     protected override void CreateResourceFolders()
     {
-        string savePath = Path.Combine(Application.persistentDataPath, SAVE_PATH);
-        if (!Directory.Exists(savePath))
+        try
         {
-            Directory.CreateDirectory(savePath);
-            Debug.Log($"Created save directory at: {savePath}");
+            if (!Directory.Exists(SAVE_PATH))
+            {
+                Directory.CreateDirectory(SAVE_PATH);
+                Debug.Log($"Created save directory at: {SAVE_PATH}");
+            }
+
+            string resourcePath = Path.Combine(Application.dataPath, "Resources", SAVE_FOLDER);
+            if (!Directory.Exists(resourcePath))
+            {
+                Directory.CreateDirectory(resourcePath);
+                Debug.Log($"Created resource directory at: {resourcePath}");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error creating directories: {e.Message}");
         }
     }
 
@@ -86,7 +100,19 @@ public class PlayerDataManager : DataManager<PlayerDataManager>, IInitializable
     {
         if (backupManager != null)
         {
-            backupManager.CreateBackup(SAVE_PATH);
+            try
+            {
+                if (!Directory.Exists(SAVE_PATH))
+                {
+                    CreateResourceFolders();
+                }
+                backupManager.CreateBackup(SAVE_PATH);
+                Debug.Log($"Backup created at: {SAVE_PATH}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error during backup: {e.Message}");
+            }
         }
     }
 

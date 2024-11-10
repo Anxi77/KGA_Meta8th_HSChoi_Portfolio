@@ -1,4 +1,5 @@
 using Lean.Pool;
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,6 +8,7 @@ public class ExplodingProjectile : Projectile
 {
     [Header("Explosion Settings")]
     [SerializeField] protected float _explosionRadius = 2f;
+
     public float explosionRad { get => _explosionRadius; set => _explosionRadius = value; }
 
     private ParticleSystem projectileParticle;
@@ -17,10 +19,23 @@ public class ExplodingProjectile : Projectile
         projectileParticle = GetComponentInChildren<ParticleSystem>();
     }
 
+    public override void Move()
+    {
+        transform.position += (Vector3)(direction * moveSpeed * Time.deltaTime);
+    }
+
+    public override void SetDirection(Vector2 newDirection)
+    {
+        base.SetDirection(newDirection);
+        if (projectileParticle != null)
+        {
+            projectileParticle.gameObject.transform.up = direction;
+        }
+    }
+
     protected override void OnTriggerEnter2D(Collider2D other)
     {
         if (!other.CompareTag("Enemy")) return;
-
         StartCoroutine(ExplodeCoroutine());
     }
 

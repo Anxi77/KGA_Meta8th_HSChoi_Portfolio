@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
 
 [System.Serializable]
@@ -6,13 +6,14 @@ public abstract class Skill : MonoBehaviour
 {
     [SerializeField] protected SkillData skillData;
     protected Vector2 fireDir;
+    protected MonoBehaviour owner;
 
     protected virtual void Awake()
     {
-        // Awake¿¡¼­´Â ÃÊ±âÈ­¸¦ ÇÏÁö ¾ÊÀ½
+        // Awake Ê±È­ Ê±
     }
 
-    // »õ·Î¿î ÃÊ±âÈ­ ¸Ş¼­µå Ãß°¡
+    // Ê¹ Ê±È­ Ş¼
     public virtual void Initialize()
     {
         InitializeSkillData();
@@ -37,7 +38,6 @@ public abstract class Skill : MonoBehaviour
         }
     }
 
-    protected abstract SkillType GetSkillType();
     protected abstract string GetDefaultSkillName();
     protected abstract string GetDefaultDescription();
     protected virtual ElementType GetDefaultElement() => ElementType.None;
@@ -49,12 +49,12 @@ public abstract class Skill : MonoBehaviour
 
     protected virtual void CleanupSkill()
     {
-        // ÀÚ½Ä Å¬·¡½º¿¡¼­ ±¸Çö
+        // Ú½ Å¬
     }
 
     protected bool IsValidSkillData(SkillData data)
     {
-        // SkillDataManager¿Í SkillManager ¸ğµÎ ÃÊ±âÈ­µÇÁö ¾ÊÀº °æ¿ì °ËÁõÀ» °Ç³Ê¶Ü
+        // SkillDataManager SkillManager Ê±È­ Ê±
         if (SkillDataManager.Instance == null || !SkillDataManager.Instance.IsInitialized ||
             SkillManager.Instance == null || !SkillManager.Instance.IsInitialized)
         {
@@ -66,7 +66,7 @@ public abstract class Skill : MonoBehaviour
         if (string.IsNullOrEmpty(data.metadata.Name)) return false;
         if (data.metadata.ID == SkillID.None) return false;
 
-        // ½ºÅ³ Å¸ÀÔº° ÇÊ¼ö µ¥ÀÌÅÍ °ËÁõ
+        // Å³ Å¸Ôº Ê¼
         var currentStats = data.GetCurrentTypeStat();
         if (currentStats == null) return false;
         if (currentStats.baseStat == null) return false;
@@ -74,10 +74,10 @@ public abstract class Skill : MonoBehaviour
         return true;
     }
 
-    // ±âº» ½ºÅÈ Á¢±ÙÀÚ
+    // âº» 
     public virtual float Damage => skillData?.GetCurrentTypeStat()?.baseStat?.damage ?? 0f;
     public string SkillName => skillData?.metadata?.Name ?? "Unknown";
-    protected int _skillLevel = 1;  // ±âº» ÇÊµå
+    protected int _skillLevel = 1;  // âº» Êµ
     public int SkillLevel
     {
         get
@@ -98,7 +98,7 @@ public abstract class Skill : MonoBehaviour
     public int MaxSkillLevel => skillData?.GetCurrentTypeStat()?.baseStat?.maxSkillLevel ?? 1;
     public SkillID SkillID => skillData?.metadata?.ID ?? SkillID.None;
 
-    // Å¸ÀÔº° ½ºÅÈ °¡Á®¿À±â
+    // Å¸Ôº 
     protected T GetTypeStats<T>() where T : ISkillStat
     {
         if (skillData == null) return default(T);
@@ -114,13 +114,13 @@ public abstract class Skill : MonoBehaviour
         return default(T);
     }
 
-    // Unity ÀÎ½ºÆåÅÍ¿¡¼­ °ªÀ» ¼öÁ¤ÇÒ ¼ö ÀÖµµ·Ï ÇÏ´Â ¸Ş¼­µå
+    // Unity Î½Í¿ Öµ Ş¼
     public virtual void SetSkillData(SkillData data)
     {
         skillData = data;
     }
 
-    // ÇöÀç ½ºÅ³ µ¥ÀÌÅÍ °¡Á®¿À±â
+    // Ê¹ Å³ 
     public virtual SkillData GetSkillData()
     {
         return skillData;
@@ -131,7 +131,7 @@ public abstract class Skill : MonoBehaviour
         Debug.Log($"=== Starting SkillLevelUpdate for {SkillName} ===");
         Debug.Log($"Current Level: {SkillLevel}, Attempting to upgrade to: {newLevel}");
 
-        // ·¹º§ À¯È¿¼º °Ë»ç
+        // È¿Ë»
         if (newLevel <= 0)
         {
             Debug.LogError($"Invalid level: {newLevel}");
@@ -144,7 +144,7 @@ public abstract class Skill : MonoBehaviour
             return false;
         }
 
-        // »õ·Î¿î ½ºÅ³ »ı¼º ½Ã¿¡´Â ·¹º§ ¼øÂ÷ °ËÁõÀ» °Ç³Ê¶Ü
+        // Ê¹ Å³ Ç³Ê¶
         if (newLevel < SkillLevel)
         {
             Debug.LogError($"Cannot downgrade skill level. Current: {SkillLevel}, Attempted: {newLevel}");
@@ -153,11 +153,11 @@ public abstract class Skill : MonoBehaviour
 
         try
         {
-            // ÇöÀç ½ºÅÈ ·Î±ë
+            // Ê¹ 
             var currentStats = GetSkillData()?.GetCurrentTypeStat();
             Debug.Log($"Current stats - Level: {currentStats?.baseStat?.skillLevel}, Damage: {currentStats?.baseStat?.damage}");
 
-            // »õ·Î¿î ½ºÅÈ °¡Á®¿À±â
+            // Ê¹ 
             var newStats = SkillDataManager.Instance.GetSkillStatsForLevel(
                 skillData.metadata.ID,
                 newLevel,
@@ -201,7 +201,7 @@ public abstract class Skill : MonoBehaviour
 
     protected virtual void OnValidate()
     {
-        // Application.isPlaying Ã¼Å©¸¦ Á¦°ÅÇÏ°í, ÃÊ±âÈ­°¡ ¿Ï·áµÈ °æ¿ì¿¡¸¸ °ËÁõÇÏµµ·Ï ¼öÁ¤
+        // Application.isPlaying Ã¼Å©, Ê±È­ Ï· ì¿¡ Ïµ
         if (SkillDataManager.Instance != null && SkillDataManager.Instance.IsInitialized)
         {
             if (skillData == null)
@@ -218,5 +218,37 @@ public abstract class Skill : MonoBehaviour
 
             Debug.Log($"Validated skill data for {skillData.metadata.Name}");
         }
+    }
+
+    public virtual MonoBehaviour GetOwner() => owner;
+    public virtual SkillType GetSkillType() => skillData?.metadata?.Type ?? SkillType.None;
+    public virtual ElementType GetElementType() => skillData?.metadata?.Element ?? ElementType.None;
+
+    public virtual void SetOwner(MonoBehaviour newOwner)
+    {
+        owner = newOwner;
+    }
+
+    public virtual void ApplyItemEffect(ISkillInteractionEffect effect)
+    {
+        effect.ModifySkillStats(this);
+    }
+
+    public virtual void RemoveItemEffect(ISkillInteractionEffect effect)
+    {
+        // íš¨ê³¼ ì œê±° ë¡œì§
+    }
+
+    public virtual void ModifyDamage(float multiplier)
+    {
+        if (skillData?.GetCurrentTypeStat()?.baseStat != null)
+        {
+            skillData.GetCurrentTypeStat().baseStat.damage *= multiplier;
+        }
+    }
+
+    public virtual void ModifyCooldown(float multiplier)
+    {
+        // ì¿¨ë‹¤ìš´ ìˆ˜ì • ë¡œì§ êµ¬í˜„
     }
 }

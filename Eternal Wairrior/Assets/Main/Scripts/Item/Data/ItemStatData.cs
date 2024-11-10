@@ -7,6 +7,7 @@ public class ItemStatData
     public string name;
     public ItemType type;
     public ItemRarity rarity;
+    public ElementType element;
     public float dropRate;
 
     // ±âº» ½ºÅÈ
@@ -17,8 +18,6 @@ public class ItemStatData
     public float attackSpeed;
     public float attackRange;
     public float hpRegen;
-    public float expGainRate;
-    public float goldGainRate;
 
     // Æ¯¼ö ½ºÅÈ
     public float criticalChance;
@@ -26,14 +25,6 @@ public class ItemStatData
     public float lifeSteal;
     public float reflectDamage;
     public float dodgeChance;
-
-    // ÀúÇ× ½ºÅÈ
-    public float fireResistance;
-    public float iceResistance;
-    public float lightningResistance;
-    public float poisonResistance;
-    public float stunResistance;
-    public float slowResistance;
 
     public List<StatContainer> ConvertToStatContainers()
     {
@@ -54,14 +45,6 @@ public class ItemStatData
         if (lifeSteal > 0) containers.Add(new StatContainer(StatType.LifeSteal, SourceType.Equipment_Weapon, IncreaseType.Add, lifeSteal));
         if (reflectDamage > 0) containers.Add(new StatContainer(StatType.ReflectDamage, SourceType.Equipment_Armor, IncreaseType.Add, reflectDamage));
         if (dodgeChance > 0) containers.Add(new StatContainer(StatType.DodgeChance, SourceType.Equipment_Accessory, IncreaseType.Add, dodgeChance));
-
-        // ÀúÇ× ½ºÅÈ
-        if (fireResistance > 0) containers.Add(new StatContainer(StatType.FireResistance, SourceType.Equipment_Armor, IncreaseType.Add, fireResistance));
-        if (iceResistance > 0) containers.Add(new StatContainer(StatType.IceResistance, SourceType.Equipment_Armor, IncreaseType.Add, iceResistance));
-        if (lightningResistance > 0) containers.Add(new StatContainer(StatType.LightningResistance, SourceType.Equipment_Armor, IncreaseType.Add, lightningResistance));
-        if (poisonResistance > 0) containers.Add(new StatContainer(StatType.PoisonResistance, SourceType.Equipment_Armor, IncreaseType.Add, poisonResistance));
-        if (stunResistance > 0) containers.Add(new StatContainer(StatType.StunResistance, SourceType.Equipment_Armor, IncreaseType.Add, stunResistance));
-        if (slowResistance > 0) containers.Add(new StatContainer(StatType.SlowResistance, SourceType.Equipment_Armor, IncreaseType.Add, slowResistance));
 
         return containers;
     }

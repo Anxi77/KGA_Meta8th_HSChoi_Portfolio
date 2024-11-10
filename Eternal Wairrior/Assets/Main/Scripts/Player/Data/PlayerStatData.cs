@@ -78,19 +78,19 @@ public class PlayerStatData : ScriptableObject
 
     public void AddPermanentStat(StatContainer stat)
     {
-        if (!permanentStats.ContainsKey(stat.buffType))
+        if (!permanentStats.ContainsKey(stat.sourceType))
         {
-            permanentStats[stat.buffType] = new List<StatContainer>();
+            permanentStats[stat.sourceType] = new List<StatContainer>();
             serializedPermanentStats.Add(new PermanentStatsList
             {
-                sourceType = stat.buffType,
+                sourceType = stat.sourceType,
                 stats = new List<StatContainer>()
             });
         }
 
-        permanentStats[stat.buffType].Add(stat);
+        permanentStats[stat.sourceType].Add(stat);
 
-        var serializedList = serializedPermanentStats.Find(x => x.sourceType == stat.buffType);
+        var serializedList = serializedPermanentStats.Find(x => x.sourceType == stat.sourceType);
         if (serializedList != null)
         {
             serializedList.stats.Add(stat);

@@ -2,9 +2,10 @@ using UnityEngine;
 
 public class AttackRegenUpgradeSkill : PermanentPassiveSkill
 {
-    protected override void ApplyEffectToPlayer(Player player)
+    public override void ApplyEffectToPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
 
         if (_damageIncrease > 0)
         {
@@ -19,9 +20,10 @@ public class AttackRegenUpgradeSkill : PermanentPassiveSkill
         }
     }
 
-    protected override void RemoveEffectFromPlayer(Player player)
+    public override void RemoveEffectFromPlayer(Player player)
     {
         var playerStat = player.GetComponent<PlayerStat>();
+        if (playerStat == null) return;
 
         if (_damageIncrease > 0)
         {
@@ -83,5 +85,5 @@ public class AttackRegenUpgradeSkill : PermanentPassiveSkill
 
     protected override string GetDefaultSkillName() => "Combat Mastery";
     protected override string GetDefaultDescription() => "Permanently increases attack damage and HP regeneration rate";
-    protected override SkillType GetSkillType() => SkillType.Passive;
+    public override SkillType GetSkillType() => SkillType.Passive;
 }

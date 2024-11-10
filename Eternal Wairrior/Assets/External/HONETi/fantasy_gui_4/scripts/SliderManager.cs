@@ -1,26 +1,42 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
-public class SliderManager : MonoBehaviour {
-	Slider sliderComp;
-	public bool noDecimals;
+public class SliderManager : MonoBehaviour
+{
+    private Slider sliderComp;
+    public bool noDecimals;
 
-	void Start () {
-		sliderComp = GetComponent<Slider> ();
-	}
+    void Awake()
+    {
+        sliderComp = GetComponent<Slider>();
+        if (sliderComp == null)
+        {
+            Debug.LogError("Slider component not found on " + gameObject.name);
+        }
+    }
 
-	public void SliderValueChange(Text textComponent){
-		if (noDecimals == false) {
-			textComponent.text = sliderComp.value.ToString ("F1");
-		} else {
-			textComponent.text = sliderComp.value.ToString ("N0");
-		}
-	}
+    public void SliderValueChange(Text textComponent)
+    {
+        if (sliderComp == null || textComponent == null)
+        {
+            Debug.LogWarning($"Missing references in SliderManager on {gameObject.name}");
+            return;
+        }
 
-	void Update () {
-		
-	}
+        try
+        {
+            if (noDecimals)
+            {
+                textComponent.text = sliderComp.value.ToString("N0");
+            }
+            else
+            {
+                textComponent.text = sliderComp.value.ToString("F1");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error in SliderValueChange: {e.Message}");
+        }
+    }
 }

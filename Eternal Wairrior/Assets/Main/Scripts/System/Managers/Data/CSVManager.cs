@@ -95,8 +95,9 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
             // 파일 저장
             File.WriteAllText(fullPath, csv.ToString());
             Debug.Log($"Successfully saved {count} entries to {fullPath}");
-
+#if UNITY_EDITOR
             AssetDatabase.Refresh();
+#endif
         }
         catch (System.Exception e)
         {
@@ -210,7 +211,9 @@ public class CSVManager<T> : IDataManager<T> where T : class, new()
             {
                 File.WriteAllText(fullPath, headers + "\n");  // 새 줄 문자 추가
                 Debug.Log($"Created new CSV file: {fullPath}");
+#if UNITY_EDITOR
                 AssetDatabase.Refresh();
+#endif
             }
         }
         catch (System.Exception e)

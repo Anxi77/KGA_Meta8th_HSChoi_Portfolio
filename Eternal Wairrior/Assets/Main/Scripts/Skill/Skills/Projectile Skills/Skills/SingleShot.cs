@@ -50,6 +50,7 @@ public class SingleShot : ProjectileSkills
         if (proj != null)
         {
             InitializeProjectile(proj);
+            proj.SetDirection(fireDir);
         }
     }
 
@@ -75,5 +76,5 @@ public class SingleShot : ProjectileSkills
     protected override string GetDefaultSkillName() => "Default Gun";
     protected override string GetDefaultDescription() => "Basic projectile attack that fires single shots";
 
-    protected override SkillType GetSkillType() => SkillType.Projectile;
+    public override SkillType GetSkillType() => SkillType.Projectile;
 }

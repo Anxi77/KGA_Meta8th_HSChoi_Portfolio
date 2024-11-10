@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.U2D.Sprites;
 
@@ -233,3 +234,4 @@ public class SPUM_SpriteEditManager : MonoBehaviour
     }
 #endif
 }
+#endif
