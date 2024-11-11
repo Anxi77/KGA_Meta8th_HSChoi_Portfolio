@@ -21,10 +21,10 @@
                 "itemType": 1,
                 "possibleStats": [
                     {
-                        "statType": 3,
+                        "statType": 0,
                         "minValue": 1.0,
-                        "maxValue": 11.0,
-                        "weight": 1.0,
+                        "maxValue": 6.0,
+                        "weight": 0.4659999907016754,
                         "minRarity": 0,
                         "increaseType": 0,
                         "sourceType": 5
@@ -62,48 +62,6 @@
                         ]
                     }
                 ],
-                "minEffectCount": 1,
-                "maxEffectCount": 3
-            },
-            "effectTypes": []
-        },
-        {
-            "metadata": {
-                "ID": "sword_01",
-                "Name": "Basic Sword",
-                "Description": "A simple sword",
-                "Type": 1,
-                "Rarity": 0,
-                "Element": 0,
-                "MaxStack": 1,
-                "DropRate": 0.10000000149011612,
-                "MinAmount": 1,
-                "MaxAmount": 1,
-                "baseStatTypes": [],
-                "iconPath": "",
-                "iconGuid": ""
-            },
-            "statRanges": {
-                "itemId": "sword_01",
-                "itemType": 1,
-                "possibleStats": [
-                    {
-                        "statType": 3,
-                        "minValue": 5.0,
-                        "maxValue": 10.0,
-                        "weight": 1.0,
-                        "minRarity": 0,
-                        "increaseType": 0,
-                        "sourceType": 5
-                    }
-                ],
-                "minStatCount": 1,
-                "maxStatCount": 3
-            },
-            "effectRanges": {
-                "itemId": "",
-                "itemType": 0,
-                "possibleEffects": [],
                 "minEffectCount": 1,
                 "maxEffectCount": 3
             },

@@ -12,7 +12,19 @@
                 }
             ],
             "guaranteedDropRate": 1.0,
-            "maxDrops": 1
+            "maxDrops": 2
+        },
+        {
+            "enemyType": 2,
+            "dropEntries": [],
+            "guaranteedDropRate": 0.30000001192092898,
+            "maxDrops": 3
+        },
+        {
+            "enemyType": 4,
+            "dropEntries": [],
+            "guaranteedDropRate": 1.0,
+            "maxDrops": 5
         }
     ]
 }
